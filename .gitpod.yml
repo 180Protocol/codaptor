@@ -4,3 +4,7 @@ image:
 tasks:
   - init: 'echo "TODO: Replace with init/build command"'
     command: 'echo "TODO: Replace with command to start project"'
+
+vscode:
+  extensions:
+    - mathiasfrohlich.Kotlin@1.7.1:zRxka5i+6/G9r7KC3xmyXQ==
