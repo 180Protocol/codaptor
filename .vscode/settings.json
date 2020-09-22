@@ -1,0 +1,16 @@
+{
+  "editor.detectIndentation": false,
+  "editor.insertSpaces": true,
+  "editor.tabSize": 2,
+  "files.exclude": {
+    ".git": true,
+    ".gradle": true,
+  },
+  "java.configuration.runtimes": [
+    {
+      "name": "JavaSE-1.8",
+      "path": "/home/gitpod/.sdkman/candidates/java/8.0.265-open",
+    },
+  ],
+  "java.configuration.updateBuildConfiguration": "interactive"
+}
