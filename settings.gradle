@@ -8,3 +8,5 @@
  */
 
 rootProject.name = 'corda-connector'
+
+koin_version = "2.1.6"
