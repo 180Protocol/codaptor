@@ -1,0 +1,166 @@
+[INFO ] 2020-09-25T09:47:15,043Z [Test worker] internal.TestCordappImpl. - Generating CorDapp jar from local project in C:\Work\Bond180\corda-connector\corda-service ... {}
+[INFO ] 2020-09-25T09:47:15,132Z [Connection worker] internal.TestCordappImpl. - Build {}
+[INFO ] 2020-09-25T09:47:15,947Z [Connection worker] internal.TestCordappImpl. - Starting Gradle Daemon {}
+[INFO ] 2020-09-25T09:47:17,143Z [Connection worker] internal.TestCordappImpl. - Connecting to Gradle Daemon {}
+[INFO ] 2020-09-25T09:47:17,151Z [Connection worker] internal.TestCordappImpl. - Starting Gradle Daemon {}
+[INFO ] 2020-09-25T09:47:17,151Z [Connection worker] internal.TestCordappImpl. - Build {}
+[INFO ] 2020-09-25T09:47:17,667Z [Connection worker] internal.TestCordappImpl. - Run build {}
+[INFO ] 2020-09-25T09:47:17,677Z [Connection worker] internal.TestCordappImpl. - Evaluate settings {}
+[INFO ] 2020-09-25T09:47:18,178Z [Connection worker] internal.TestCordappImpl. - Run build {}
+[INFO ] 2020-09-25T09:47:18,178Z [Connection worker] internal.TestCordappImpl. - Configure build {}
+[INFO ] 2020-09-25T09:47:18,178Z [Connection worker] internal.TestCordappImpl. - Load projects {}
+[INFO ] 2020-09-25T09:47:18,261Z [Connection worker] internal.TestCordappImpl. - Configure build {}
+[INFO ] 2020-09-25T09:47:18,272Z [Connection worker] internal.TestCordappImpl. - Configure project : {}
+[INFO ] 2020-09-25T09:47:18,441Z [Connection worker] internal.TestCordappImpl. - Resolve dependencies of detachedConfiguration1 {}
+[INFO ] 2020-09-25T09:47:18,620Z [Connection worker] internal.TestCordappImpl. - Configure project : {}
+[INFO ] 2020-09-25T09:47:18,641Z [Connection worker] internal.TestCordappImpl. - Resolve dependencies of :classpath {}
+[INFO ] 2020-09-25T09:47:18,672Z [Connection worker] internal.TestCordappImpl. - Configure project : {}
+[INFO ] 2020-09-25T09:47:18,672Z [Connection worker] internal.TestCordappImpl. - Resolve files of :classpath {}
+[INFO ] 2020-09-25T09:47:18,726Z [Connection worker] internal.TestCordappImpl. - Configure project : {}
+[INFO ] 2020-09-25T09:47:18,736Z [Connection worker] internal.TestCordappImpl. - Resolve files of :classpath {}
+[INFO ] 2020-09-25T09:47:18,736Z [Connection worker] internal.TestCordappImpl. - Configure project : {}
+[INFO ] 2020-09-25T09:47:19,331Z [Connection worker] internal.TestCordappImpl. - Configure build {}
+[INFO ] 2020-09-25T09:47:19,331Z [Connection worker] internal.TestCordappImpl. - Configure project :bundle-rest-embedded {}
+[INFO ] 2020-09-25T09:47:19,372Z [Connection worker] internal.TestCordappImpl. - Configure build {}
+[INFO ] 2020-09-25T09:47:19,372Z [Connection worker] internal.TestCordappImpl. - Configure project :bundle-rest-standalone {}
+[INFO ] 2020-09-25T09:47:19,404Z [Connection worker] internal.TestCordappImpl. - Configure build {}
+[INFO ] 2020-09-25T09:47:19,404Z [Connection worker] internal.TestCordappImpl. - Configure project :corda-bindings {}
+[INFO ] 2020-09-25T09:47:19,425Z [Connection worker] internal.TestCordappImpl. - Configure build {}
+[INFO ] 2020-09-25T09:47:19,425Z [Connection worker] internal.TestCordappImpl. - Configure project :corda-rpc-client {}
+[INFO ] 2020-09-25T09:47:19,457Z [Connection worker] internal.TestCordappImpl. - Configure build {}
+[INFO ] 2020-09-25T09:47:19,457Z [Connection worker] internal.TestCordappImpl. - Configure project :corda-service {}
+[INFO ] 2020-09-25T09:47:19,520Z [Connection worker] internal.TestCordappImpl. - Configure build {}
+[INFO ] 2020-09-25T09:47:19,520Z [Connection worker] internal.TestCordappImpl. - Configure project :kernel {}
+[INFO ] 2020-09-25T09:47:19,553Z [Connection worker] internal.TestCordappImpl. - Configure build {}
+[INFO ] 2020-09-25T09:47:19,553Z [Connection worker] internal.TestCordappImpl. - Configure project :rest-endpoint {}
+[INFO ] 2020-09-25T09:47:19,584Z [Connection worker] internal.TestCordappImpl. - Configure build {}
+[INFO ] 2020-09-25T09:47:19,584Z [Connection worker] internal.TestCordappImpl. - Run build {}
+[INFO ] 2020-09-25T09:47:19,764Z [Connection worker] internal.TestCordappImpl. - Resolve dependencies of :corda-service:kotlinCompilerClasspath {}
+[INFO ] 2020-09-25T09:47:19,837Z [Connection worker] internal.TestCordappImpl. - Run build {}
+[INFO ] 2020-09-25T09:47:19,837Z [Connection worker] internal.TestCordappImpl. - Resolve files of :corda-service:kotlinCompilerClasspath {}
+[INFO ] 2020-09-25T09:47:19,847Z [Connection worker] internal.TestCordappImpl. - Run build {}
+[INFO ] 2020-09-25T09:47:19,857Z [Connection worker] internal.TestCordappImpl. - Resolve dependencies of :kernel:kotlinCompilerClasspath {}
+[INFO ] 2020-09-25T09:47:19,857Z [Connection worker] internal.TestCordappImpl. - Run build {}
+[INFO ] 2020-09-25T09:47:19,857Z [Connection worker] internal.TestCordappImpl. - Resolve files of :kernel:kotlinCompilerClasspath {}
+[INFO ] 2020-09-25T09:47:19,857Z [Connection worker] internal.TestCordappImpl. - Run build {}
+[INFO ] 2020-09-25T09:47:19,868Z [Connection worker] internal.TestCordappImpl. - Run tasks {}
+[INFO ] 2020-09-25T09:47:19,898Z [Connection worker] internal.TestCordappImpl. - Task :kernel:compileKotlin {}
+[INFO ] 2020-09-25T09:47:19,898Z [Connection worker] internal.TestCordappImpl. - Resolve files of :kernel:kotlinCompilerClasspath {}
+[INFO ] 2020-09-25T09:47:19,898Z [Connection worker] internal.TestCordappImpl. - Task :kernel:compileKotlin {}
+[INFO ] 2020-09-25T09:47:19,941Z [Connection worker] internal.TestCordappImpl. - Resolve dependencies of :kernel:kotlinCompilerPluginClasspath {}
+[INFO ] 2020-09-25T09:47:19,941Z [Connection worker] internal.TestCordappImpl. - Task :kernel:compileKotlin {}
+[INFO ] 2020-09-25T09:47:19,941Z [Connection worker] internal.TestCordappImpl. - Resolve files of :kernel:kotlinCompilerPluginClasspath {}
+[INFO ] 2020-09-25T09:47:19,941Z [Connection worker] internal.TestCordappImpl. - Task :kernel:compileKotlin {}
+[INFO ] 2020-09-25T09:47:19,941Z [Connection worker] internal.TestCordappImpl. - Resolve dependencies of :kernel:compileClasspath {}
+[INFO ] 2020-09-25T09:47:19,963Z [Connection worker] internal.TestCordappImpl. - Task :kernel:compileKotlin {}
+[INFO ] 2020-09-25T09:47:19,963Z [Connection worker] internal.TestCordappImpl. - Resolve files of :kernel:compileClasspath {}
+[INFO ] 2020-09-25T09:47:19,963Z [Connection worker] internal.TestCordappImpl. - Task :kernel:compileKotlin {}
+[INFO ] 2020-09-25T09:47:20,334Z [Connection worker] internal.TestCordappImpl. - Resolve files of :kernel:compileClasspath {}
+[INFO ] 2020-09-25T09:47:20,344Z [Connection worker] internal.TestCordappImpl. - Task :kernel:compileKotlin {}
+[INFO ] 2020-09-25T09:47:20,344Z [Connection worker] internal.TestCordappImpl. - Resolve files of :kernel:kotlinCompilerPluginClasspath {}
+[INFO ] 2020-09-25T09:47:20,344Z [Connection worker] internal.TestCordappImpl. - Task :kernel:compileKotlin {}
+[INFO ] 2020-09-25T09:47:20,344Z [Connection worker] internal.TestCordappImpl. - Resolve dependencies of :kernel:kotlinScriptDefExtensions {}
+[INFO ] 2020-09-25T09:47:20,355Z [Connection worker] internal.TestCordappImpl. - Task :kernel:compileKotlin {}
+[INFO ] 2020-09-25T09:47:20,355Z [Connection worker] internal.TestCordappImpl. - Resolve files of :kernel:kotlinScriptDefExtensions {}
+[INFO ] 2020-09-25T09:47:20,355Z [Connection worker] internal.TestCordappImpl. - Resolve dependencies of :kernel:kotlinScriptDef {}
+[INFO ] 2020-09-25T09:47:20,355Z [Connection worker] internal.TestCordappImpl. - Resolve files of :kernel:kotlinScriptDefExtensions {}
+[INFO ] 2020-09-25T09:47:20,355Z [Connection worker] internal.TestCordappImpl. - Task :kernel:compileKotlin {}
+[INFO ] 2020-09-25T09:47:20,376Z [Connection worker] internal.TestCordappImpl. - Run tasks {}
+[INFO ] 2020-09-25T09:47:20,376Z [Connection worker] internal.TestCordappImpl. - Task :kernel:compileJava {}
+[INFO ] 2020-09-25T09:47:20,376Z [Connection worker] internal.TestCordappImpl. - Run tasks {}
+[INFO ] 2020-09-25T09:47:20,376Z [Connection worker] internal.TestCordappImpl. - Task :kernel:processResources {}
+[INFO ] 2020-09-25T09:47:20,376Z [Connection worker] internal.TestCordappImpl. - Run tasks {}
+[INFO ] 2020-09-25T09:47:20,376Z [Connection worker] internal.TestCordappImpl. - Task :kernel:classes {}
+[INFO ] 2020-09-25T09:47:20,376Z [Connection worker] internal.TestCordappImpl. - Run tasks {}
+[INFO ] 2020-09-25T09:47:20,376Z [Connection worker] internal.TestCordappImpl. - Task :kernel:inspectClassesForKotlinIC {}
+[INFO ] 2020-09-25T09:47:20,387Z [Connection worker] internal.TestCordappImpl. - Run tasks {}
+[INFO ] 2020-09-25T09:47:20,387Z [Connection worker] internal.TestCordappImpl. - Task :kernel:jar {}
+[INFO ] 2020-09-25T09:47:20,398Z [Connection worker] internal.TestCordappImpl. - Run tasks {}
+[INFO ] 2020-09-25T09:47:20,398Z [Connection worker] internal.TestCordappImpl. - Task :corda-service:compileKotlin {}
+[INFO ] 2020-09-25T09:47:20,398Z [Connection worker] internal.TestCordappImpl. - Resolve files of :corda-service:kotlinCompilerClasspath {}
+[INFO ] 2020-09-25T09:47:20,398Z [Connection worker] internal.TestCordappImpl. - Task :corda-service:compileKotlin {}
+[INFO ] 2020-09-25T09:47:20,398Z [Connection worker] internal.TestCordappImpl. - Resolve dependencies of :corda-service:kotlinCompilerPluginClasspath {}
+[INFO ] 2020-09-25T09:47:20,398Z [Connection worker] internal.TestCordappImpl. - Task :corda-service:compileKotlin {}
+[INFO ] 2020-09-25T09:47:20,398Z [Connection worker] internal.TestCordappImpl. - Resolve files of :corda-service:kotlinCompilerPluginClasspath {}
+[INFO ] 2020-09-25T09:47:20,398Z [Connection worker] internal.TestCordappImpl. - Task :corda-service:compileKotlin {}
+[INFO ] 2020-09-25T09:47:20,398Z [Connection worker] internal.TestCordappImpl. - Resolve dependencies of :corda-service:compileClasspath {}
+[INFO ] 2020-09-25T09:47:20,652Z [Connection worker] internal.TestCordappImpl. - Task :corda-service:compileKotlin {}
+[INFO ] 2020-09-25T09:47:20,652Z [Connection worker] internal.TestCordappImpl. - Resolve files of :corda-service:compileClasspath {}
+[INFO ] 2020-09-25T09:47:20,652Z [Connection worker] internal.TestCordappImpl. - Task :corda-service:compileKotlin {}
+[INFO ] 2020-09-25T09:47:20,662Z [Connection worker] internal.TestCordappImpl. - Resolve files of :corda-service:compileClasspath {}
+[INFO ] 2020-09-25T09:47:20,672Z [Connection worker] internal.TestCordappImpl. - Task :corda-service:compileKotlin {}
+[INFO ] 2020-09-25T09:47:20,672Z [Connection worker] internal.TestCordappImpl. - Resolve files of :corda-service:kotlinCompilerPluginClasspath {}
+[INFO ] 2020-09-25T09:47:20,672Z [Connection worker] internal.TestCordappImpl. - Task :corda-service:compileKotlin {}
+[INFO ] 2020-09-25T09:47:20,682Z [Connection worker] internal.TestCordappImpl. - Resolve dependencies of :corda-service:kotlinScriptDefExtensions {}
+[INFO ] 2020-09-25T09:47:20,682Z [Connection worker] internal.TestCordappImpl. - Task :corda-service:compileKotlin {}
+[INFO ] 2020-09-25T09:47:20,682Z [Connection worker] internal.TestCordappImpl. - Resolve files of :corda-service:kotlinScriptDefExtensions {}
+[INFO ] 2020-09-25T09:47:20,682Z [Connection worker] internal.TestCordappImpl. - Resolve dependencies of :corda-service:kotlinScriptDef {}
+[INFO ] 2020-09-25T09:47:20,682Z [Connection worker] internal.TestCordappImpl. - Resolve files of :corda-service:kotlinScriptDefExtensions {}
+[INFO ] 2020-09-25T09:47:20,682Z [Connection worker] internal.TestCordappImpl. - Task :corda-service:compileKotlin {}
+[INFO ] 2020-09-25T09:47:20,682Z [Connection worker] internal.TestCordappImpl. - Run tasks {}
+[INFO ] 2020-09-25T09:47:20,682Z [Connection worker] internal.TestCordappImpl. - Task :corda-service:compileJava {}
+[INFO ] 2020-09-25T09:47:20,692Z [Connection worker] internal.TestCordappImpl. - Run tasks {}
+[INFO ] 2020-09-25T09:47:20,692Z [Connection worker] internal.TestCordappImpl. - Task :corda-service:processResources {}
+[INFO ] 2020-09-25T09:47:20,703Z [Connection worker] internal.TestCordappImpl. - Run tasks {}
+[INFO ] 2020-09-25T09:47:20,703Z [Connection worker] internal.TestCordappImpl. - Task :corda-service:classes {}
+[INFO ] 2020-09-25T09:47:20,703Z [Connection worker] internal.TestCordappImpl. - Run tasks {}
+[INFO ] 2020-09-25T09:47:20,703Z [Connection worker] internal.TestCordappImpl. - Task :corda-service:inspectClassesForKotlinIC {}
+[INFO ] 2020-09-25T09:47:20,713Z [Connection worker] internal.TestCordappImpl. - Run tasks {}
+[INFO ] 2020-09-25T09:47:20,713Z [Connection worker] internal.TestCordappImpl. - Task :corda-service:jar {}
+[INFO ] 2020-09-25T09:47:20,723Z [Connection worker] internal.TestCordappImpl. - Run tasks {}
+[INFO ] 2020-09-25T09:47:20,734Z [Connection worker] internal.TestCordappImpl. - Run build {}
+[INFO ] 2020-09-25T09:47:20,734Z [Connection worker] internal.TestCordappImpl. - Build model 'java.lang.Void' for project ':corda-service' {}
+[INFO ] 2020-09-25T09:47:20,734Z [Connection worker] internal.TestCordappImpl. - Run build {}
+[INFO ] 2020-09-25T09:47:20,739Z [Connection worker] internal.TestCordappImpl. - Build {}
+[INFO ] 2020-09-25T09:47:20,756Z [Connection worker] internal.TestCordappImpl. - Deleting unused version-specific caches in C:\Work\Bond180\corda-connector\.gradle {}
+[INFO ] 2020-09-25T09:47:20,756Z [Connection worker] internal.TestCordappImpl. - Build {}
+[INFO ] 2020-09-25T09:47:20,781Z [Connection worker] internal.TestCordappImpl. -  {}
+[INFO ] 2020-09-25T09:47:23,077Z [Test worker] cordapp.JarScanningCordappLoader. - Looking for CorDapps in [build\mock-network\20200925-094714.572\nodes\0\cordapps] {}
+[INFO ] 2020-09-25T09:47:23,080Z [Test worker] cordapp.JarScanningCordappLoader. - Loading CorDapps from RestrictedURL(url=file:/C:/Work/Bond180/corda-connector/corda-service/build/mock-network/20200925-094714.572/nodes/0/cordapps/corda-service-0.0.1-SNAPSHOT.jar, rootPackageName=null) {}
+[INFO ] 2020-09-25T09:47:23,088Z [Test worker] cordapp.JarScanningCordappLoader. - Scanning CorDapp in file:/C:/Work/Bond180/corda-connector/corda-service/build/mock-network/20200925-094714.572/nodes/0/cordapps/corda-service-0.0.1-SNAPSHOT.jar {}
+[INFO ] 2020-09-25T09:47:23,427Z [Test worker] internal.InternalMockNetwork$MockNode. - MessagingService active change to: false {}
+[INFO ] 2020-09-25T09:47:23,488Z [Test worker] internal.InternalMockNetwork$MockNode. - Flow external operation executor has a max of 2 threads {}
+[INFO ] 2020-09-25T09:47:23,507Z [Test worker] internal.InternalMockNetwork$MockNode. - Node starting up ... {}
+[INFO ] 2020-09-25T09:47:23,627Z [Test worker] internal.InternalMockNetwork$MockNode. - Loaded network parameters: NetworkParameters {
+      minimumPlatformVersion=1
+      notaries=[NotaryInfo(identity=O=Notary Service, L=Zurich, C=CH, validating=true)]
+      maxMessageSize=10485760
+      maxTransactionSize=524288000
+      whitelistedContractImplementations {
+        
+      }
+      eventHorizon=PT720H
+      packageOwnership {
+        
+      }
+      modifiedTime=2020-09-25T09:47:14.550Z
+      epoch=1
+  } {}
+[INFO ] 2020-09-25T09:47:26,385Z [Test worker] persistence.AttachmentVersionNumberMigration. - Start executing... {changeSet=migration/node-services.changelog-init.xml::update-version-of-whitelisted-jars::R3.Corda, databaseChangeLog=master.changelog.json}
+[INFO ] 2020-09-25T09:47:26,387Z [Test worker] persistence.AttachmentVersionNumberMigration. - Attachment version creation from whitelisted JARs using network parameters from build\mock-network\20200925-094714.572\nodes\0\network-parameters, whitelistedContractImplementations: {}. {changeSet=migration/node-services.changelog-init.xml::update-version-of-whitelisted-jars::R3.Corda, databaseChangeLog=master.changelog.json}
+[INFO ] 2020-09-25T09:47:26,387Z [Test worker] persistence.AttachmentVersionNumberMigration. - Attachment version creation from whitelisted JARs skipped, no attachments not found. {changeSet=migration/node-services.changelog-init.xml::update-version-of-whitelisted-jars::R3.Corda, databaseChangeLog=master.changelog.json}
+[INFO ] 2020-09-25T09:47:26,418Z [Test worker] migration.VaultStateMigration. - Migrating vault state data to V4 tables {changeSet=migration/vault-schema.changelog-v9.xml::update-vault-states::R3.Corda, databaseChangeLog=master.changelog.json}
+[INFO ] 2020-09-25T09:47:26,473Z [Test worker] persistence.HibernateConfiguration. - Init HibernateConfiguration for schemas: [VaultMigrationSchemaV1(name=net.corda.node.migration.VaultMigrationSchema, version=1), VaultSchemaV1(name=net.corda.node.services.vault.VaultSchema, version=1)] {changeSet=migration/vault-schema.changelog-v9.xml::update-vault-states::R3.Corda, databaseChangeLog=master.changelog.json}
+[INFO ] 2020-09-25T09:47:26,477Z [Test worker] factory.BaseSessionFactoryFactory. - Creating session factory for schemas: [VaultMigrationSchemaV1(name=net.corda.node.migration.VaultMigrationSchema, version=1), VaultSchemaV1(name=net.corda.node.services.vault.VaultSchema, version=1)] {changeSet=migration/vault-schema.changelog-v9.xml::update-vault-states::R3.Corda, databaseChangeLog=master.changelog.json}
+[INFO ] 2020-09-25T09:47:27,585Z [Test worker] factory.BaseSessionFactoryFactory. - Created session factory for schemas: [VaultMigrationSchemaV1(name=net.corda.node.migration.VaultMigrationSchema, version=1), VaultSchemaV1(name=net.corda.node.services.vault.VaultSchema, version=1)] {changeSet=migration/vault-schema.changelog-v9.xml::update-vault-states::R3.Corda, databaseChangeLog=master.changelog.json}
+[INFO ] 2020-09-25T09:47:27,860Z [Test worker] migration.VaultStateMigration. - Finished performing vault state data migration for 0 states {changeSet=migration/vault-schema.changelog-v9.xml::update-vault-states::R3.Corda, databaseChangeLog=master.changelog.json}
+[INFO ] 2020-09-25T09:47:27,862Z [Test worker] migration.PersistentIdentityMigrationNewTable. - Migrating persistent identities with certificates table into persistent table with no certificate data. {changeSet=migration/node-services.changelog-init.xml::transfer-to-new-persistence-table::R3.Corda, databaseChangeLog=master.changelog.json}
+[INFO ] 2020-09-25T09:47:27,866Z [Test worker] persistence.HibernateConfiguration. - Init HibernateConfiguration for schemas: [MappedSchema(name=net.corda.node.migration.PersistentIdentitiesMigrationSchema, version=1)] {changeSet=migration/node-services.changelog-init.xml::transfer-to-new-persistence-table::R3.Corda, databaseChangeLog=master.changelog.json}
+[INFO ] 2020-09-25T09:47:27,866Z [Test worker] factory.BaseSessionFactoryFactory. - Creating session factory for schemas: [MappedSchema(name=net.corda.node.migration.PersistentIdentitiesMigrationSchema, version=1)] {changeSet=migration/node-services.changelog-init.xml::transfer-to-new-persistence-table::R3.Corda, databaseChangeLog=master.changelog.json}
+[INFO ] 2020-09-25T09:47:27,938Z [Test worker] factory.BaseSessionFactoryFactory. - Created session factory for schemas: [MappedSchema(name=net.corda.node.migration.PersistentIdentitiesMigrationSchema, version=1)] {changeSet=migration/node-services.changelog-init.xml::transfer-to-new-persistence-table::R3.Corda, databaseChangeLog=master.changelog.json}
+[INFO ] 2020-09-25T09:47:27,975Z [Test worker] internal.InternalMockNetwork$MockNode. - Connected to H2 database. {}
+[INFO ] 2020-09-25T09:47:27,993Z [Test worker] persistence.HibernateConfiguration. - Init HibernateConfiguration for schemas: [CommonSchemaV1(name=net.corda.core.schemas.CommonSchema, version=1), VaultSchemaV1(name=net.corda.node.services.vault.VaultSchema, version=1), NodeInfoSchemaV1(name=net.corda.node.internal.schemas.NodeInfoSchema, version=1), NodeCoreV1(name=net.corda.node.services.schema.NodeSchemaService$NodeCore, version=1), NodeNotarySchemaV1(name=net.corda.node.services.transactions.NodeNotarySchema, version=1)] {}
+[INFO ] 2020-09-25T09:47:27,993Z [Test worker] factory.BaseSessionFactoryFactory. - Creating session factory for schemas: [CommonSchemaV1(name=net.corda.core.schemas.CommonSchema, version=1), VaultSchemaV1(name=net.corda.node.services.vault.VaultSchema, version=1), NodeInfoSchemaV1(name=net.corda.node.internal.schemas.NodeInfoSchema, version=1), NodeCoreV1(name=net.corda.node.services.schema.NodeSchemaService$NodeCore, version=1), NodeNotarySchemaV1(name=net.corda.node.services.transactions.NodeNotarySchema, version=1)] {}
+[INFO ] 2020-09-25T09:47:28,171Z [Test worker] factory.BaseSessionFactoryFactory. - Created session factory for schemas: [CommonSchemaV1(name=net.corda.core.schemas.CommonSchema, version=1), VaultSchemaV1(name=net.corda.node.services.vault.VaultSchema, version=1), NodeInfoSchemaV1(name=net.corda.node.internal.schemas.NodeInfoSchema, version=1), NodeCoreV1(name=net.corda.node.services.schema.NodeSchemaService$NodeCore, version=1), NodeNotarySchemaV1(name=net.corda.node.services.transactions.NodeNotarySchema, version=1)] {}
+[INFO ] 2020-09-25T09:47:28,181Z [Test worker] internal.InternalMockNetwork$MockNode. - Node-info has changed so submitting update. Old node-info was null {}
+[INFO ] 2020-09-25T09:47:28,182Z [Test worker] network.PersistentNetworkMapCache. - Adding node with info: NodeInfo(addresses=[mock.node:1000], legalIdentitiesAndCerts=[O=Notary Service, L=Zurich, C=CH], platformVersion=7, serial=1601027248181) {}
+[INFO ] 2020-09-25T09:47:28,185Z [Test worker] network.PersistentNetworkMapCache. - No previous node found for O=Notary Service, L=Zurich, C=CH {}
+[INFO ] 2020-09-25T09:47:28,285Z [Test worker] internal.InternalMockNetwork$MockNode. - New node-info: NodeInfo(addresses=[mock.node:1000], legalIdentitiesAndCerts=[O=Notary Service, L=Zurich, C=CH], platformVersion=7, serial=1601027248181) {}
+[INFO ] 2020-09-25T09:47:28,318Z [Test worker] network.NetworkMapUpdater. - Auto-accept enabled for network parameter changes which modify only: [epoch, modifiedTime, packageOwnership, whitelistedContractImplementations] {}
+[INFO ] 2020-09-25T09:47:28,326Z [Test worker] internal.MockNodeMessagingService. - Status change to true {}
+[INFO ] 2020-09-25T09:47:28,327Z [Test worker] internal.InternalMockNetwork$MockNode. - MessagingService active change to: true {}
+[INFO ] 2020-09-25T09:47:28,332Z [MockNode-1-2] network.PersistentNetworkMapCache. - Adding node with info: NodeInfo(addresses=[mock.node:1000], legalIdentitiesAndCerts=[O=Notary Service, L=Zurich, C=CH], platformVersion=7, serial=1601027248181) {}
+[INFO ] 2020-09-25T09:47:28,348Z [MockNode-1-2] network.PersistentNetworkMapCache. - Previous node was identical to incoming one - doing nothing {}
+[INFO ] 2020-09-25T09:47:28,386Z [Test worker] internal.InternalMockNetwork$MockNode. - Installed tech.b180.cordaptor.corda.service.CordaptorService Corda service {}
+[INFO ] 2020-09-25T09:47:28,387Z [Test worker] utilities.NotaryLoader. - Starting notary service: class net.corda.node.services.transactions.SimpleNotaryService {}
+[INFO ] 2020-09-25T09:47:28,389Z [Test worker] notary.SinglePartyNotaryService. - Starting notary in validating mode {}

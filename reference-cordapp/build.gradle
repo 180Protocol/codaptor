@@ -1,0 +1,50 @@
+apply plugin: 'org.jetbrains.kotlin.jvm'
+apply plugin: 'net.corda.plugins.cordapp'
+
+cordapp {
+    targetPlatformVersion 7
+    minimumPlatformVersion 7
+    workflow {
+        name "cordaptor-reference"
+        vendor "B180"
+        versionId 1
+    }
+    signing {
+        enabled false
+    }
+}
+
+repositories {
+    flatDir {
+        dirs 'lib'
+    }
+}
+
+configurations {
+    compile.exclude group: 'co.paralleluniverse'
+}
+
+tasks.withType(Test) {
+    jvmArgs += "-Xmx2g" // OOMs unless enough memory is given
+    jvmArgs += "-javaagent:lib/quasar.jar"
+    jvmArgs += "-Dnet.corda.client.rpc.trackRpcCallSites=true"
+}
+
+dependencies {
+    implementation project(":kernel")
+
+    runtimeOnly name: 'quasar'
+
+    compileOnly "net.corda:corda-core:$corda_core_release_version"
+    compileOnly "net.corda:corda-node-api:$corda_core_release_version"
+    compileOnly "net.corda:corda-node:$corda_core_release_version"
+
+    testCompile "net.corda:corda-node-driver:$corda_core_release_version"
+
+    implementation "org.koin:koin-core:$koin_version"
+    testImplementation "org.koin:koin-test:$koin_version"
+
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
+    testImplementation 'org.jetbrains.kotlin:kotlin-test'
+    testImplementation 'org.jetbrains.kotlin:kotlin-test-junit'
+}
