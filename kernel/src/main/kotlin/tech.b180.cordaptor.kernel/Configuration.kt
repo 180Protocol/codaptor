@@ -3,6 +3,21 @@ package tech.b180.cordaptor.kernel
 import org.koin.core.scope.Scope
 import java.net.InetSocketAddress
 
+/**
+ * Inter-module dependencies that could be wrapped by a decorator (e.g for caching)
+ * may use these constants to differenciate between inner implementation and potentially
+ * wrapped instance that should be used by the ultimate consumer
+ */
+enum class Tier {
+  /** Inner implementation offering basic features directly interfacing with the underlying mechanisms */
+  INNER,
+  /** Outer implementation adding further features that is intended to be used by the API endpoint */
+  OUTER
+}
+
+/**
+ * Container for a parsed configuration option for a network socket address
+ */
 data class HostAndPort(val hostname: String, val port: Int) {
   val socketAddress : InetSocketAddress
   get() = InetSocketAddress(hostname, port)
@@ -22,6 +37,14 @@ fun Scope.getTokenizedProperty(name: String, delimiter: String = ","): List<Stri
  */
 fun Scope.getIntegerProperty(name: String): Int {
   return Integer.parseInt(getProperty(name))
+}
+
+/**
+ * Helper method allowing Koin definitions to request Koin to resolve
+ * a property and then treat it as a boolean value.
+ */
+fun Scope.getBooleanProperty(name: String): Boolean {
+  return getProperty(name).toBoolean()
 }
 
 fun Scope.getHostAndPortProperty(name: String): HostAndPort {

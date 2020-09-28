@@ -3,5 +3,5 @@ apply plugin: 'org.jetbrains.kotlin.jvm'
 dependencies {
     implementation project(":rest-endpoint")
     implementation project(":corda-rpc-client")
-    implementation project(":local-cache")
+    implementation project(":distributed-cache")
 }

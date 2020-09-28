@@ -5,7 +5,9 @@ import net.corda.core.node.services.CordaService
 import net.corda.core.node.services.ServiceLifecycleEvent
 import net.corda.core.node.services.ServiceLifecycleObserver
 import net.corda.core.serialization.SingletonSerializeAsToken
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
+import tech.b180.cordaptor.corda.CordaNodeCatalog
 import tech.b180.cordaptor.kernel.Container
 import tech.b180.cordaptor.kernel.LifecycleAware
 
@@ -22,6 +24,7 @@ class CordaptorService(private val serviceHub: AppServiceHub) : SingletonSeriali
   private val container = Container {
     module {
       single { CordaBindings(serviceHub) }
+      single<CordaNodeCatalog> { CordaNodeCatalogImpl() }
     }
   }
 
@@ -32,6 +35,10 @@ class CordaptorService(private val serviceHub: AppServiceHub) : SingletonSeriali
           container.initialize()
         }
       }
+    }
+
+    serviceHub.registerUnloadHandler {
+      container.shutdown()
     }
   }
 }

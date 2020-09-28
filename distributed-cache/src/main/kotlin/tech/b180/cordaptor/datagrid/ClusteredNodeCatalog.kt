@@ -1,14 +1,16 @@
-package tech.b180.cordaptor.cordapp
+package tech.b180.cordaptor.datagrid
 
-import net.corda.core.cordapp.Cordapp
 import org.koin.core.KoinComponent
-import tech.b180.cordaptor.corda.ContractStateInfo
-import tech.b180.cordaptor.corda.CordaNodeCatalog
-import tech.b180.cordaptor.corda.CordappFlowInfo
-import tech.b180.cordaptor.corda.CordappInfo
+import org.koin.core.inject
+import org.koin.core.qualifier.named
+import tech.b180.cordaptor.corda.*
 import tech.b180.cordaptor.kernel.LifecycleAware
+import tech.b180.cordaptor.kernel.Tier
 
-class CordaNodeCatalogImpl() : CordaNodeCatalog, LifecycleAware, KoinComponent {
+class ClusteredNodeCatalog : CordaNodeCatalog, KoinComponent, LifecycleAware {
+
+  private val nodeCatalog by inject<CordaNodeCatalog>(named(Tier.INNER))
+  private val nodeState by inject<CordaNodeState>(named(Tier.INNER))
 
   override val cordapps: Collection<CordappInfo>
     get() = TODO("Not yet implemented")
@@ -32,4 +34,5 @@ class CordaNodeCatalogImpl() : CordaNodeCatalog, LifecycleAware, KoinComponent {
   override fun shutdown() {
     TODO("Not yet implemented")
   }
+
 }

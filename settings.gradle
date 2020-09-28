@@ -1,9 +1,16 @@
+// Individual modules providing aspects of the functionality
 include 'kernel'
 include 'rest-endpoint'
 include 'corda-common'
 include 'corda-service'
 include 'corda-rpc-client'
+include 'local-cache'
+include 'distributed-cache'
+
+// Pre-built bundles for common deployment scenarios
+include 'bundle-rest-cluster'
 include 'bundle-rest-embedded'
 include 'bundle-rest-standalone'
-include 'reference-cordapp'
 
+// Not part of any bundle
+include 'reference-cordapp'

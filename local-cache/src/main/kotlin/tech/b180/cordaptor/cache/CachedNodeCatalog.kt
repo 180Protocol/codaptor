@@ -1,15 +1,11 @@
-package tech.b180.cordaptor.cordapp
+package tech.b180.cordaptor.cache
 
-import net.corda.core.cordapp.Cordapp
-import org.koin.core.KoinComponent
 import tech.b180.cordaptor.corda.ContractStateInfo
 import tech.b180.cordaptor.corda.CordaNodeCatalog
 import tech.b180.cordaptor.corda.CordappFlowInfo
 import tech.b180.cordaptor.corda.CordappInfo
-import tech.b180.cordaptor.kernel.LifecycleAware
 
-class CordaNodeCatalogImpl() : CordaNodeCatalog, LifecycleAware, KoinComponent {
-
+class CachedNodeCatalog : CordaNodeCatalog {
   override val cordapps: Collection<CordappInfo>
     get() = TODO("Not yet implemented")
 
@@ -25,11 +21,4 @@ class CordaNodeCatalogImpl() : CordaNodeCatalog, LifecycleAware, KoinComponent {
     TODO("Not yet implemented")
   }
 
-  override fun initialize() {
-    TODO("Not yet implemented")
-  }
-
-  override fun shutdown() {
-    TODO("Not yet implemented")
-  }
 }
