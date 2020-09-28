@@ -2,6 +2,7 @@ apply plugin: 'org.jetbrains.kotlin.jvm'
 
 dependencies {
     implementation project(":kernel")
+    implementation project(":corda-common")
 
     compile "net.corda:corda-core:$corda_core_release_version"
     runtime "net.corda:corda-node-api:$corda_core_release_version"

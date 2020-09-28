@@ -1,6 +1,6 @@
 include 'kernel'
 include 'rest-endpoint'
-include 'corda-bindings'
+include 'corda-common'
 include 'corda-service'
 include 'corda-rpc-client'
 include 'bundle-rest-embedded'
