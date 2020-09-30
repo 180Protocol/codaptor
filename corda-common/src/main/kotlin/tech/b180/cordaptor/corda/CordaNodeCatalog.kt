@@ -1,5 +1,7 @@
 package tech.b180.cordaptor.corda
 
+import net.corda.serialization.internal.model.LocalTypeInformation
+
 /**
  * Single access point for all descriptive information about CorDapps installed
  * on a particular Corda node that may be used when implementing Cordaptor API.
@@ -9,23 +11,22 @@ package tech.b180.cordaptor.corda
  */
 interface CordaNodeCatalog {
 
+  /** Contains descriptions of all available CorDapps */
   val cordapps: Collection<CordappInfo>
-
-  fun findCordapp(shortName: String): CordappInfo?
-
-  fun findCordappFlow(cordappShortName: String): CordappFlowInfo?
-
-  fun findContractState(stateClassName: String): ContractStateInfo?
 }
 
 data class CordappInfo(
-    val shortName: String
+    val shortName: String,
+    val flows: List<CordappFlowInfo>,
+    val contractStates: List<CordappContractStateInfo>
 )
 
 data class CordappFlowInfo(
-    val flowClassName: String
+    val flowClassName: String,
+    val flowTypeInfo: LocalTypeInformation
 )
 
-data class ContractStateInfo(
-    val stateClassName: String
+data class CordappContractStateInfo(
+    val stateClassName: String,
+    val stateTypeInfo: LocalTypeInformation
 )

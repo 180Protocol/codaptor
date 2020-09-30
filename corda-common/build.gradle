@@ -3,9 +3,10 @@ apply plugin: 'org.jetbrains.kotlin.jvm'
 dependencies {
     implementation project(":kernel")
 
-    implementation "io.reactivex.rxjava3:rxjava:3.0.6"
+    implementation "io.reactivex.rxjava3:rxjava:$rxjava3_version"
 
     compile "net.corda:corda-core:$corda_core_release_version"
+    compile "net.corda:corda-serialization:$corda_core_release_version"
 
     implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
     testImplementation 'org.jetbrains.kotlin:kotlin-test'
