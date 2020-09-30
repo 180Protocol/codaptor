@@ -5,9 +5,12 @@ import org.koin.core.logger.Level
 import org.koin.core.logger.Logger
 import org.koin.core.logger.PrintLogger
 import org.koin.core.module.Module
+import org.koin.core.qualifier.Qualifier
 import org.koin.dsl.koinApplication
 import org.koin.dsl.module
+import org.koin.ext.scope
 import java.util.*
+import kotlin.reflect.KClass
 
 /**
  * Represents an instance of Cordaptor microkernel.
@@ -17,6 +20,9 @@ import java.util.*
  * the microkernel's instantiation available in other Koin definitions. For example,
  * if the microkernel is instantiated via the [main] function, then the context module will
  * contribute [CommandLineArguments] singleton.
+ *
+ * A factory is used instead of passing in the actual instance of [Module] because
+ * Koin does not like its Module DSL used outside of Koin instantiation flow.
  */
 class Container(contextModuleFactory: () -> Module) {
 
@@ -26,26 +32,45 @@ class Container(contextModuleFactory: () -> Module) {
   init {
     koinApp = koinApplication {
       logger(logger)
+      fileProperties()
       environmentProperties()
 
       val providers = ServiceLoader.load(ModuleProvider::class.java).iterator().asSequence().toList()
       logger.info("Found ${providers.size} Cordaptor module provider(s) in classpath")
-      val modules = listOf(contextModuleFactory()) + providers.map { it.buildModule() }
 
-      modules(modules)
+      // mapping modules to a list of pairs with salience being the first item
+      // sorting by salience in the ascending order, so the higher values are applied later
+      val modules = providers.map { it.salience to it.module } +
+          (ModuleProvider.CONTEXT_MODULE_SALIENCE to contextModuleFactory())
+
+      val sortedModules = modules.sortedBy { it.first }
+
+      modules(sortedModules.map { it.second })
     }
+  }
+
+  fun <T : Any> get(clazz: KClass<T>, qualifier: Qualifier? = null): T {
+    return koinApp.koin.get<T>(clazz, qualifier)
+  }
+
+  fun <T : Any> getAll(clazz: KClass<T>): List<T> {
+    return koinApp.koin._scopeRegistry.rootScope.getAll(clazz)
   }
 
   fun initialize() {
     logger.info("Initializing lifecycle aware components")
-    koinApp.koin.getAll<LifecycleAware>().forEach {
+
+    // creating a set to avoid calling more than once if bound twice
+    val all = koinApp.koin.getAll<LifecycleAware>().toSet()
+    all.forEach {
       it.initialize();
     }
   }
 
   fun shutdown() {
     logger.info("Shutting down lifecycle aware components")
-    koinApp.koin.getAll<LifecycleAware>().forEach {
+    val all = koinApp.koin.getAll<LifecycleAware>().toSet()
+    all.forEach {
       it.shutdown();
     }
   }

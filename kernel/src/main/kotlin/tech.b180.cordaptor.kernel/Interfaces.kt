@@ -13,11 +13,31 @@ import java.util.*
  */
 interface ModuleProvider {
 
+  companion object {
+    /** [salience] value used for the context module as the point of container instantiation */
+    const val CONTEXT_MODULE_SALIENCE = 1000
+
+    /** [salience] value suggested for modules sitting in the immediate proximity with the underlying Corda node */
+    const val INNER_MODULE_SALIENCE = 1
+  }
+
   /**
-   * Returns a Koin module declaration, which may declare types to be made available
+   * Returns a Koin module construct, which may declare types to be made available
    * for other modules and/or dependencies to be resolved.
    */
-  fun buildModule(): Module
+  val module: Module
+
+  /**
+   * A number that is used to order module declarations when initializing the container.
+   * Higher numbers declared later than lower numbers, and this may be used to override
+   * modules declared in earlier declarations.
+   *
+   * As a rough guideline, actual values used by modules should fall within the range
+   * between [INNER_MODULE_SALIENCE] and [CONTEXT_MODULE_SALIENCE].
+   *
+   * Salience does not play a role in dependency resolution.
+   */
+  val salience: Int
 }
 
 /**
