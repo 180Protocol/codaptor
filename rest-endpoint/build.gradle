@@ -2,10 +2,13 @@ apply plugin: 'org.jetbrains.kotlin.jvm'
 
 dependencies {
     implementation project(":kernel")
+    implementation project(":corda-common")
 
     implementation "org.koin:koin-core:$koin_version"
     implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
     implementation "org.eclipse.jetty:jetty-server:$jetty_version"
+
+    implementation "org.glassfish:javax.json:$glassfish_json_version"
 
     testImplementation "org.koin:koin-test:$koin_version"
     testImplementation 'org.jetbrains.kotlin:kotlin-test'
