@@ -50,10 +50,4 @@ class RestEndpointModuleProvider : ModuleProvider {
     // by using inject { parametersOf(<class>) } construct in a KoinComponent
 //    factory { (objectClass: KClass<*>) -> get<SerializationFactory>().getObjectSerializer(objectClass.java) }
   }
-
-  companion object {
-    private val definedObjectSerializers = arrayOf(
-        SignedTransaction::class
-    )
-  }
 }

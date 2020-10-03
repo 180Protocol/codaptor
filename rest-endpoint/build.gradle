@@ -13,4 +13,5 @@ dependencies {
     testImplementation "org.koin:koin-test:$koin_version"
     testImplementation 'org.jetbrains.kotlin:kotlin-test'
     testImplementation 'org.jetbrains.kotlin:kotlin-test-junit'
+    testImplementation "org.eclipse.jetty:jetty-client:$jetty_version"
 }
