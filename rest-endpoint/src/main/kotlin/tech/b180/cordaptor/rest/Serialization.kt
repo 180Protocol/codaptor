@@ -131,7 +131,8 @@ class SerializationFactory(
       is LocalTypeInformation.Composable -> ComposableTypeJsonSerializer(type, this)
       is LocalTypeInformation.AnArray -> ListSerializer(type, this)
       is LocalTypeInformation.ACollection -> ListSerializer(type, this)
-//      is LocalTypeInformation.AMap -> MapSerializer(type, this)
+      is LocalTypeInformation.AnEnum -> EnumSerializer(type) as JsonSerializer<Any>
+      is LocalTypeInformation.AMap -> MapSerializer(type, this) as JsonSerializer<Any>
       else -> throw AssertionError("Don't know how to create a serializer for $type")
     }
   }
@@ -282,8 +283,19 @@ fun <T: Any> JsonGenerator.writeSerializedObjectOrNull(
  */
 interface JsonSerializer<T> {
 
+  /**
+   * The value is passed in as-is without any validation, so the implementation
+   * must guard against just input and fail with a meaningful error message.
+   *
+   * The implementation is expected to be liberal in what is can accept as a value,
+   * e.g. if a string is passed in when a number is expected, an attempt to parse the string must be made
+   */
   fun fromJson(value: JsonValue) : T
 
+  /**
+   * Passed generator can be in a root, array or field context, so the implementation needs
+   * to manage its context accordingly, e.g. start an object or an array as appropriate.
+   */
   fun toJson(obj: T, generator: JsonGenerator)
 }
 
@@ -531,5 +543,35 @@ class MapSerializer(
       }
     }
     generator.writeEnd()
+  }
+}
+
+/**
+ * Generic serialization handler for all enum types
+ * FIXME add enum evolution logic
+ */
+class EnumSerializer(
+    private val enumType: LocalTypeInformation.AnEnum) : JsonSerializer<Enum<*>> {
+
+  @Suppress("UNCHECKED_CAST")
+  private val enumClass = enumType.observedType as Class<Enum<*>>
+
+  override fun fromJson(value: JsonValue): Enum<*> {
+    if (value.valueType != JsonValue.ValueType.STRING) {
+      throw SerializationException("Expected a string, got ${value.valueType}")
+    }
+
+    val stringValue = (value as JsonString).string
+    if (!enumType.members.contains(stringValue)) {
+      throw SerializationException("No such enum value $stringValue among ${enumType.members}")
+    }
+
+    // string value was among the introspected options, so something must be wrong with introspection if not found
+    return enumClass.enumConstants.find { it.name == stringValue }
+        ?: throw AssertionError("Could not find enum constant $stringValue in class $enumClass")
+  }
+
+  override fun toJson(obj: Enum<*>, generator: JsonGenerator) {
+    generator.write(obj.name)
   }
 }

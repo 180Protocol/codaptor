@@ -139,21 +139,18 @@ class SerializationTest {
     val privatePropertiesSerializer = f.getSerializer(NonPublicPropertiesObject::class)
     val pojoSerializer = f.getSerializer(TestPojo::class)
 
-    assertEquals("""{"one":"123","three":null,"two":123}""", generateJson {
-      writeSerializedObject(publicPropertiesSerializer, TestDataObject("123", 123, null))
-    })
-    assertEquals("""{"one":"123","two":123}""", generateJson {
-      writeSerializedObject(privatePropertiesSerializer, NonPublicPropertiesObject("123", 123))
-    })
-    assertEquals("""{"one":"123","two":321}""", generateJson {
-      writeSerializedObject(pojoSerializer, TestPojo(one = "123", two = 321))
-    })
+    assertEquals("""{"one":"123","three":null,"two":123}""",
+        publicPropertiesSerializer.toJsonString(TestDataObject("123", 123, null)))
+    assertEquals("""{"one":"123","two":123}""",
+        privatePropertiesSerializer.toJsonString(NonPublicPropertiesObject("123", 123)))
+    assertEquals("""{"one":"123","two":321}""",
+        pojoSerializer.toJsonString(TestPojo().apply { one = "123"; two = 321 }))
 
     assertEquals(TestDataObject("321", 321, null),
         publicPropertiesSerializer.fromJson("""{"one":"321","two":321}""".asJsonObject()))
     assertEquals(NonPublicPropertiesObject("321", 321),
         privatePropertiesSerializer.fromJson("""{"one":"321","two":321}""".asJsonObject()))
-    assertEquals(TestPojo(one = "123", two = 321),
+    assertEquals(TestPojo().apply { one = "123"; two = 321 },
         pojoSerializer.fromJson("""{"one":"123","two":321}""".asJsonObject()))
   }
 
@@ -167,14 +164,12 @@ class SerializationTest {
     val listSerializer = ListSerializer(localTypeModel.inspectProperty(ObjectWithParametrizedProperties::list), f)
     val mapSerializer = MapSerializer(localTypeModel.inspectProperty(ObjectWithParametrizedProperties::map), f)
 
-    assertEquals("""["A","B","C"]""", generateJson {
-      arraySerializer.toJson(arrayOf("A", "B", "C"), this)
-    })
-    assertEquals("""["A","B","C"]""", generateJson {
-      listSerializer.toJson(listOf("A", "B", "C"), this)
-    })
+    assertEquals("""["A","B","C"]""", arraySerializer.toJsonString(arrayOf("A", "B", "C")))
+    assertEquals("""["A","B","C"]""", listSerializer.toJsonString(listOf("A", "B", "C")))
     assertEquals("""{"A":1,"B":2,"C":3}""", generateJson {
-      mapSerializer.toJson(mapOf("A" to 1, "B" to 2, "C" to 3), this)
+
+      @Suppress("UNCHECKED_CAST")
+      writeSerializedObject(mapSerializer, mapOf("A" to 1, "B" to 2, "C" to 3) as Map<Any?, Any?>)
     })
 
     // arrays cannot be deserialized currently, so no test
@@ -185,13 +180,28 @@ class SerializationTest {
         mapSerializer.fromJson("""{"A":1,"B":2,"C":3}""".asJsonValue()) as Any)
   }
 
-  private fun generateJson(block: JsonGenerator.() -> Unit): String {
-    val w = StringWriter()
-    val gen = Json.createGenerator(w)
-    gen.apply(block)
-    gen.flush()
-    return w.toString()
+  @Test
+  fun `test enum type serialization`() {
+    val f = SerializationFactory(localTypeModel)
+
+    val serializer = f.getSerializer(TestEnum::class)
+
+    assertEquals(""""VAL1"""", serializer.toJsonString(TestEnum.VAL1))
+
+    assertEquals(TestEnum.VAL2, serializer.fromJson(""""VAL2"""".asJsonValue()))
   }
+}
+
+private fun generateJson(block: JsonGenerator.() -> Unit): String {
+  val w = StringWriter()
+  val gen = Json.createGenerator(w)
+  gen.apply(block)
+  gen.flush()
+  return w.toString()
+}
+
+fun <T> JsonSerializer<T>.toJsonString(obj: T): String {
+  return generateJson { this@toJsonString.toJson(obj, this) }
 }
 
 fun <E> LocalTypeModel.inspectProperty(prop: KProperty<Array<E>>): LocalTypeInformation.AnArray {
@@ -249,5 +259,11 @@ data class NonPublicPropertiesObject(
 /**
  * These objects only have getters and setters, no constructor
  */
-data class TestPojo(var one: String?, var two: Int?) {
+data class TestPojo private constructor(var one: String?, var two: Int?) {
+  constructor() : this(null, null)
+}
+
+enum class TestEnum {
+  VAL1,
+  VAL2
 }
