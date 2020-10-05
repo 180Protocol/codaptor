@@ -6,6 +6,7 @@ import org.koin.dsl.module
 import tech.b180.cordaptor.kernel.LifecycleAware
 import tech.b180.cordaptor.kernel.ModuleProvider
 import tech.b180.cordaptor.kernel.getHostAndPortProperty
+import tech.b180.cordaptor.kernel.lazyGetAll
 import kotlin.reflect.KClass
 
 /**
@@ -41,7 +42,7 @@ class RestEndpointModuleProvider : ModuleProvider {
     single<ContextMappedHandlerFactory> { NodeStateApiProvider("/node") }
 
     // JSON serialization enablement
-    single { SerializationFactory(get(), lazy { getAll<CustomSerializer<Any>>(CustomSerializer::class) }) }
+    single { SerializationFactory(get(), lazyGetAll()) }
 
     single { CordaX500NameSerializer() } bind CustomSerializer::class
     single { CordaSecureHashSerializer() } bind CustomSerializer::class

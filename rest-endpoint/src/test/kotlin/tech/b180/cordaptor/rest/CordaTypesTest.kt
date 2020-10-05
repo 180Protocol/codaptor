@@ -16,6 +16,7 @@ import org.koin.core.parameter.parametersOf
 import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
+import tech.b180.cordaptor.kernel.lazyGetAll
 import tech.b180.cordaptor.rest.*
 import java.security.cert.CertPath
 import kotlin.reflect.KClass
@@ -31,7 +32,7 @@ class CordaTypesTest {
         single<CustomSerializerRegistry> { CachingCustomSerializerRegistry(DefaultDescriptorBasedSerializerRegistry()) }
         single<LocalTypeModelConfiguration> { WhitelistBasedTypeModelConfiguration(AllWhitelist, get()) }
         single<LocalTypeModel> { ConfigurableLocalTypeModel(get()) }
-        single { SerializationFactory(get(), lazy { getAll<CustomSerializer<Any>>(CustomSerializer::class) }) }
+        single { SerializationFactory(get(), lazyGetAll()) }
 
         // register custom serializers for the factory to discover
         single { CordaX500NameSerializer() } bind CustomSerializer::class
