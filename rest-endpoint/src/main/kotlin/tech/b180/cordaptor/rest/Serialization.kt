@@ -3,12 +3,16 @@ package tech.b180.cordaptor.rest
 import net.corda.serialization.internal.model.LocalPropertyInformation
 import net.corda.serialization.internal.model.LocalTypeInformation
 import net.corda.serialization.internal.model.LocalTypeModel
+import net.corda.serialization.internal.model.PropertyName
 import java.lang.reflect.ParameterizedType
 import java.util.concurrent.ConcurrentHashMap
 import javax.json.*
 import javax.json.stream.JsonGenerator
 import kotlin.collections.ArrayList
 import kotlin.reflect.KClass
+import kotlin.reflect.KProperty
+import kotlin.reflect.full.instanceParameter
+import kotlin.reflect.jvm.javaType
 
 class SerializationException(
     override val message: String,
@@ -16,7 +20,8 @@ class SerializationException(
 
 @Suppress("UNCHECKED_CAST")
 class SerializationFactory(
-    private val localTypeModel: LocalTypeModel
+    private val localTypeModel: LocalTypeModel,
+    private val customSerializers: List<CustomSerializer<Any>>
 ) {
 
   private val objectSerializers = ConcurrentHashMap<LocalTypeInformation, JsonSerializer<Any>>()
@@ -28,6 +33,10 @@ class SerializationFactory(
     // nullable values use Java versions of the primitive type wrappers
     objectSerializers[localTypeModel.inspect(Integer::class.java)] = JavaIntegerSerializer as JsonSerializer<Any>
     objectSerializers[localTypeModel.inspect(java.lang.Boolean::class.java)] = JavaBooleanSerializer as JsonSerializer<Any>
+
+    customSerializers.forEach {
+      objectSerializers[localTypeModel.inspect(it.appliedTo.javaObjectType)] = it
+    }
   }
 
   /** Built-in serializer for atomic value of type [String] */
@@ -125,6 +134,14 @@ class SerializationFactory(
   }
 
   /**
+   * Looks up a serializer for a specified property of a class available in a specific context
+   * This method is most likely to be used within code calling serialization logic.
+   */
+  fun <T : Any?> getSerializer(property: KProperty<T>): JsonSerializer<T> {
+    return getSerializer(localTypeModel.inspect(property.instanceParameter!!.type.javaType)) as JsonSerializer<T>
+  }
+
+  /**
    * Looks up a serializer for a specified type created by Corda introspection.
    * This method is most likely to be used within generic serialization logic.
    */
@@ -145,67 +162,6 @@ class SerializationFactory(
     }
   }
 }
-
-//class PartySerializer : CustomSerializer<Party>, KoinComponent {
-//  override val objectClass = Party::class.java
-//
-//  private val x500NameSerializer: JsonSerializer<CordaX500Name>
-//      by inject { parametersOf(CordaX500Name::class) }
-//
-//  override fun fromJson(reader: JsonReader): Party {
-//    TODO("Not yet implemented")
-//  }
-//
-//  override fun toJson(obj: Party, generator: JsonGenerator) {
-//    generator
-//        .writeStartObject()
-//        .writeSerializedObject("name", x500NameSerializer, obj.name)
-//        .writeEnd()
-//  }
-//
-//}
-//
-//class CordaSignedTransactionSerializer : CustomSerializer<SignedTransaction>, KoinComponent {
-//
-//  override val objectClass = SignedTransaction::class.java
-//
-//  private val stateRefSerializer: JsonSerializer<StateRef>
-//      by inject { parametersOf(StateRef::class) }
-//  private val txStateSerializer: JsonSerializer<TransactionState<*>>
-//      by inject { parametersOf(TransactionState::class) }
-//  private val txSignatureSerializer: JsonSerializer<TransactionSignature>
-//      by inject { parametersOf(TransactionSignature::class) }
-//  private val publicKeySerializer: JsonSerializer<PublicKey> by inject { parametersOf(PublicKey::class) }
-//  private val partySerializer: JsonSerializer<Party> by inject { parametersOf(Party::class) }
-//
-//  override fun toJson(tx: SignedTransaction, generator: JsonGenerator) {
-//    generator
-//        .writeStartObject()
-//        .write("hash", tx.id.toString())
-//        .write("type", tx.coreTransaction::class.simpleName)
-//        .writeSerializedObjectOrNull("notary", partySerializer, tx.notary)
-//        .writeSerializedArray("inputs", stateRefSerializer, tx.inputs)
-//        .writeSerializedArray("references", stateRefSerializer, tx.references, true)
-//        .writeSerializedArray("outputs", txStateSerializer, tx.coreTransaction.outputs)
-//        .writeSerializedArray("requiredSigningKeys", publicKeySerializer, tx.requiredSigningKeys)
-//        .writeSerializedArray("sigs", txSignatureSerializer, tx.sigs)
-//
-//    if (tx.coreTransaction is WireTransaction) {
-//      generator.writeStartArray("attachments")
-//      tx.tx.attachments.forEach { generator.write(it.toString()) }
-//      generator.writeEnd()
-//    } else if (tx.coreTransaction is NotaryChangeWireTransaction) {
-//      val nctx = tx.coreTransaction as NotaryChangeWireTransaction
-//      generator.writeSerializedObject("newNotary", partySerializer, nctx.newNotary)
-//    }
-//
-//    generator.writeEnd()
-//  }
-//
-//  override fun fromJson(reader: JsonReader): SignedTransaction {
-//    throw AssertionError("Not required")
-//  }
-//}
 
 /**
  * Note this only supports map of primitive types
@@ -339,40 +295,72 @@ interface JsonSerializer<T> {
 /**
  * Marker interface aiding in custom-coded serializer discovery
  */
-interface CustomSerializer<T> : JsonSerializer<T>
+interface CustomSerializer<T> : JsonSerializer<T> {
+  val appliedTo: KClass<*>
+}
 
 /**
  * Generates a round-trip initializer for a type described by [LocalTypeInformation.Composable]
  * instance obtained from Corda introspection logic to ensure compatibility
  * with evolution semantics.
+ *
+ * Subclasses can tweak the behaviour to customize serialization of certain objects.
  */
-class ComposableTypeJsonSerializer(
+open class ComposableTypeJsonSerializer<T: Any>(
     private val type: LocalTypeInformation.Composable,
     private val factory: SerializationFactory
-) : JsonSerializer<Any> {
+) : JsonSerializer<T> {
 
   data class PropertyAndSerializer(
       val property: LocalPropertyInformation,
-      val serializer: JsonSerializer<Any>
+      val serializer: JsonSerializer<Any>,
+      val deserialize: Boolean,
+      val serialize: Boolean
   )
 
-  private val properties = lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
-    type.properties.map { (name, property) ->
+  /** Class properties that will be written to a JSON document when serializing an instance */
+  open val serializedClassProperties: List<KProperty<Any?>>? = null
+
+  /** Class properties that will be read from a JSON document when deserializing an instance */
+  open val deserializedClassProperties: List<KProperty<Any?>>? = serializedClassProperties
+
+  private val properties : Lazy<Map<PropertyName, PropertyAndSerializer>> = lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+    val deserializedProperties = deserializedClassProperties?.map {
+      it.name to (type.properties[it.name]
+          ?: throw SerializationException("Cannot find property ${it.name} through introspection in $type"))
+    }?.toMap()
+        ?: type.properties // fall back to the complete set of properties
+
+    val serializedProperties = serializedClassProperties?.map {
+      it.name to (type.properties[it.name]
+          ?: throw SerializationException("Cannot find property ${it.name} through introspection in $type"))
+    }?.toMap()
+        ?: type.properties // fall back to the complete set of properties
+
+    (deserializedProperties + serializedProperties).mapValues { (name, property) ->
+
       // unlock private fields during the initialization
       if (property is LocalPropertyInformation.PrivateConstructorPairedProperty) {
         property.observedField.isAccessible = true
       }
 
-      name to PropertyAndSerializer(property, factory.getSerializer(property.type))
-    }.toMap()
+      PropertyAndSerializer(property, factory.getSerializer(property.type),
+          deserializedProperties.containsKey(name), serializedProperties.containsKey(name))
+    }
   }
 
   private val _schema: Lazy<JsonObject> = lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
     Json.createObjectBuilder()
         .add("type", "object")
         .add("properties", Json.createObjectBuilder().also { b ->
-          properties.value.forEach { (name, schema) ->
-            b.add(name, schema.serializer.schema)
+          properties.value.forEach { (name, prop) ->
+            b.add(name, Json.createObjectBuilder(prop.serializer.schema).also {
+              if (!prop.serialize) {
+                it.add("writeOnly", true)
+              } else if (!prop.deserialize) {
+                it.add("readOnly", true)
+              }
+            })
           }
         }.build())
         .add("required", properties.value.filterValues { it.property.isMandatory }.keys.asJsonArray())
@@ -382,19 +370,18 @@ class ComposableTypeJsonSerializer(
   override val schema: JsonObject
     get() = _schema.value
 
-  override fun fromJson(value: JsonValue): Any {
+  override fun fromJson(value: JsonValue): T {
     if (value.valueType != JsonValue.ValueType.OBJECT) {
       throw SerializationException("Expected object of type $type, got ${value.valueType}")
     }
 
     val jsonObject = value as JsonObject
 
-    val ctor = type.constructor
-    val ctorArgs = MutableList<Any?>(ctor.parameters.size) { null }
-    val fieldInitializers : ArrayList<(Any) -> Unit> = ArrayList()
-
     // this logic driven from the introspection, so any unknown properties are silently ignored
-    properties.value.forEach { (propertyName, propInfo) ->
+    val values = properties.value
+        .filterValues { it.deserialize }
+        .mapValues { (propertyName, propInfo) ->
+
       val (prop, serializer) = propInfo
 
       val propValue = jsonObject[propertyName]
@@ -407,7 +394,25 @@ class ComposableTypeJsonSerializer(
       }
 
       // by this point if it's null, we know it's legitimate
-      val objValue = propValue?.let { serializer.fromJson(it) }
+      propValue?.let { serializer.fromJson(it) }
+    }
+
+    return initializeInstance(values)
+  }
+
+  /**
+   * Override to implement a different instantiation and initialization logic.
+   */
+  open fun initializeInstance(values: Map<PropertyName, Any?>): T {
+    val ctor = type.constructor
+    val ctorArgs = MutableList<Any?>(ctor.parameters.size) { null }
+    val fieldInitializers : ArrayList<(Any) -> Unit> = ArrayList()
+
+    properties.value.forEach { (propertyName, propInfo) ->
+      val (prop, serializer) = propInfo
+
+      // by this point if it's null, we know it's legitimate
+      val objValue = values[propertyName]
       when (prop) {
         is LocalPropertyInformation.ConstructorPairedProperty ->
           ctorArgs[prop.constructorSlot.parameterIndex] = objValue
@@ -422,16 +427,17 @@ class ComposableTypeJsonSerializer(
     }
 
     val obj =
-    try {
-      ctor.observedMethod.newInstance(*ctorArgs.toTypedArray())
-    } catch (e: Exception) {
-      throw SerializationException("Reflection call failed for constructor ${ctor.observedMethod}", e)
-    }
+        try {
+          ctor.observedMethod.newInstance(*ctorArgs.toTypedArray())
+        } catch (e: Exception) {
+          throw SerializationException("Reflection call failed for constructor ${ctor.observedMethod}", e)
+        }
 
     // exceptions during reflection calls are handled within the initializers and then wrapped
     fieldInitializers.forEach { it.invoke(obj) }
 
-    return obj;
+    @Suppress("UNCHECKED_CAST")
+    return obj as T
   }
 
   private fun createFieldInitializer(prop: LocalPropertyInformation.GetterSetterProperty, value: Any?): (Any) -> Unit {
@@ -444,9 +450,9 @@ class ComposableTypeJsonSerializer(
     }
   }
 
-  override fun toJson(obj: Any, generator: JsonGenerator) {
+  override fun toJson(obj: T, generator: JsonGenerator) {
     generator.writeStartObject()
-    properties.value.forEach { (propertyName, propInfo) ->
+    properties.value.filterValues { it.serialize }.forEach { (propertyName, propInfo) ->
       val (prop, serializer) = propInfo
 
       val v = try {

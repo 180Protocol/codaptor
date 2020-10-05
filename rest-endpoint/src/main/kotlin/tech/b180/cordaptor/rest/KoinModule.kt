@@ -1,12 +1,10 @@
 package tech.b180.cordaptor.rest
 
-import net.corda.core.transactions.SignedTransaction
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import tech.b180.cordaptor.kernel.LifecycleAware
 import tech.b180.cordaptor.kernel.ModuleProvider
 import tech.b180.cordaptor.kernel.getHostAndPortProperty
-import kotlin.reflect.KClass
 
 /**
  * Implementation of the microkernel module provider that makes the components
@@ -41,13 +39,12 @@ class RestEndpointModuleProvider : ModuleProvider {
     single<ContextMappedHandlerFactory> { NodeStateApiProvider("/node") }
 
     // JSON serialization enablement
-    single { SerializationFactory(get()) }
+    single { SerializationFactory(get(), getAll()) }
 
-    // all custom object serializers are defined here for the serialization factory to discover and register
-//    single<CustomSerializer<*>> { CordaSignedTransactionSerializer() }
-
-    // for cleaner code it is possible to directly inject serializers for types known at compile-time
-    // by using inject { parametersOf(<class>) } construct in a KoinComponent
-//    factory { (objectClass: KClass<*>) -> get<SerializationFactory>().getObjectSerializer(objectClass.java) }
+    single<CustomSerializer<*>> { CordaX500NameSerializer() }
+    single<CustomSerializer<*>> { CordaSecureHashSerializer() }
+    single<CustomSerializer<*>> { CordaUUIDSerializer() }
+    single<CustomSerializer<*>> { CordaPartySerializer(get(), get(), get()) }
+    single<CustomSerializer<*>> { CordaSignedTransactionSerializer(get(), get(), get()) }
   }
 }

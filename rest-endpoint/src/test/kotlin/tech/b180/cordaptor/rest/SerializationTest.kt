@@ -133,7 +133,7 @@ class SerializationTest {
   @Test
   fun `test composable type serializer`() {
 
-    val f = SerializationFactory(localTypeModel)
+    val f = SerializationFactory(localTypeModel, emptyList())
 
     val publicPropertiesSerializer = f.getSerializer(TestDataObject::class)
     val privatePropertiesSerializer = f.getSerializer(NonPublicPropertiesObject::class)
@@ -157,7 +157,7 @@ class SerializationTest {
   @Test
   fun `test collection types serializer`() {
 
-    val f = SerializationFactory(localTypeModel)
+    val f = SerializationFactory(localTypeModel, emptyList())
 
     // roundabout way to make sure type comes with generic
     val arraySerializer = ListSerializer(localTypeModel.inspectProperty(ObjectWithParametrizedProperties::array), f)
@@ -182,7 +182,7 @@ class SerializationTest {
 
   @Test
   fun `test enum type serialization`() {
-    val f = SerializationFactory(localTypeModel)
+    val f = SerializationFactory(localTypeModel, emptyList())
 
     val serializer = f.getSerializer(TestEnum::class)
 
@@ -204,7 +204,7 @@ class SerializationTest {
 
   @Test
   fun `test composite type schema`() {
-    val f = SerializationFactory(localTypeModel)
+    val f = SerializationFactory(localTypeModel, emptyList())
 
     val publicPropertiesSerializer = f.getSerializer(TestDataObject::class)
 
@@ -232,7 +232,7 @@ class SerializationTest {
 
   @Test
   fun `test collection types schema`() {
-    val f = SerializationFactory(localTypeModel)
+    val f = SerializationFactory(localTypeModel, emptyList())
 
     // roundabout way to make sure type comes with generic
     val arraySerializer = ListSerializer(localTypeModel.inspectProperty(ObjectWithParametrizedProperties::array), f)
