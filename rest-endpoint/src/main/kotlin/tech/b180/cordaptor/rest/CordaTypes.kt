@@ -3,15 +3,22 @@ package tech.b180.cordaptor.rest
 import net.corda.core.crypto.SecureHash
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.identity.Party
+import net.corda.core.identity.PartyAndCertificate
+import net.corda.core.node.NodeInfo
 import net.corda.core.node.services.IdentityService
 import net.corda.core.node.services.TransactionStorage
 import net.corda.core.transactions.SignedTransaction
 import net.corda.serialization.internal.model.LocalTypeInformation
 import net.corda.serialization.internal.model.LocalTypeModel
 import net.corda.serialization.internal.model.PropertyName
+import java.security.cert.X509Certificate
 import java.util.*
+import javax.json.Json
 import javax.json.JsonObject
+import javax.json.JsonValue
+import javax.json.stream.JsonGenerator
 import kotlin.reflect.KClass
+import kotlin.reflect.KProperty
 
 /**
  * Serializer for [CordaX500Name] converting to/from a string value.
@@ -127,4 +134,28 @@ class CordaSignedTransactionSerializer(
 
   override val appliedTo: KClass<*>
     get() = SignedTransaction::class
+}
+
+/**
+ * Serializer for [PartyAndCertificate] representing it as JSON value.
+ * This object is most commonly used as part of a [NodeInfo] structure.
+ *
+ * FIXME implement serialization logic for instances of [X509Certificate] abstract class
+ * FIXME actually write contents of the class
+ */
+class CordaPartyAndCertificateSerializer : CustomSerializer<PartyAndCertificate> {
+
+  override fun fromJson(value: JsonValue): PartyAndCertificate {
+    throw SerializationException("Instances of this class cannot be deserialized from JSON")
+  }
+
+  override fun toJson(obj: PartyAndCertificate, generator: JsonGenerator) {
+    generator.writeStartObject().writeEnd()
+  }
+
+  override val schema: JsonObject
+    get() = Json.createObjectBuilder().add("type", "object").build()
+
+  override val appliedTo: KClass<*>
+    get() = PartyAndCertificate::class
 }

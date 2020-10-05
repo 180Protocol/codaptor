@@ -1,10 +1,12 @@
 package tech.b180.cordaptor.rest
 
+import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import tech.b180.cordaptor.kernel.LifecycleAware
 import tech.b180.cordaptor.kernel.ModuleProvider
 import tech.b180.cordaptor.kernel.getHostAndPortProperty
+import kotlin.reflect.KClass
 
 /**
  * Implementation of the microkernel module provider that makes the components
@@ -39,12 +41,16 @@ class RestEndpointModuleProvider : ModuleProvider {
     single<ContextMappedHandlerFactory> { NodeStateApiProvider("/node") }
 
     // JSON serialization enablement
-    single { SerializationFactory(get(), getAll()) }
+    single { SerializationFactory(get(), lazy { getAll<CustomSerializer<Any>>(CustomSerializer::class) }) }
 
-    single<CustomSerializer<*>> { CordaX500NameSerializer() }
-    single<CustomSerializer<*>> { CordaSecureHashSerializer() }
-    single<CustomSerializer<*>> { CordaUUIDSerializer() }
-    single<CustomSerializer<*>> { CordaPartySerializer(get(), get(), get()) }
-    single<CustomSerializer<*>> { CordaSignedTransactionSerializer(get(), get(), get()) }
+    single { CordaX500NameSerializer() } bind CustomSerializer::class
+    single { CordaSecureHashSerializer() } bind CustomSerializer::class
+    single { CordaUUIDSerializer() } bind CustomSerializer::class
+    single { CordaPartySerializer(get(), get(), get()) } bind CustomSerializer::class
+    single { CordaSignedTransactionSerializer(get(), get(), get()) } bind CustomSerializer::class
+    single { CordaPartyAndCertificateSerializer() } bind CustomSerializer::class
+
+    // factory for requesting specific serializers into the non-generic serialization code
+    single<JsonSerializer<*>> { (clazz: KClass<*>) -> get<SerializationFactory>().getSerializer(clazz) }
   }
 }

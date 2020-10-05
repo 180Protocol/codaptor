@@ -133,7 +133,7 @@ class SerializationTest {
   @Test
   fun `test composable type serializer`() {
 
-    val f = SerializationFactory(localTypeModel, emptyList())
+    val f = SerializationFactory(localTypeModel, lazy { emptyList<CustomSerializer<Any>>() })
 
     val publicPropertiesSerializer = f.getSerializer(TestDataObject::class)
     val privatePropertiesSerializer = f.getSerializer(NonPublicPropertiesObject::class)
@@ -157,7 +157,7 @@ class SerializationTest {
   @Test
   fun `test collection types serializer`() {
 
-    val f = SerializationFactory(localTypeModel, emptyList())
+    val f = SerializationFactory(localTypeModel, lazy { emptyList<CustomSerializer<Any>>() })
 
     // roundabout way to make sure type comes with generic
     val arraySerializer = ListSerializer(localTypeModel.inspectProperty(ObjectWithParametrizedProperties::array), f)
@@ -182,7 +182,7 @@ class SerializationTest {
 
   @Test
   fun `test enum type serialization`() {
-    val f = SerializationFactory(localTypeModel, emptyList())
+    val f = SerializationFactory(localTypeModel, lazy { emptyList<CustomSerializer<Any>>() })
 
     val serializer = f.getSerializer(TestEnum::class)
 
@@ -204,7 +204,7 @@ class SerializationTest {
 
   @Test
   fun `test composite type schema`() {
-    val f = SerializationFactory(localTypeModel, emptyList())
+    val f = SerializationFactory(localTypeModel, lazy { emptyList<CustomSerializer<Any>>() })
 
     val publicPropertiesSerializer = f.getSerializer(TestDataObject::class)
 
@@ -232,7 +232,7 @@ class SerializationTest {
 
   @Test
   fun `test collection types schema`() {
-    val f = SerializationFactory(localTypeModel, emptyList())
+    val f = SerializationFactory(localTypeModel, lazy { emptyList<CustomSerializer<Any>>() })
 
     // roundabout way to make sure type comes with generic
     val arraySerializer = ListSerializer(localTypeModel.inspectProperty(ObjectWithParametrizedProperties::array), f)
@@ -256,7 +256,7 @@ class SerializationTest {
   }
 }
 
-private fun generateJson(block: JsonGenerator.() -> Unit): String {
+fun generateJson(block: JsonGenerator.() -> Unit): String {
   val w = StringWriter()
   val gen = Json.createGenerator(w)
   gen.apply(block)

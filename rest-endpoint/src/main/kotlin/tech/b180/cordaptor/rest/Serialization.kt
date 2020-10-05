@@ -4,6 +4,8 @@ import net.corda.serialization.internal.model.LocalPropertyInformation
 import net.corda.serialization.internal.model.LocalTypeInformation
 import net.corda.serialization.internal.model.LocalTypeModel
 import net.corda.serialization.internal.model.PropertyName
+import org.koin.core.KoinComponent
+import tech.b180.cordaptor.kernel.LifecycleAware
 import java.lang.reflect.ParameterizedType
 import java.util.concurrent.ConcurrentHashMap
 import javax.json.*
@@ -21,22 +23,26 @@ class SerializationException(
 @Suppress("UNCHECKED_CAST")
 class SerializationFactory(
     private val localTypeModel: LocalTypeModel,
-    private val customSerializers: List<CustomSerializer<Any>>
+    private val lazySerializers: Lazy<List<CustomSerializer<Any>>>
 ) {
 
-  private val objectSerializers = ConcurrentHashMap<LocalTypeInformation, JsonSerializer<Any>>()
+  private val objectSerializers = lazy {
+    val map = ConcurrentHashMap<LocalTypeInformation, JsonSerializer<Any>>()
 
-  init {
-    objectSerializers[localTypeModel.inspect(String::class.java)] = StringSerializer as JsonSerializer<Any>
-    objectSerializers[localTypeModel.inspect(Int::class.java)] = IntSerializer as JsonSerializer<Any>
+    map[localTypeModel.inspect(String::class.java)] = StringSerializer as JsonSerializer<Any>
+    map[localTypeModel.inspect(Int::class.java)] = IntSerializer as JsonSerializer<Any>
+    map[localTypeModel.inspect(Long::class.java)] = LongSerializer as JsonSerializer<Any>
 
     // nullable values use Java versions of the primitive type wrappers
-    objectSerializers[localTypeModel.inspect(Integer::class.java)] = JavaIntegerSerializer as JsonSerializer<Any>
-    objectSerializers[localTypeModel.inspect(java.lang.Boolean::class.java)] = JavaBooleanSerializer as JsonSerializer<Any>
+    map[localTypeModel.inspect(Integer::class.java)] = JavaIntegerSerializer as JsonSerializer<Any>
+    map[localTypeModel.inspect(java.lang.Long::class.java)] = JavaLongSerializer as JsonSerializer<Any>
+    map[localTypeModel.inspect(java.lang.Boolean::class.java)] = JavaBooleanSerializer as JsonSerializer<Any>
 
-    customSerializers.forEach {
-      objectSerializers[localTypeModel.inspect(it.appliedTo.javaObjectType)] = it
+    for (serializer in lazySerializers.value) {
+      map[localTypeModel.inspect(serializer.appliedTo.javaObjectType)] = serializer
     }
+
+    map
   }
 
   /** Built-in serializer for atomic value of type [String] */
@@ -78,6 +84,24 @@ class SerializationFactory(
     }
   }
 
+  /** Built-in serializer for atomic value of type [Long] */
+  object LongSerializer : JsonSerializer<Long> {
+    override val schema = mapOf("type" to "number", "format" to "int64").asJsonObject()
+
+    override fun fromJson(value: JsonValue): Long {
+      return when (value.valueType) {
+        // provide limited number of type conversions
+        JsonValue.ValueType.NUMBER -> (value as JsonNumber).longValue()  // discard fractional part
+        JsonValue.ValueType.STRING -> (value as JsonString).string.toLong()
+        else -> throw AssertionError("Expected integer, got ${value.valueType} with value $value")
+      }
+    }
+
+    override fun toJson(obj: Long, generator: JsonGenerator) {
+      generator.write(obj)
+    }
+  }
+
   /** Built-in serializer for atomic value of type [Boolean] */
   object BooleanSerializer : JsonSerializer<Boolean> {
     override val schema = mapOf("type" to "boolean").asJsonObject()
@@ -99,6 +123,8 @@ class SerializationFactory(
   // Delegate serialization logic for Java wrapper types to Kotlin handlers
   object JavaIntegerSerializer : DelegatingSerializer<java.lang.Integer, Int>(
       IntSerializer, Integer::toInt, { Integer(this) })
+  object JavaLongSerializer : DelegatingSerializer<java.lang.Long, Long>(
+      LongSerializer, java.lang.Long::toLong, { java.lang.Long(this) })
   object JavaBooleanSerializer : DelegatingSerializer<java.lang.Boolean, Boolean>(
       BooleanSerializer, java.lang.Boolean::booleanValue, { java.lang.Boolean(this) })
 
@@ -118,12 +144,6 @@ class SerializationFactory(
     override val schema: JsonObject
       get() = delegate.schema
   }
-
-//  init {
-//    getAll<CustomSerializer<*>>().forEach {
-//      objectSerializers[it.objectClass] = it
-//    }
-//  }
 
   /**
    * Looks up a serializer for a specified class available in a specific context
@@ -146,7 +166,7 @@ class SerializationFactory(
    * This method is most likely to be used within generic serialization logic.
    */
   fun getSerializer(type: LocalTypeInformation): JsonSerializer<Any> {
-    return objectSerializers.getOrPut(type, {
+    return objectSerializers.value.getOrPut(type, {
       createSerializer(type)
     })!!  // this map will never has null values
   }
@@ -154,6 +174,7 @@ class SerializationFactory(
   private fun createSerializer(type: LocalTypeInformation): JsonSerializer<Any> {
     return when (type) {
       is LocalTypeInformation.Composable -> ComposableTypeJsonSerializer(type, this)
+//      is LocalTypeInformation.Abstract -> AbstractTypeJsonSerializer(type, this)
       is LocalTypeInformation.AnArray -> ListSerializer(type, this)
       is LocalTypeInformation.ACollection -> ListSerializer(type, this)
       is LocalTypeInformation.AnEnum -> EnumSerializer(type) as JsonSerializer<Any>
@@ -567,7 +588,7 @@ class ListSerializer private constructor(
  * Serialization handler for map types
  */
 class MapSerializer(
-    private val mapType: LocalTypeInformation.AMap,
+    mapType: LocalTypeInformation.AMap,
     serializationFactory: SerializationFactory
 ) : JsonSerializer<Map<Any?, Any?>> {
 
@@ -650,3 +671,27 @@ class EnumSerializer(
     generator.write(obj.name)
   }
 }
+//
+///**
+// * Serializer that is able to write properties of an abstract class
+// * as JSON, but unable to deserialize a concrete instance from JSON.
+// *
+// * FIXME add support for resolving among known subtypes
+// */
+//class AbstractTypeJsonSerializer(
+//    private val type: LocalTypeInformation.Abstract,
+//    private val serializationFactory: SerializationFactory
+//) : JsonSerializer<Any> {
+//
+//  override fun fromJson(value: JsonValue): Any {
+//    TODO("Not yet implemented")
+//  }
+//
+//  override fun toJson(obj: Any, generator: JsonGenerator) {
+//    TODO("Not yet implemented")
+//  }
+//
+//  override val schema: JsonObject
+//    get() = TODO("Not yet implemented")
+//
+//}
