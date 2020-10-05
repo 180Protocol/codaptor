@@ -189,6 +189,70 @@ class SerializationTest {
     assertEquals(""""VAL1"""", serializer.toJsonString(TestEnum.VAL1))
 
     assertEquals(TestEnum.VAL2, serializer.fromJson(""""VAL2"""".asJsonValue()))
+
+    assertEquals("""{
+      |"type": "string",
+      |"enum": ["VAL1","VAL2"]}""".trimMargin().asJsonObject(), serializer.schema)
+  }
+
+  @Test
+  fun `test atomic types schema`() {
+    assertEquals("""{"type": "string"}""".asJsonObject(), SerializationFactory.StringSerializer.schema)
+    assertEquals("""{"type": "boolean"}""".asJsonObject(), SerializationFactory.BooleanSerializer.schema)
+    assertEquals("""{"type": "number", "format": "int32"}""".asJsonObject(), SerializationFactory.IntSerializer.schema)
+  }
+
+  @Test
+  fun `test composite type schema`() {
+    val f = SerializationFactory(localTypeModel)
+
+    val publicPropertiesSerializer = f.getSerializer(TestDataObject::class)
+
+    assertEquals("""{
+      |"type": "object",
+      |"properties": {
+      | "one":{
+      |   "type":"string"
+      | },
+      | "two":{
+      |   "type":"number",
+      |   "format":"int32"
+      | },
+      | "three":{
+      |   "type":"number",
+      |   "format":"int32"
+      | }
+      |},
+      |"required":[
+      | "one",
+      | "two"
+      |]
+      |}""".trimMargin().asJsonObject(), publicPropertiesSerializer.schema)
+  }
+
+  @Test
+  fun `test collection types schema`() {
+    val f = SerializationFactory(localTypeModel)
+
+    // roundabout way to make sure type comes with generic
+    val arraySerializer = ListSerializer(localTypeModel.inspectProperty(ObjectWithParametrizedProperties::array), f)
+    val listSerializer = ListSerializer(localTypeModel.inspectProperty(ObjectWithParametrizedProperties::list), f)
+    val mapSerializer = MapSerializer(localTypeModel.inspectProperty(ObjectWithParametrizedProperties::map), f)
+
+    assertEquals("""{
+      |"type":"array",
+      |"items":{"type":"string"}
+      |}""".trimMargin().asJsonObject(), arraySerializer.schema)
+
+    assertEquals("""{
+      |"type":"array",
+      |"items":{"type":"string"}
+      |}""".trimMargin().asJsonObject(), listSerializer.schema)
+
+    assertEquals("""{
+      |"type":"array",
+      |"additionalProperties":{"type":"number","format":"int32"}
+      |}""".trimMargin().asJsonObject(), mapSerializer.schema)
   }
 }
 

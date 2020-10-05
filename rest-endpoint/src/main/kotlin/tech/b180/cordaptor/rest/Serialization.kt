@@ -4,7 +4,6 @@ import net.corda.serialization.internal.model.LocalPropertyInformation
 import net.corda.serialization.internal.model.LocalTypeInformation
 import net.corda.serialization.internal.model.LocalTypeModel
 import java.lang.reflect.ParameterizedType
-import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import javax.json.*
 import javax.json.stream.JsonGenerator
@@ -33,6 +32,8 @@ class SerializationFactory(
 
   /** Built-in serializer for atomic value of type [String] */
   object StringSerializer : JsonSerializer<String> {
+    override val schema: JsonObject = mapOf("type" to "string").asJsonObject()
+
     override fun fromJson(value: JsonValue): String {
       return when (value.valueType) {
         // provide limited number of type conversions
@@ -52,6 +53,8 @@ class SerializationFactory(
 
   /** Built-in serializer for atomic value of type [Int] */
   object IntSerializer : JsonSerializer<Int> {
+    override val schema = mapOf("type" to "number", "format" to "int32").asJsonObject()
+
     override fun fromJson(value: JsonValue): Int {
       return when (value.valueType) {
         // provide limited number of type conversions
@@ -68,6 +71,8 @@ class SerializationFactory(
 
   /** Built-in serializer for atomic value of type [Boolean] */
   object BooleanSerializer : JsonSerializer<Boolean> {
+    override val schema = mapOf("type" to "boolean").asJsonObject()
+
     override fun fromJson(value: JsonValue): Boolean {
       return when (value.valueType) {
         // provide limited number of type conversions
@@ -100,6 +105,9 @@ class SerializationFactory(
     override fun toJson(obj: MyType, generator: JsonGenerator) {
       delegate.toJson(my2delegate(obj), generator)
     }
+
+    override val schema: JsonObject
+      get() = delegate.schema
   }
 
 //  init {
@@ -200,6 +208,24 @@ class SerializationFactory(
 //}
 
 /**
+ * Note this only supports map of primitive types
+ *
+ * @throws IllegalArgumentException non-primitive type was encountered
+ */
+fun Map<String, Any>.asJsonObject(): JsonObject {
+  return Json.createObjectBuilder(this).build()
+}
+
+/**
+ * Note this only supports collections of primitive types.
+ *
+ * @throws IllegalArgumentException non-primitive type was encountered
+ */
+fun Collection<Any>.asJsonArray(): JsonArray {
+  return Json.createArrayBuilder(this).build()
+}
+
+/**
  * Helper method allowing [JsonSerializer] to be used in a fluent way.
  * Use to generate a field called [name] in the object context.
  */
@@ -273,7 +299,9 @@ fun <T: Any> JsonGenerator.writeSerializedObjectOrNull(
 }
 
 /**
- * Base interface for all serializers.
+ * Base interface for all serializers allowing JVM objects to be read from JSON structures
+ * and written to JSON stream. Serializers also can describe the schema of JSON value
+ * that it can read and write using a subset of JSON Schema allowed for OpenAPI specifications.
  *
  * For deserialization the whole JSON structure is expected to be read into [JsonObject]
  * ahead of time to make parsing logic easier.
@@ -297,6 +325,15 @@ interface JsonSerializer<T> {
    * to manage its context accordingly, e.g. start an object or an array as appropriate.
    */
   fun toJson(obj: T, generator: JsonGenerator)
+
+  /**
+   * Returns JSON Schema structure describing the value type.
+   * The output is an object containing 'type' property and other descriptive details.
+   *
+   * The object may need to be extended by the calling code, e.g. to add 'readOnly' flag
+   * for a property of an atomic type
+   */
+  val schema: JsonObject
 }
 
 /**
@@ -305,8 +342,8 @@ interface JsonSerializer<T> {
 interface CustomSerializer<T> : JsonSerializer<T>
 
 /**
- * Generates a round-trip initializer for a composable type
- * using Corda-generated introspection logic to ensure compatibility
+ * Generates a round-trip initializer for a type described by [LocalTypeInformation.Composable]
+ * instance obtained from Corda introspection logic to ensure compatibility
  * with evolution semantics.
  */
 class ComposableTypeJsonSerializer(
@@ -329,6 +366,21 @@ class ComposableTypeJsonSerializer(
       name to PropertyAndSerializer(property, factory.getSerializer(property.type))
     }.toMap()
   }
+
+  private val _schema: Lazy<JsonObject> = lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+    Json.createObjectBuilder()
+        .add("type", "object")
+        .add("properties", Json.createObjectBuilder().also { b ->
+          properties.value.forEach { (name, schema) ->
+            b.add(name, schema.serializer.schema)
+          }
+        }.build())
+        .add("required", properties.value.filterValues { it.property.isMandatory }.keys.asJsonArray())
+        .build()
+  }
+
+  override val schema: JsonObject
+    get() = _schema.value
 
   override fun fromJson(value: JsonValue): Any {
     if (value.valueType != JsonValue.ValueType.OBJECT) {
@@ -363,7 +415,9 @@ class ComposableTypeJsonSerializer(
           ctorArgs[prop.constructorSlot.parameterIndex] = objValue
         is LocalPropertyInformation.GetterSetterProperty ->
           fieldInitializers.add(createFieldInitializer(prop, objValue))
-        else -> throw AssertionError("Don't know how to deserialize value for property $prop")
+        is LocalPropertyInformation.ReadOnlyProperty -> {}
+        is LocalPropertyInformation.CalculatedProperty -> {}
+        else -> throw AssertionError("Unexpected kind of an object property: $prop")
       }
     }
 
@@ -472,6 +526,11 @@ class ListSerializer private constructor(
         ?: throw AssertionError("Null instead of a collection - unsafe code in the parent serializer")
   }
 
+  override val schema: JsonObject = Json.createObjectBuilder()
+      .add("type", "array")
+      .add("items", elementSerializer.schema)
+      .build()
+
   override fun fromJson(value: JsonValue): Any {
     if (value.valueType != JsonValue.ValueType.ARRAY) {
       throw SerializationException("Expected an array, got ${value.valueType}")
@@ -514,6 +573,11 @@ class MapSerializer(
     }
   }
 
+  override val schema: JsonObject = Json.createObjectBuilder()
+      .add("type", "array")
+      .add("additionalProperties", valueSerializer.schema)
+      .build()
+
   override fun fromJson(value: JsonValue): Map<Any?, Any?> {
     if (value.valueType != JsonValue.ValueType.OBJECT) {
       throw SerializationException("Expected an object, got ${value.valueType}")
@@ -555,6 +619,11 @@ class EnumSerializer(
 
   @Suppress("UNCHECKED_CAST")
   private val enumClass = enumType.observedType as Class<Enum<*>>
+
+  override val schema: JsonObject = mapOf(
+      "type" to "string",
+      "enum" to enumClass.enumConstants.map { it.name }
+  ).asJsonObject()
 
   override fun fromJson(value: JsonValue): Enum<*> {
     if (value.valueType != JsonValue.ValueType.STRING) {
