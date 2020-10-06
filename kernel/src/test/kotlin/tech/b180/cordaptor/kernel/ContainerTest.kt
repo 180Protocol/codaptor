@@ -105,7 +105,7 @@ class OuterTestServiceImpl(private val delegate: InnerTestService) : TestService
  */
 @Suppress("UNUSED")
 class ContainerTestModuleProvider : ModuleProvider {
-  override val module: Module = module {
+  override fun provideModule(settings: BootstrapSettings): Module = module {
     single { TestComponent(
         getProperty("stringValue"),
         getBooleanProperty("booleanValue"),

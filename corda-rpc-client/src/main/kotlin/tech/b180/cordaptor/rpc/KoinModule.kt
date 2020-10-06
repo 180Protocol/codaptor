@@ -2,6 +2,7 @@ package tech.b180.cordaptor.rpc
 
 import org.koin.dsl.bind
 import org.koin.dsl.module
+import tech.b180.cordaptor.kernel.BootstrapSettings
 import tech.b180.cordaptor.kernel.LifecycleAware
 import tech.b180.cordaptor.kernel.ModuleProvider
 import tech.b180.cordaptor.kernel.getHostAndPortProperty
@@ -16,7 +17,7 @@ import tech.b180.cordaptor.kernel.getHostAndPortProperty
 class CordaRpcClientModuleProvider : ModuleProvider {
   override val salience = ModuleProvider.INNER_MODULE_SALIENCE
 
-  override val module = module {
+  override fun provideModule(settings: BootstrapSettings) = module {
     single {
       CordaRpcConnection(
           getHostAndPortProperty("node.address")

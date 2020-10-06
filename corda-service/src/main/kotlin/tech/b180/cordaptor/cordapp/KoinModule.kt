@@ -11,6 +11,7 @@ import tech.b180.cordaptor.corda.CordaNodeCatalog
 import tech.b180.cordaptor.corda.CordaNodeCatalogInner
 import tech.b180.cordaptor.corda.CordaNodeState
 import tech.b180.cordaptor.corda.CordaNodeStateInner
+import tech.b180.cordaptor.kernel.BootstrapSettings
 import tech.b180.cordaptor.kernel.ModuleProvider
 
 /**
@@ -29,12 +30,15 @@ interface NodeServicesLocator {
  * of this module available for injection into other modules' components.
  *
  * This class is instantiated by the microkernel at runtime using [java.util.ServiceLoader].
+ *
+ * Note that there is no META-INF/services entry for [ModuleProvider].
+ * Instead, an overarching bundle will contribute an all-encompassing entry file.
  */
 @Suppress("UNUSED")
 class CordaServiceModuleProvider : ModuleProvider {
   override val salience = ModuleProvider.INNER_MODULE_SALIENCE
 
-  override val module = module {
+  override fun provideModule(settings: BootstrapSettings) = module {
     single<CordaNodeCatalog> { CordaNodeCatalogImpl(get(), get()) } bind CordaNodeCatalogInner::class
     single<CordaNodeState> { CordaNodeStateImpl() } bind CordaNodeStateInner::class
     single { CordaFlowDispatcher() }

@@ -17,8 +17,8 @@ import tech.b180.cordaptor.kernel.*
 class DataGridModuleProvider : ModuleProvider {
   override val salience = ModuleProvider.INNER_MODULE_SALIENCE + 100
 
-  override val module = module(override = true) {
-    single<CordaNodeCatalog> { ClusteredNodeCatalog() } bind LifecycleAware::class
-    single<CordaNodeState> { ClusteredNodeState() } bind LifecycleAware::class
+  override fun provideModule(settings: BootstrapSettings) = module(override = true) {
+    single<CordaNodeCatalog> { ClusteredNodeCatalog(get()) } bind LifecycleAware::class
+    single<CordaNodeState> { ClusteredNodeState(get()) } bind LifecycleAware::class
   }
 }

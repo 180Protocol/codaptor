@@ -24,8 +24,11 @@ interface ModuleProvider {
   /**
    * Returns a Koin module construct, which may declare types to be made available
    * for other modules and/or dependencies to be resolved.
+   *
+   * @param settings parameters available during container instantiation
+   * that may affect the way module definition is created
    */
-  val module: Module
+  fun provideModule(settings: BootstrapSettings): Module
 
   /**
    * A number that is used to order module declarations when initializing the container.

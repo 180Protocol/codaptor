@@ -4,10 +4,7 @@ import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import tech.b180.cordaptor.corda.CordaNodeState
-import tech.b180.cordaptor.kernel.LifecycleAware
-import tech.b180.cordaptor.kernel.ModuleProvider
-import tech.b180.cordaptor.kernel.getHostAndPortProperty
-import tech.b180.cordaptor.kernel.lazyGetAll
+import tech.b180.cordaptor.kernel.*
 import kotlin.reflect.KClass
 
 /**
@@ -20,7 +17,7 @@ import kotlin.reflect.KClass
 class RestEndpointModuleProvider : ModuleProvider {
   override val salience = 100
 
-  override val module = module {
+  override fun provideModule(settings: BootstrapSettings) = module {
     single {
       JettyConnectorConfiguration(
         bindAddress = getHostAndPortProperty("listen.address")

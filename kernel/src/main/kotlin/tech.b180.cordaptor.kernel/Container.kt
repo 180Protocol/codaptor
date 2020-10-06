@@ -48,9 +48,11 @@ class Container(contextModuleFactory: () -> Module) {
         logger.info(provider.javaClass.name)
       }
 
+      val settings = BootstrapSettings(emptyMap())
+
       // mapping modules to a list of pairs with salience being the first item
       // sorting by salience in the ascending order, so the higher values are applied later
-      val modules = providers.map { it.salience to it.module } +
+      val modules = providers.map { it.salience to it.provideModule(settings) } +
           (ModuleProvider.CONTEXT_MODULE_SALIENCE to contextModuleFactory())
 
       val sortedModules = modules.sortedBy { it.first }

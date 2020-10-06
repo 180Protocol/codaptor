@@ -4,6 +4,19 @@ import org.koin.core.scope.Scope
 import java.net.InetSocketAddress
 
 /**
+ * Provides uniform access to configuration settings available during
+ * the container bootstrap stage, which may be used to change the way modules are defined.
+ */
+data class BootstrapSettings(
+    val settings: Map<String, String>
+) {
+
+  fun getBoolean(name: String, defaultValue: Boolean? = null) = settings[name]?.toBoolean()
+      ?: defaultValue
+      ?: throw NoSuchElementException(name)
+}
+
+/**
  * Container for a parsed configuration option for a network socket address
  */
 data class HostAndPort(val hostname: String, val port: Int) {
