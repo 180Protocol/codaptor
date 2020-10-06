@@ -14,6 +14,13 @@ cordapp {
     }
 }
 
+jar {
+    // Otherwise there will be multiple entries for ModuleProvider in /META-INF/services
+    // Because java.util.ServiceLoader will notice only one of the entries, not all modules will be loaded
+    // Instead, we provide one overriding entry as part of the bundle JAR (see main/resources)
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
 dependencies {
     compileOnly project(":kernel")
     compileOnly "org.koin:koin-core:$koin_version"
