@@ -1,7 +1,6 @@
 package tech.b180.cordaptor.kernel
 
 import org.junit.BeforeClass
-import org.koin.core.KoinComponent
 import org.koin.core.module.Module
 import org.koin.core.qualifier.named
 import org.koin.dsl.bind
@@ -82,9 +81,9 @@ class TestComponent(
     val stringValue: String,
     val booleanValue: Boolean,
     val integerValue: Int
-) : KoinComponent
+) : CordaptorComponent
 
-class WrapperComponent(val testComponent: TestComponent) : KoinComponent
+class WrapperComponent(val testComponent: TestComponent) : CordaptorComponent
 
 interface TestService : Marker {
   fun doWork(): String

@@ -1,5 +1,6 @@
 package tech.b180.cordaptor.kernel
 
+import org.koin.core.Koin
 import org.koin.core.KoinApplication
 import org.koin.core.logger.Level
 import org.koin.core.logger.Logger
@@ -8,7 +9,6 @@ import org.koin.core.module.Module
 import org.koin.core.qualifier.Qualifier
 import org.koin.dsl.koinApplication
 import org.koin.dsl.module
-import org.koin.ext.scope
 import java.util.*
 import kotlin.reflect.KClass
 
@@ -26,8 +26,15 @@ import kotlin.reflect.KClass
  */
 class Container(contextModuleFactory: () -> Module) {
 
-  private val koinApp : KoinApplication
   private val logger: Logger = PrintLogger(Level.INFO)
+
+  companion object {
+    private var koinApp : KoinApplication? = null
+
+    val koinInstance: Koin
+      get() = koinApp?.koin
+          ?: throw IllegalStateException("Container has not been instantiated")
+  }
 
   init {
     koinApp = koinApplication {
@@ -50,21 +57,22 @@ class Container(contextModuleFactory: () -> Module) {
 
       modules(sortedModules.map { it.second })
     }
+    logger.info("Initialized Koin application $koinApp")
   }
 
   fun <T : Any> get(clazz: KClass<T>, qualifier: Qualifier? = null): T {
-    return koinApp.koin.get<T>(clazz, qualifier)
+    return koinInstance.get<T>(clazz, qualifier)
   }
 
   fun <T : Any> getAll(clazz: KClass<T>): List<T> {
-    return koinApp.koin._scopeRegistry.rootScope.getAll(clazz)
+    return koinInstance._scopeRegistry.rootScope.getAll(clazz)
   }
 
   fun initialize() {
     logger.info("Initializing lifecycle aware components")
 
     // creating a set to avoid calling more than once if bound twice
-    val all = koinApp.koin.getAll<LifecycleAware>().toSet()
+    val all = koinInstance.getAll<LifecycleAware>().toSet()
     all.forEach {
       it.initialize();
     }
@@ -72,7 +80,7 @@ class Container(contextModuleFactory: () -> Module) {
 
   fun shutdown() {
     logger.info("Shutting down lifecycle aware components")
-    val all = koinApp.koin.getAll<LifecycleAware>().toSet()
+    val all = koinInstance.getAll<LifecycleAware>().toSet()
     all.forEach {
       it.shutdown();
     }

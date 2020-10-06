@@ -5,10 +5,10 @@ import net.corda.core.node.ServiceHub
 import org.eclipse.jetty.http.HttpMethod
 import org.eclipse.jetty.server.Request
 import org.eclipse.jetty.server.handler.AbstractHandler
-import org.koin.core.KoinComponent
 import org.koin.core.inject
 import org.koin.core.parameter.parametersOf
 import tech.b180.cordaptor.rest.ContextMappedHandler
+import tech.b180.cordaptor.kernel.CordaptorComponent
 import javax.json.Json
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
@@ -18,7 +18,7 @@ import javax.servlet.http.HttpServletResponse
  */
 class NodeInfoHandler(
     override val contextPath: String
-) : ContextMappedHandler, AbstractHandler(), KoinComponent {
+) : ContextMappedHandler, AbstractHandler(), CordaptorComponent {
 
   private val serviceHub: ServiceHub by inject()
   private val nodeInfoSerializer: JsonSerializer<NodeInfo> by inject { parametersOf(NodeInfo::class) }

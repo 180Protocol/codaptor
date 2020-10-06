@@ -4,7 +4,7 @@ import org.eclipse.jetty.server.Handler
 import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.server.handler.ContextHandler
 import org.eclipse.jetty.server.handler.ContextHandlerCollection
-import org.koin.core.KoinComponent
+import tech.b180.cordaptor.kernel.CordaptorComponent
 import tech.b180.cordaptor.kernel.LifecycleAware
 import tech.b180.cordaptor.kernel.getAll
 
@@ -38,7 +38,7 @@ interface ContextMappedHandler : Handler {
  * aspects of the configuration and applying them to the server,
  * as well as starting and stopping the server in line with the container lifecycle.
  */
-class JettyServer : LifecycleAware, KoinComponent {
+class JettyServer : LifecycleAware, CordaptorComponent {
 
   private val server = Server()
 

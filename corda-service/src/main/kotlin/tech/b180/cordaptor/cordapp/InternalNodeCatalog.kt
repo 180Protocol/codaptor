@@ -2,13 +2,14 @@ package tech.b180.cordaptor.cordapp
 
 import net.corda.node.services.api.ServiceHubInternal
 import net.corda.serialization.internal.amqp.LocalSerializerFactory
-import org.koin.core.KoinComponent
+import net.corda.serialization.internal.model.LocalTypeModel
 import tech.b180.cordaptor.corda.*
+import tech.b180.cordaptor.kernel.CordaptorComponent
 
 class CordaNodeCatalogImpl(
     serviceHubInternal: ServiceHubInternal,
     serializerFactory: LocalSerializerFactory
-) : CordaNodeCatalogInner, KoinComponent {
+) : CordaNodeCatalogInner, CordaptorComponent {
 
   override val cordapps: Collection<CordappInfo>
 

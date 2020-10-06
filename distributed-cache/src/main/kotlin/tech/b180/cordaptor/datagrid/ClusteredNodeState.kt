@@ -5,14 +5,14 @@ import net.corda.core.crypto.SecureHash
 import net.corda.core.flows.StateMachineRunId
 import net.corda.core.node.NodeInfo
 import net.corda.core.transactions.SignedTransaction
-import org.koin.core.KoinComponent
 import tech.b180.cordaptor.corda.CordaFlowHandle
 import tech.b180.cordaptor.corda.CordaFlowInstruction
 import tech.b180.cordaptor.corda.CordaNodeState
 import tech.b180.cordaptor.corda.CordaStateQuery
+import tech.b180.cordaptor.kernel.CordaptorComponent
 import tech.b180.cordaptor.kernel.LifecycleAware
 
-class ClusteredNodeState : CordaNodeState, KoinComponent, LifecycleAware {
+class ClusteredNodeState : CordaNodeState, CordaptorComponent, LifecycleAware {
   override val nodeInfo: NodeInfo
     get() = TODO("Not yet implemented")
 

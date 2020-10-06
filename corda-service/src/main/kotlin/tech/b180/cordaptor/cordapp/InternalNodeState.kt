@@ -12,9 +12,9 @@ import net.corda.core.node.services.TransactionStorage
 import net.corda.core.transactions.SignedTransaction
 import net.corda.serialization.internal.model.LocalTypeInformation
 import net.corda.serialization.internal.model.LocalTypeModel
-import org.koin.core.KoinComponent
 import org.koin.core.inject
 import tech.b180.cordaptor.corda.*
+import tech.b180.cordaptor.kernel.CordaptorComponent
 import java.lang.reflect.Constructor
 import java.util.concurrent.ConcurrentHashMap
 
@@ -22,7 +22,7 @@ import java.util.concurrent.ConcurrentHashMap
  * Implementation of [CordaNodeState] interface providing access to a state
  * maintained within a particular Corda node using APIs available internally within the node.
  */
-class CordaNodeStateImpl : CordaNodeStateInner, KoinComponent {
+class CordaNodeStateImpl : CordaNodeStateInner, CordaptorComponent {
 
   private val appServiceHub: AppServiceHub by inject()
   private val transactionStorage: TransactionStorage by inject()
@@ -70,7 +70,7 @@ class CordaNodeStateImpl : CordaNodeStateInner, KoinComponent {
  * Wrapper for Corda flow initiation API that keeps track of actively running
  * flows and allowing to look them up by run id.
  */
-class CordaFlowDispatcher : KoinComponent {
+class CordaFlowDispatcher : CordaptorComponent {
   private val appServiceHub: AppServiceHub by inject()
   private val localTypeModel: LocalTypeModel by inject()
 

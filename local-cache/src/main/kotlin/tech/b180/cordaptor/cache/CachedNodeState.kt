@@ -5,11 +5,11 @@ import net.corda.core.crypto.SecureHash
 import net.corda.core.flows.StateMachineRunId
 import net.corda.core.node.NodeInfo
 import net.corda.core.transactions.SignedTransaction
-import org.koin.core.KoinComponent
 import tech.b180.cordaptor.corda.*
+import tech.b180.cordaptor.kernel.CordaptorComponent
 import tech.b180.cordaptor.kernel.LifecycleAware
 
-class CachedNodeState(private val delegate: CordaNodeStateInner) : CordaNodeState, KoinComponent, LifecycleAware {
+class CachedNodeState(private val delegate: CordaNodeStateInner) : CordaNodeState, CordaptorComponent, LifecycleAware {
 
   override val nodeInfo: NodeInfo
     get() = delegate.nodeInfo

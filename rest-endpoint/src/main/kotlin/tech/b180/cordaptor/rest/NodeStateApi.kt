@@ -3,14 +3,14 @@ package tech.b180.cordaptor.rest
 import net.corda.core.crypto.SecureHash
 import org.eclipse.jetty.server.Request
 import org.eclipse.jetty.server.handler.AbstractHandler
-import org.koin.core.KoinComponent
 import org.koin.core.inject
 import tech.b180.cordaptor.corda.CordaNodeCatalog
 import tech.b180.cordaptor.corda.CordaNodeState
+import tech.b180.cordaptor.kernel.CordaptorComponent
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 
-class NodeStateApiProvider(private val contextPath: String) : ContextMappedHandlerFactory, KoinComponent {
+class NodeStateApiProvider(private val contextPath: String) : ContextMappedHandlerFactory, CordaptorComponent {
 
   override val handlers: List<ContextMappedHandler>
 
@@ -51,7 +51,7 @@ class StateQueryHandler(override val contextPath: String) : ContextMappedHandler
  * Resolves REST API queries for specific transactions using a secure hash.
  */
 class TransactionQueryHandler(override val contextPath: String)
-  : ContextMappedHandler, AbstractHandler(), KoinComponent {
+  : ContextMappedHandler, AbstractHandler(), CordaptorComponent {
 
   private val nodeState: CordaNodeState by inject()
 //  private val txSerializer: CordaSignedTransactionSerializer by inject()
