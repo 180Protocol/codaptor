@@ -9,11 +9,12 @@ import net.corda.serialization.internal.model.ConfigurableLocalTypeModel
 import net.corda.serialization.internal.model.LocalPropertyInformation
 import net.corda.serialization.internal.model.LocalTypeInformation
 import net.corda.serialization.internal.model.LocalTypeModel
-import java.awt.Point
 import java.io.StringReader
 import java.io.StringWriter
 import java.util.*
-import javax.json.*
+import javax.json.Json
+import javax.json.JsonObject
+import javax.json.JsonValue
 import javax.json.stream.JsonGenerator
 import kotlin.reflect.KProperty
 import kotlin.reflect.full.instanceParameter

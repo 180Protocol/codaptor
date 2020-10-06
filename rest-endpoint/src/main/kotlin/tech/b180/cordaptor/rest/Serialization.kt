@@ -4,13 +4,10 @@ import net.corda.serialization.internal.model.LocalPropertyInformation
 import net.corda.serialization.internal.model.LocalTypeInformation
 import net.corda.serialization.internal.model.LocalTypeModel
 import net.corda.serialization.internal.model.PropertyName
-import org.koin.core.KoinComponent
-import tech.b180.cordaptor.kernel.LifecycleAware
 import java.lang.reflect.ParameterizedType
 import java.util.concurrent.ConcurrentHashMap
 import javax.json.*
 import javax.json.stream.JsonGenerator
-import kotlin.collections.ArrayList
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
 import kotlin.reflect.full.instanceParameter

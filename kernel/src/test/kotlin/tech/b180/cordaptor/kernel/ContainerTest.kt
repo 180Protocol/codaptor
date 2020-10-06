@@ -5,7 +5,6 @@ import org.koin.core.KoinComponent
 import org.koin.core.module.Module
 import org.koin.core.qualifier.named
 import org.koin.dsl.bind
-import org.koin.dsl.binds
 import org.koin.dsl.module
 import kotlin.test.*
 
