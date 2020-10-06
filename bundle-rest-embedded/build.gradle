@@ -25,7 +25,6 @@ dependencies {
     compileOnly project(":kernel")
     compileOnly "org.koin:koin-core:$koin_version"
 
-    runtime project(":rest-endpoint")
-    runtime project(":local-cache")
-    runtime project(":corda-service")
+    compile project(":rest-endpoint")
+    compile project(":corda-service")
 }
