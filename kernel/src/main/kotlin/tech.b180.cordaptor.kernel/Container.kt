@@ -36,7 +36,10 @@ class Container(contextModuleFactory: () -> Module) {
       environmentProperties()
 
       val providers = ServiceLoader.load(ModuleProvider::class.java).iterator().asSequence().toList()
-      logger.info("Found ${providers.size} Cordaptor module provider(s) in classpath")
+      logger.info("Found ${providers.size} Cordaptor module provider(s) in classpath:")
+      for (provider in providers) {
+        logger.info(provider.javaClass.name)
+      }
 
       // mapping modules to a list of pairs with salience being the first item
       // sorting by salience in the ascending order, so the higher values are applied later
