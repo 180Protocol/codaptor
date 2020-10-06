@@ -20,6 +20,16 @@ repositories {
     }
 }
 
+sourceSets {
+    embeddedBundleTest {
+        kotlin {
+            compileClasspath += main.output
+            runtimeClasspath += main.output
+            srcDir file('src/embeddedBundleTest/kotlin')
+        }
+    }
+}
+
 configurations {
     compile.exclude group: 'co.paralleluniverse'
 }
@@ -28,6 +38,26 @@ tasks.withType(Test) {
     jvmArgs += "-Xmx2g" // OOMs unless enough memory is given
     jvmArgs += "-javaagent:lib/quasar.jar"
     jvmArgs += "-Dnet.corda.client.rpc.trackRpcCallSites=true"
+}
+
+task embeddedBundleTest(type: Test, dependsOn: [":bundle-rest-embedded:build"]) {
+    def bundleProject = project(":bundle-rest-embedded")
+    def bundleJarPath = bundleProject.tasks["jar"].archivePath
+
+    doFirst {
+        println("Copying bundle JAR file from ${bundleJarPath}")
+    }
+
+    // we have to add bundle JAR to the test classpath here instead of configuring it as a dependency
+    // because otherwise there will be multiple JARS with classes in Cordaptor package in the classpath
+    // caused by transitive subproject dependencies, which would cause TestCordapp to fail
+    classpath = sourceSets.embeddedBundleTest.runtimeClasspath + bundleProject.files(bundleJarPath)
+
+    jvmArgs += "-Xmx2g" // OOMs unless enough memory is given
+    jvmArgs += "-javaagent:lib/quasar.jar"
+    jvmArgs += "-Dnet.corda.client.rpc.trackRpcCallSites=true"
+    testClassesDirs = sourceSets.embeddedBundleTest.output.classesDirs
+    outputs.upToDateWhen { false }
 }
 
 dependencies {
@@ -44,7 +74,10 @@ dependencies {
     implementation "org.koin:koin-core:$koin_version"
     testImplementation "org.koin:koin-test:$koin_version"
 
-    implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
     testImplementation 'org.jetbrains.kotlin:kotlin-test'
     testImplementation 'org.jetbrains.kotlin:kotlin-test-junit'
+
+    embeddedBundleTestImplementation 'org.jetbrains.kotlin:kotlin-test'
+    embeddedBundleTestImplementation 'org.jetbrains.kotlin:kotlin-test-junit'
+    embeddedBundleTestImplementation "net.corda:corda-node-driver:$corda_core_release_version"
 }

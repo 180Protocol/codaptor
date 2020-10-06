@@ -6,15 +6,13 @@ import net.corda.core.flows.StateMachineRunId
 import net.corda.core.node.NodeInfo
 import net.corda.core.transactions.SignedTransaction
 import org.koin.core.KoinComponent
-import tech.b180.cordaptor.corda.CordaFlowInstruction
-import tech.b180.cordaptor.corda.CordaFlowStatus
-import tech.b180.cordaptor.corda.CordaNodeState
-import tech.b180.cordaptor.corda.CordaStateQuery
+import tech.b180.cordaptor.corda.*
 import tech.b180.cordaptor.kernel.LifecycleAware
 
-class CachedNodeState : CordaNodeState, KoinComponent, LifecycleAware {
+class CachedNodeState(private val delegate: CordaNodeStateInner) : CordaNodeState, KoinComponent, LifecycleAware {
+
   override val nodeInfo: NodeInfo
-    get() = TODO("Not yet implemented")
+    get() = delegate.nodeInfo
 
   override fun <T : ContractState> findStateByRef(stateRef: StateRef, clazz: Class<T>): StateAndRef<T>? {
     TODO("Not yet implemented")
@@ -36,11 +34,11 @@ class CachedNodeState : CordaNodeState, KoinComponent, LifecycleAware {
     TODO("Not yet implemented")
   }
 
-  override fun initiateFlow(instruction: CordaFlowInstruction): io.reactivex.rxjava3.core.Observable<CordaFlowStatus> {
+  override fun initiateFlow(instruction: CordaFlowInstruction): CordaFlowHandle {
     TODO("Not yet implemented")
   }
 
-  override fun getFlowStatus(flowRunId: StateMachineRunId): CordaFlowStatus {
+  override fun trackRunningFlow(runId: StateMachineRunId): CordaFlowHandle {
     TODO("Not yet implemented")
   }
 

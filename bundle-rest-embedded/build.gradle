@@ -1,7 +1,24 @@
 apply plugin: 'org.jetbrains.kotlin.jvm'
+apply plugin: 'net.corda.plugins.cordapp'
+
+cordapp {
+    targetPlatformVersion 7
+    minimumPlatformVersion 7
+    workflow {
+        name "cordaptor-embedded-bundle"
+        vendor "B180"
+        versionId 1
+    }
+    signing {
+        enabled false
+    }
+}
 
 dependencies {
-    implementation project(":rest-endpoint")
-    implementation project(":corda-service")
-    implementation project(":local-cache")
+    compileOnly project(":kernel")
+    compileOnly "org.koin:koin-core:$koin_version"
+
+    runtime project(":rest-endpoint")
+    runtime project(":local-cache")
+    runtime project(":corda-service")
 }

@@ -1,4 +1,4 @@
-package tech.b180.cordaptor.reference
+package tech.b180.ref_cordapp
 
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.internal.declaredField
@@ -32,7 +32,7 @@ class CordaInternalApiTest {
   private val network = MockNetwork(
       MockNetworkParameters(
           cordappsForAllNodes = listOf(
-              TestCordapp.findCordapp("tech.b180.cordaptor.reference")
+              TestCordapp.findCordapp("tech.b180.ref_cordapp")
           )
       )
   )
@@ -74,7 +74,7 @@ class CordaInternalApiTest {
     assertEquals("cordaptor-reference", cordapps[0].info.shortName, "Reference CorDapp is available")
 
     val cordapp = cordapps[0]
-    assertEquals(SimpleContract::class.qualifiedName, cordapp.contractClassNames[0])
+    assertEquals(TrivialContract::class.qualifiedName, cordapp.contractClassNames[0])
 
     val factory = SerializerFactoryBuilder.build(whitelist = AllWhitelist, classCarpenter = ClassCarpenterImpl(AllWhitelist))
     val typeInfo = factory.getTypeInformation(cordapp.contractClassNames[0])

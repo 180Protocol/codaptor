@@ -49,6 +49,12 @@ interface CordaNodeState {
 }
 
 /**
+ * Marker interface allowing decorating implementation of [CordaNodeState] to locate
+ * the underlying implementation.
+ */
+interface CordaNodeStateInner : CordaNodeState
+
+/**
  * Corda treats all flows as disposable in the sense that once completed there is no way
  * to know the outcome of the flow. This makes subscribing to a completion future the only way to
  * know about the result, which is inconvenient in many low-stake low-tech scenarios,

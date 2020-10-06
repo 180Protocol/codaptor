@@ -1,7 +1,15 @@
 apply plugin: 'org.jetbrains.kotlin.jvm'
 
 dependencies {
-    implementation project(":rest-endpoint")
-    implementation project(":corda-rpc-client")
-    implementation project(":distributed-cache")
+    api project(":kernel")
+    api project(":corda-common")
+
+    implementation "io.reactivex.rxjava3:rxjava:$rxjava3_version"
+    implementation "org.koin:koin-core:$koin_version"
+
+    compileOnly "net.corda:corda-core:$corda_core_release_version"
+    compileOnly "net.corda:corda-serialization:$corda_core_release_version"
+
+    testImplementation 'org.jetbrains.kotlin:kotlin-test'
+    testImplementation 'org.jetbrains.kotlin:kotlin-test-junit'
 }

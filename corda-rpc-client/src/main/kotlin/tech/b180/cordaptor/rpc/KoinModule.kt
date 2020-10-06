@@ -14,7 +14,9 @@ import tech.b180.cordaptor.kernel.getHostAndPortProperty
  */
 @Suppress("UNUSED")
 class CordaRpcClientModuleProvider : ModuleProvider {
-  override fun buildModule() = module {
+  override val salience = ModuleProvider.INNER_MODULE_SALIENCE
+
+  override val module = module {
     single {
       CordaRpcConnection(
           getHostAndPortProperty("node.address")

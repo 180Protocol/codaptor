@@ -5,7 +5,9 @@ import org.eclipse.jetty.server.Request
 import org.eclipse.jetty.server.handler.AbstractHandler
 import org.junit.AfterClass
 import org.junit.BeforeClass
+import org.koin.core.context.KoinContextHandler
 import org.koin.core.context.startKoin
+import org.koin.dsl.koinApplication
 import org.koin.dsl.module
 import org.koin.test.KoinTest
 import org.koin.test.get
@@ -21,7 +23,7 @@ class JettyServerTest : KoinTest {
 
   companion object {
 
-    val koin = startKoin {
+    private val koinApp = startKoin {
       modules(module {
         // initialize a server with plain HTTP connection
         single { JettyServer() }
@@ -32,7 +34,8 @@ class JettyServerTest : KoinTest {
 
         single { HttpClient() }
       })
-    }.koin
+    }
+    private val koin = koinApp.koin
 
     @BeforeClass @JvmStatic
     fun `start Jetty`() {
@@ -44,6 +47,8 @@ class JettyServerTest : KoinTest {
     fun `stop Jetty`() {
       koin.get<HttpClient>().stop()
       koin.get<JettyServer>().shutdown()
+
+      KoinContextHandler.stop()
     }
   }
 

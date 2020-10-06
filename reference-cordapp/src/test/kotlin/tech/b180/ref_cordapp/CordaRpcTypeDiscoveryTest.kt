@@ -1,4 +1,4 @@
-package tech.b180.cordaptor.reference
+package tech.b180.ref_cordapp
 
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.utilities.getOrThrow
@@ -21,7 +21,7 @@ class CordaRpcTypeDiscoveryTest {
   @Test
   fun `can discover cordapps via RPC`() = withDriver {
     val handle = startNode(CordaX500Name.parse("O=Bank,L=London,C=GB"))
-    assertTrue(handle.rpc.registeredFlows().contains("tech.b180.cordaptor.reference.SimpleFlow"))
+    assertTrue(handle.rpc.registeredFlows().contains("tech.b180.ref_cordapp.SimpleFlow"))
     assertEquals(1, handle.rpc.nodeDiagnosticInfo().cordapps.size)
 
     val loader = JarScanningCordappLoader
@@ -30,7 +30,7 @@ class CordaRpcTypeDiscoveryTest {
     assertEquals(1, loader.cordapps.size)
 
     val factory = SerializerFactoryBuilder.build(whitelist = AllWhitelist, classCarpenter = ClassCarpenterImpl(AllWhitelist))
-    val typeInfo = factory.getTypeInformation(SimpleState::class.java)
+    val typeInfo = factory.getTypeInformation(SimpleLinearState::class.java)
 
     assertNotNull(typeInfo, "Can access local type information")
 

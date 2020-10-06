@@ -15,6 +15,12 @@ interface CordaNodeCatalog {
   val cordapps: Collection<CordappInfo>
 }
 
+/**
+ * Marker interface allowing decorating implementation of [CordaNodeCatalog] to locate
+ * the underlying implementation.
+ */
+interface CordaNodeCatalogInner : CordaNodeCatalog
+
 data class CordappInfo(
     val shortName: String,
     val flows: List<CordappFlowInfo>,

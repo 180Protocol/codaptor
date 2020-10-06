@@ -5,10 +5,14 @@ dependencies {
     implementation project(":corda-common")
 
     implementation "org.koin:koin-core:$koin_version"
-    implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
     implementation "org.eclipse.jetty:jetty-server:$jetty_version"
-
     implementation "org.glassfish:javax.json:$glassfish_json_version"
+
+    compileOnly "net.corda:corda-core:$corda_core_release_version"
+    compileOnly "net.corda:corda-serialization:$corda_core_release_version"
+
+    testImplementation "net.corda:corda-core:$corda_core_release_version"
+    testImplementation "net.corda:corda-serialization:$corda_core_release_version"
 
     testImplementation "org.koin:koin-test:$koin_version"
     testImplementation 'org.jetbrains.kotlin:kotlin-test'
