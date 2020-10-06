@@ -22,8 +22,6 @@ interface NodeServicesLocator {
   val appServiceHub: AppServiceHub
   val serviceHubInternal: ServiceHubInternal
   val localTypeModel: LocalTypeModel
-  val transactionStorage: TransactionStorage
-  val vaultService: VaultService
 }
 
 /**
@@ -42,10 +40,11 @@ class CordaServiceModuleProvider : ModuleProvider {
     single { CordaFlowDispatcher() }
 
     // expose Corda node APIs to other definitions without the need to traverse the properties
-    single { (locator: NodeServicesLocator) -> locator.serviceHubInternal }
-    single { (locator: NodeServicesLocator) -> locator.localTypeModel }
-    single { (locator: NodeServicesLocator) -> locator.appServiceHub }
-    single { (locator: NodeServicesLocator) -> locator.transactionStorage }
-    single { (locator: NodeServicesLocator) -> locator.vaultService }
+    single { get<NodeServicesLocator>().serviceHubInternal }
+    single { get<NodeServicesLocator>().localTypeModel }
+    single { get<NodeServicesLocator>().appServiceHub }
+    single { get<NodeServicesLocator>().appServiceHub.validatedTransactions }
+    single { get<NodeServicesLocator>().appServiceHub.vaultService }
+    single { get<NodeServicesLocator>().appServiceHub.identityService }
   }
 }

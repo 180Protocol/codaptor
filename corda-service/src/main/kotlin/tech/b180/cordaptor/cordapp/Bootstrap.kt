@@ -28,7 +28,7 @@ class CordaptorService(private val serviceHub: AppServiceHub) : SingletonSeriali
 
   private val container = Container {
     module {
-      single { NodeServicesLocatorImpl(serviceHub) }
+      single<NodeServicesLocator> { NodeServicesLocatorImpl(serviceHub) }
     }
   }
 
@@ -53,9 +53,6 @@ class CordaptorService(private val serviceHub: AppServiceHub) : SingletonSeriali
 data class NodeServicesLocatorImpl(
     override val appServiceHub : AppServiceHub
 ) : NodeServicesLocator {
-
-  override val transactionStorage: TransactionStorage = appServiceHub.validatedTransactions
-  override val vaultService: VaultService = appServiceHub.vaultService
 
   override val serviceHubInternal: ServiceHubInternal
 

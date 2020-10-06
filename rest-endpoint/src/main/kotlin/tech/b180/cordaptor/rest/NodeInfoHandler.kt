@@ -1,15 +1,13 @@
 package tech.b180.cordaptor.rest
 
 import net.corda.core.node.NodeInfo
-import net.corda.core.node.ServiceHub
 import org.eclipse.jetty.http.HttpMethod
 import org.eclipse.jetty.server.Request
 import org.eclipse.jetty.server.handler.AbstractHandler
 import org.koin.core.inject
 import org.koin.core.parameter.parametersOf
-import tech.b180.cordaptor.rest.ContextMappedHandler
+import tech.b180.cordaptor.corda.CordaNodeState
 import tech.b180.cordaptor.kernel.CordaptorComponent
-import javax.json.Json
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 
@@ -20,7 +18,7 @@ class NodeInfoHandler(
     override val contextPath: String
 ) : ContextMappedHandler, AbstractHandler(), CordaptorComponent {
 
-  private val serviceHub: ServiceHub by inject()
+  private val cordaNodeState: CordaNodeState by inject()
   private val nodeInfoSerializer: JsonSerializer<NodeInfo> by inject { parametersOf(NodeInfo::class) }
 
   override fun handle(target: String?, baseRequest: Request?, request: HttpServletRequest?, response: HttpServletResponse?) {
@@ -31,8 +29,8 @@ class NodeInfoHandler(
       return
     }
 
-    Json.createGenerator(response!!.writer)
-        .writeSerializedObject(nodeInfoSerializer, serviceHub.myInfo)
+    JsonHome.createGenerator(response!!.writer)
+        .writeSerializedObject(nodeInfoSerializer, cordaNodeState.nodeInfo)
         .flush()
   }
 }

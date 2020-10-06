@@ -4,6 +4,8 @@ import net.corda.serialization.internal.model.LocalPropertyInformation
 import net.corda.serialization.internal.model.LocalTypeInformation
 import net.corda.serialization.internal.model.LocalTypeModel
 import net.corda.serialization.internal.model.PropertyName
+import org.glassfish.json.JsonProviderImpl
+import java.io.PrintWriter
 import java.lang.reflect.ParameterizedType
 import java.util.concurrent.ConcurrentHashMap
 import javax.json.*
@@ -187,7 +189,7 @@ class SerializationFactory(
  * @throws IllegalArgumentException non-primitive type was encountered
  */
 fun Map<String, Any>.asJsonObject(): JsonObject {
-  return Json.createObjectBuilder(this).build()
+  return JsonHome.createObjectBuilder(this).build()
 }
 
 /**
@@ -196,7 +198,7 @@ fun Map<String, Any>.asJsonObject(): JsonObject {
  * @throws IllegalArgumentException non-primitive type was encountered
  */
 fun Collection<Any>.asJsonArray(): JsonArray {
-  return Json.createArrayBuilder(this).build()
+  return JsonHome.createArrayBuilder(this).build()
 }
 
 /**
@@ -229,19 +231,6 @@ fun <T: Any> JsonGenerator.writeSerializedArray(
   this.writeStartArray()
   items.forEach { serializer.toJson(it, this) }
   this.writeEnd()
-  return this
-}
-
-/**
- * Helper method allowing [JsonSerializer] to be used in a fluent way
- */
-fun <T: Any> JsonGenerator.writeSerializedObject(
-    name: String,
-    serializer: JsonSerializer<T>,
-    obj: T): JsonGenerator {
-
-  this.writeKey(name)
-  serializer.toJson(obj, this)
   return this
 }
 
@@ -368,11 +357,11 @@ open class ComposableTypeJsonSerializer<T: Any>(
   }
 
   private val _schema: Lazy<JsonObject> = lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
-    Json.createObjectBuilder()
+    JsonHome.createObjectBuilder()
         .add("type", "object")
-        .add("properties", Json.createObjectBuilder().also { b ->
+        .add("properties", JsonHome.createObjectBuilder().also { b ->
           properties.value.forEach { (name, prop) ->
-            b.add(name, Json.createObjectBuilder(prop.serializer.schema).also {
+            b.add(name, JsonHome.createObjectBuilder(prop.serializer.schema).also {
               if (!prop.serialize) {
                 it.add("writeOnly", true)
               } else if (!prop.deserialize) {
@@ -550,7 +539,7 @@ class ListSerializer private constructor(
         ?: throw AssertionError("Null instead of a collection - unsafe code in the parent serializer")
   }
 
-  override val schema: JsonObject = Json.createObjectBuilder()
+  override val schema: JsonObject = JsonHome.createObjectBuilder()
       .add("type", "array")
       .add("items", elementSerializer.schema)
       .build()
@@ -597,7 +586,7 @@ class MapSerializer(
     }
   }
 
-  override val schema: JsonObject = Json.createObjectBuilder()
+  override val schema: JsonObject = JsonHome.createObjectBuilder()
       .add("type", "array")
       .add("additionalProperties", valueSerializer.schema)
       .build()
@@ -692,3 +681,16 @@ class EnumSerializer(
 //    get() = TODO("Not yet implemented")
 //
 //}
+
+object JsonHome {
+  /** Explicitly bind to a built-in provider to avoid a gamble with ServiceLoader */
+  private val provider = JsonProviderImpl()
+
+  fun createObjectBuilder(): JsonObjectBuilder = provider.createObjectBuilder()
+  fun createObjectBuilder(map: Map<String, Any?>): JsonObjectBuilder = provider.createObjectBuilder(map)
+  fun createObjectBuilder(jsonObject: JsonObject): JsonObjectBuilder = provider.createObjectBuilder(jsonObject)
+
+  fun createArrayBuilder(collection: Collection<Any?>): JsonArrayBuilder = provider.createArrayBuilder(collection)
+
+  fun createGenerator(writer: PrintWriter): JsonGenerator = provider.createGenerator(writer)
+}

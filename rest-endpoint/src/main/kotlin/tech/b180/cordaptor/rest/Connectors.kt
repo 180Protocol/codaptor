@@ -2,8 +2,6 @@ package tech.b180.cordaptor.rest
 
 import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.server.ServerConnector
-import org.koin.core.KoinComponent
-import org.koin.core.inject
 import tech.b180.cordaptor.kernel.HostAndPort
 
 data class JettyConnectorConfiguration(

@@ -3,12 +3,15 @@ package tech.b180.cordaptor.cordapp
 import net.corda.node.services.api.ServiceHubInternal
 import net.corda.serialization.internal.amqp.LocalSerializerFactory
 import net.corda.serialization.internal.model.LocalTypeModel
-import tech.b180.cordaptor.corda.*
+import tech.b180.cordaptor.corda.CordaNodeCatalogInner
+import tech.b180.cordaptor.corda.CordappContractStateInfo
+import tech.b180.cordaptor.corda.CordappFlowInfo
+import tech.b180.cordaptor.corda.CordappInfo
 import tech.b180.cordaptor.kernel.CordaptorComponent
 
 class CordaNodeCatalogImpl(
     serviceHubInternal: ServiceHubInternal,
-    serializerFactory: LocalSerializerFactory
+    localTypeModel: LocalTypeModel
 ) : CordaNodeCatalogInner, CordaptorComponent {
 
   override val cordapps: Collection<CordappInfo>
@@ -20,14 +23,13 @@ class CordaNodeCatalogImpl(
           flows = cordapp.rpcFlows.map { flowClass ->
             CordappFlowInfo(
                 flowClassName = flowClass.canonicalName,
-                flowTypeInfo = serializerFactory.getTypeInformation(flowClass)
+                flowTypeInfo = localTypeModel.inspect(flowClass)
             )
           },
           contractStates = cordapp.contractClassNames.map { contractClassName ->
             CordappContractStateInfo(
                 stateClassName = contractClassName,
-                stateTypeInfo = serializerFactory.getTypeInformation(contractClassName)
-                    ?: throw AssertionError("Type information for $contractClassName not found")
+                stateTypeInfo = localTypeModel.inspect(Class.forName(contractClassName))
             )
           }
       )

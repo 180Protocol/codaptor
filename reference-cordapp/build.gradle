@@ -32,6 +32,8 @@ sourceSets {
 
 configurations {
     compile.exclude group: 'co.paralleluniverse'
+
+    embeddedBundleTestRuntime.exclude module: 'geronimo-json_1.0_spec'
 }
 
 tasks.withType(Test) {
@@ -80,4 +82,5 @@ dependencies {
     embeddedBundleTestImplementation 'org.jetbrains.kotlin:kotlin-test'
     embeddedBundleTestImplementation 'org.jetbrains.kotlin:kotlin-test-junit'
     embeddedBundleTestImplementation "net.corda:corda-node-driver:$corda_core_release_version"
+    embeddedBundleTestImplementation "org.eclipse.jetty:jetty-client:$jetty_version"
 }
