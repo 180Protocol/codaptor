@@ -17,7 +17,9 @@ class CordaNodeCatalogImpl(
   override val cordapps: Collection<CordappInfo>
 
   init {
-    cordapps = serviceHubInternal.cordappProvider.cordapps.map { cordapp ->
+    cordapps = serviceHubInternal.cordappProvider.cordapps
+        .filterNot { it.info.shortName == "corda-core" }
+        .map { cordapp ->
       CordappInfo(
           shortName = cordapp.info.shortName,
           flows = cordapp.rpcFlows.map { flowClass ->
