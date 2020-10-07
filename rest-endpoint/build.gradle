@@ -13,9 +13,12 @@ dependencies {
 
     testImplementation "net.corda:corda-core:$corda_core_release_version"
     testImplementation "net.corda:corda-serialization:$corda_core_release_version"
+    testImplementation "net.corda:corda-node-driver:$corda_core_release_version"
 
     testImplementation "org.koin:koin-test:$koin_version"
     testImplementation 'org.jetbrains.kotlin:kotlin-test'
     testImplementation 'org.jetbrains.kotlin:kotlin-test-junit'
     testImplementation "org.eclipse.jetty:jetty-client:$jetty_version"
+
+    testImplementation "io.mockk:mockk:1.9.3"
 }

@@ -13,12 +13,10 @@ import net.corda.serialization.internal.model.LocalTypeModel
 import net.corda.serialization.internal.model.PropertyName
 import java.security.cert.X509Certificate
 import java.util.*
-import javax.json.Json
 import javax.json.JsonObject
 import javax.json.JsonValue
 import javax.json.stream.JsonGenerator
 import kotlin.reflect.KClass
-import kotlin.reflect.KProperty
 
 /**
  * Serializer for [CordaX500Name] converting to/from a string value.
@@ -143,18 +141,21 @@ class CordaSignedTransactionSerializer(
  * FIXME implement serialization logic for instances of [X509Certificate] abstract class
  * FIXME actually write contents of the class
  */
-class CordaPartyAndCertificateSerializer : CustomSerializer<PartyAndCertificate> {
+class CordaPartyAndCertificateSerializer(private val factory: SerializationFactory)
+  : CustomSerializer<PartyAndCertificate> {
+
+  private val partySerializer = lazy { factory.getSerializer(Party::class) }
 
   override fun fromJson(value: JsonValue): PartyAndCertificate {
-    throw SerializationException("Instances of this class cannot be deserialized from JSON")
+    throw UnsupportedOperationException("PartyAndCertificate cannot be deserialized from JSON")
   }
 
   override fun toJson(obj: PartyAndCertificate, generator: JsonGenerator) {
-    generator.writeStartObject().writeEnd()
+    partySerializer.value.toJson(obj.party, generator)
   }
 
   override val schema: JsonObject
-    get() = Json.createObjectBuilder().add("type", "object").build()
+    get() = partySerializer.value.schema
 
   override val appliedTo: KClass<*>
     get() = PartyAndCertificate::class

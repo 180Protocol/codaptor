@@ -47,7 +47,7 @@ class RestEndpointModuleProvider : ModuleProvider {
     single { CordaUUIDSerializer() } bind CustomSerializer::class
     single { CordaPartySerializer(get(), get(), get()) } bind CustomSerializer::class
     single { CordaSignedTransactionSerializer(get(), get(), get()) } bind CustomSerializer::class
-    single { CordaPartyAndCertificateSerializer() } bind CustomSerializer::class
+    single { CordaPartyAndCertificateSerializer(get()) } bind CustomSerializer::class
 
     // factory for requesting specific serializers into the non-generic serialization code
     single<JsonSerializer<*>> { (clazz: KClass<*>) -> get<SerializationFactory>().getSerializer(clazz) }

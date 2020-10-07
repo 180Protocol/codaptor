@@ -259,7 +259,7 @@ class SerializationTest {
 
 fun generateJson(block: JsonGenerator.() -> Unit): String {
   val w = StringWriter()
-  val gen = Json.createGenerator(w)
+  val gen = JsonHome.createGenerator(w)
   gen.apply(block)
   gen.flush()
   return w.toString()
@@ -288,12 +288,12 @@ fun <K, V> LocalTypeModel.inspectProperty(prop: KProperty<Map<K, V>>): LocalType
 }
 
 fun String.asJsonObject(): JsonObject {
-  val r = Json.createReader(StringReader(this))
+  val r = JsonHome.createReader(StringReader(this))
   return r.readObject()
 }
 
 fun String.asJsonValue(): JsonValue {
-  val r = Json.createReader(StringReader(this))
+  val r = JsonHome.createReader(StringReader(this))
   return r.readValue()
 }
 
