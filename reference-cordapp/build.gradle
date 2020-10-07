@@ -33,7 +33,10 @@ sourceSets {
 configurations {
     compile.exclude group: 'co.paralleluniverse'
 
+    // these dependencies are brought in by artimismq included into Corda bundles
+    // and they interfere with glassfish javax.json impl, which has more recent version
     embeddedBundleTestRuntime.exclude module: 'geronimo-json_1.0_spec'
+    embeddedBundleTestRuntime.exclude module: 'johnzon-core'
 }
 
 tasks.withType(Test) {
@@ -83,4 +86,5 @@ dependencies {
     embeddedBundleTestImplementation 'org.jetbrains.kotlin:kotlin-test-junit'
     embeddedBundleTestImplementation "net.corda:corda-node-driver:$corda_core_release_version"
     embeddedBundleTestImplementation "org.eclipse.jetty:jetty-client:$jetty_version"
+    embeddedBundleTestImplementation "org.glassfish:javax.json:$glassfish_json_version"
 }

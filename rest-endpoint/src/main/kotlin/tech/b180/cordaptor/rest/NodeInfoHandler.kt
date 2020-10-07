@@ -29,7 +29,8 @@ class NodeInfoHandler(
       return
     }
 
-    JsonHome.createGenerator(response!!.writer)
+    response!!.contentType = "application/json"
+    JsonHome.createGenerator(response.writer)
         .writeSerializedObject(nodeInfoSerializer, cordaNodeState.nodeInfo)
         .flush()
   }
