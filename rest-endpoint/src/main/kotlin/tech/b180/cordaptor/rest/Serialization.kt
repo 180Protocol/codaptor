@@ -6,6 +6,8 @@ import net.corda.serialization.internal.model.LocalTypeModel
 import net.corda.serialization.internal.model.PropertyName
 import org.glassfish.json.JsonProviderImpl
 import java.io.PrintWriter
+import java.io.Reader
+import java.io.StringWriter
 import java.lang.reflect.ParameterizedType
 import java.util.concurrent.ConcurrentHashMap
 import javax.json.*
@@ -24,8 +26,14 @@ class SerializationFactory(
     private val localTypeModel: LocalTypeModel,
     private val lazySerializers: Lazy<List<CustomSerializer<Any>>>
 ) {
+  private var lazyInitialization = false
 
-  private val objectSerializers = lazy {
+  private val objectSerializers = lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+    if (lazyInitialization) {
+      throw IllegalStateException("SerializationFactory initialization is invoked recursively " +
+          "-- did you call getSerializer() in a serializer constructor?")
+    }
+    lazyInitialization = true
     val map = ConcurrentHashMap<LocalTypeInformation, JsonSerializer<Any>>()
 
     map[localTypeModel.inspect(String::class.java)] = StringSerializer as JsonSerializer<Any>
@@ -41,6 +49,7 @@ class SerializationFactory(
       map[localTypeModel.inspect(serializer.appliedTo.javaObjectType)] = serializer
     }
 
+    lazyInitialization = false
     map
   }
 
@@ -129,9 +138,10 @@ class SerializationFactory(
 
   abstract class DelegatingSerializer<MyType, DelegatedType>(
       private val delegate: JsonSerializer<DelegatedType>,
-      private val my2delegate: MyType.() -> DelegatedType,
-      private val delegate2my: DelegatedType.() -> MyType
+      private val my2delegate: MyType.() -> DelegatedType = { throw UnsupportedOperationException() },
+      private val delegate2my: DelegatedType.() -> MyType = { throw UnsupportedOperationException() }
   ) : JsonSerializer<MyType> {
+
     override fun fromJson(value: JsonValue): MyType {
       return delegate2my(delegate.fromJson(value))
     }
@@ -329,20 +339,20 @@ open class ComposableTypeJsonSerializer<T: Any>(
   open val serializedClassProperties: List<KProperty<Any?>>? = null
 
   /** Class properties that will be read from a JSON document when deserializing an instance */
-  open val deserializedClassProperties: List<KProperty<Any?>>? = serializedClassProperties
+  open val deserializedClassProperties: List<KProperty<Any?>>? = null
 
   private val properties : Lazy<Map<PropertyName, PropertyAndSerializer>> = lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
-    val deserializedProperties = deserializedClassProperties?.map {
-      it.name to (type.properties[it.name]
-          ?: throw SerializationException("Cannot find property ${it.name} through introspection in $type"))
-    }?.toMap()
-        ?: type.properties // fall back to the complete set of properties
-
     val serializedProperties = serializedClassProperties?.map {
       it.name to (type.properties[it.name]
           ?: throw SerializationException("Cannot find property ${it.name} through introspection in $type"))
     }?.toMap()
         ?: type.properties // fall back to the complete set of properties
+
+    val deserializedProperties = deserializedClassProperties?.map {
+      it.name to (type.properties[it.name]
+          ?: throw SerializationException("Cannot find property ${it.name} through introspection in $type"))
+    }?.toMap()
+        ?: serializedProperties // fall back to the same set of properties as for serialization
 
     (deserializedProperties + serializedProperties).mapValues { (name, property) ->
 
@@ -692,5 +702,8 @@ object JsonHome {
 
   fun createArrayBuilder(collection: Collection<Any?>): JsonArrayBuilder = provider.createArrayBuilder(collection)
 
+  fun createGenerator(writer: StringWriter): JsonGenerator = provider.createGenerator(writer)
   fun createGenerator(writer: PrintWriter): JsonGenerator = provider.createGenerator(writer)
+
+  fun createReader(reader: Reader): JsonReader = provider.createReader(reader)
 }
