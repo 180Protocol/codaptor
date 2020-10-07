@@ -7,13 +7,16 @@ import java.net.InetSocketAddress
  * Provides uniform access to configuration settings available during
  * the container bootstrap stage, which may be used to change the way modules are defined.
  */
-data class BootstrapSettings(
-    val settings: Map<String, String>
-) {
+interface BootstrapSettings {
 
-  fun getBoolean(name: String, defaultValue: Boolean? = null) = settings[name]?.toBoolean()
-      ?: defaultValue
-      ?: throw NoSuchElementException(name)
+  fun getOptionalString(name: String): String?
+  fun getOptionalFlag(name: String): Boolean?
+
+  fun getMandatoryString(name: String): String = getOptionalString(name)
+      ?: throw NoSuchElementException("No value provided for mandatory bootstrap setting $name")
+
+  fun getMandatoryFlag(name: String): Boolean = getOptionalFlag(name)
+      ?: throw NoSuchElementException("No value provided for mandatory bootstrap setting $name")
 }
 
 /**

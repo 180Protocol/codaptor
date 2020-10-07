@@ -24,7 +24,7 @@ import kotlin.reflect.KClass
  * A factory is used instead of passing in the actual instance of [Module] because
  * Koin does not like its Module DSL used outside of Koin instantiation flow.
  */
-class Container(contextModuleFactory: () -> Module) {
+class Container(bootstrapSettings: BootstrapSettings, contextModuleFactory: () -> Module = { module {  } }) {
 
   private val logger: Logger = PrintLogger(Level.INFO)
 
@@ -48,11 +48,9 @@ class Container(contextModuleFactory: () -> Module) {
         logger.info(provider.javaClass.name)
       }
 
-      val settings = BootstrapSettings(emptyMap())
-
       // mapping modules to a list of pairs with salience being the first item
       // sorting by salience in the ascending order, so the higher values are applied later
-      val modules = providers.map { it.salience to it.provideModule(settings) } +
+      val modules = providers.map { it.salience to it.provideModule(bootstrapSettings) } +
           (ModuleProvider.CONTEXT_MODULE_SALIENCE to contextModuleFactory())
 
       val sortedModules = modules.sortedBy { it.first }
@@ -89,7 +87,15 @@ class Container(contextModuleFactory: () -> Module) {
   }
 }
 
-data class CommandLineArguments(val args: List<String>);
+/**
+ * Implementation delegating all properties to [System.getProperty]
+ */
+class SystemPropertiesBootstrapSettings : BootstrapSettings {
+
+  override fun getOptionalString(name: String): String? = System.getProperty(name)
+
+  override fun getOptionalFlag(name: String): Boolean? = getOptionalString(name)?.toBoolean()
+}
 
 /**
  * Entry point for Cordaptor when it is running as a standalone JVM.
@@ -97,11 +103,7 @@ data class CommandLineArguments(val args: List<String>);
 fun main(args: Array<String>) {
   println("Cordaptor is starting up")
 
-  val containerInstance = Container {
-    module {
-      single { CommandLineArguments(args.asList()) }
-    }
-  }
+  val containerInstance = Container(SystemPropertiesBootstrapSettings())
 
   containerInstance.initialize();
 

@@ -30,7 +30,9 @@ class EmbeddedBundleTest {
     return startNode(
         defaultParameters = NodeParameters(
             providedName = name,
-            additionalCordapps = listOf(TestCordapp.findCordapp("tech.b180.cordaptor")),
+            additionalCordapps = listOf(TestCordapp.findCordapp("tech.b180.cordaptor").withConfig(
+                mapOf("useLocalCache" to false)
+            )),
             rpcUsers = listOf(
                 User(
                     username = "client",

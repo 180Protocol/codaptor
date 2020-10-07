@@ -1,4 +1,5 @@
 # A list of all provider classes for modules embedded into th bundle JAR is required
 # Otherwise ServiceLoader will only see one of the files in the classpath
 tech.b180.cordaptor.cordapp.CordaServiceModuleProvider
+tech.b180.cordaptor.cache.LocalCacheModuleProvider
 tech.b180.cordaptor.rest.RestEndpointModuleProvider

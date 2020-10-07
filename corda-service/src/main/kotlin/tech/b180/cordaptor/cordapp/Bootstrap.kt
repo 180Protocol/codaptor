@@ -1,5 +1,6 @@
 package tech.b180.cordaptor.cordapp
 
+import net.corda.core.cordapp.CordappConfig
 import net.corda.core.node.AppServiceHub
 import net.corda.core.node.services.CordaService
 import net.corda.core.node.services.ServiceLifecycleEvent
@@ -14,6 +15,7 @@ import net.corda.serialization.internal.amqp.WhitelistBasedTypeModelConfiguratio
 import net.corda.serialization.internal.model.ConfigurableLocalTypeModel
 import net.corda.serialization.internal.model.LocalTypeModel
 import org.koin.dsl.module
+import tech.b180.cordaptor.kernel.BootstrapSettings
 import tech.b180.cordaptor.kernel.Container
 
 /**
@@ -26,13 +28,15 @@ import tech.b180.cordaptor.kernel.Container
 @Suppress("UNUSED")
 class CordaptorService(private val serviceHub: AppServiceHub) : SingletonSerializeAsToken() {
 
-  private val container = Container {
+  private val container = Container(CordappConfigBootstrapSettings(serviceHub.getAppContext().config)) {
     module {
       single<NodeServicesLocator> { NodeServicesLocatorImpl(serviceHub) }
     }
   }
 
   init {
+    serviceHub.cordappProvider.getAppContext().config
+
     serviceHub.register(AppServiceHub.SERVICE_PRIORITY_NORMAL) {
       when (it) {
         ServiceLifecycleEvent.STATE_MACHINE_STARTED -> {
@@ -43,6 +47,27 @@ class CordaptorService(private val serviceHub: AppServiceHub) : SingletonSeriali
 
     serviceHub.registerUnloadHandler {
       container.shutdown()
+    }
+  }
+}
+
+/**
+ * Implementation delegates all settings to an instance of [CordappConfig]
+ */
+data class CordappConfigBootstrapSettings(private val config: CordappConfig) : BootstrapSettings {
+  override fun getOptionalString(name: String): String? {
+    return if (config.exists(name)) {
+      config.getString(name)
+    } else {
+      null
+    }
+  }
+
+  override fun getOptionalFlag(name: String): Boolean? {
+    return if (config.exists(name)) {
+      config.getBoolean(name)
+    } else {
+      null
     }
   }
 }

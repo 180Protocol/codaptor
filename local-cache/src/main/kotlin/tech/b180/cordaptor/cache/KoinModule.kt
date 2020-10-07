@@ -23,7 +23,7 @@ class LocalCacheModuleProvider : ModuleProvider {
   }
 
   override fun provideModule(settings: BootstrapSettings) = module(override = true) {
-    if (settings.getBoolean(USE_LOCAL_CACHE_PROPERTY)) {
+    if (settings.getMandatoryFlag(USE_LOCAL_CACHE_PROPERTY)) {
       single<CordaNodeCatalog> { CachedNodeCatalog(get()) } bind LifecycleAware::class
       single<CordaNodeState> { CachedNodeState(get()) } bind LifecycleAware::class
     }
