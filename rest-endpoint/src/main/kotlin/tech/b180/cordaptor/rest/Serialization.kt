@@ -188,7 +188,7 @@ class SerializationFactory(
       is LocalTypeInformation.ACollection -> ListSerializer(type, this)
       is LocalTypeInformation.AnEnum -> EnumSerializer(type) as JsonSerializer<Any>
       is LocalTypeInformation.AMap -> MapSerializer(type, this) as JsonSerializer<Any>
-      else -> throw AssertionError("Don't know how to create a serializer for $type")
+      else -> throw AssertionError("Don't know how to create a serializer for ${type.javaClass}")
     }
   }
 }
@@ -344,13 +344,13 @@ open class ComposableTypeJsonSerializer<T: Any>(
   private val properties : Lazy<Map<PropertyName, PropertyAndSerializer>> = lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
     val serializedProperties = serializedClassProperties?.map {
       it.name to (type.properties[it.name]
-          ?: throw SerializationException("Cannot find property ${it.name} through introspection in $type"))
+          ?: throw SerializationException("Cannot find property ${it.name} through introspection in ${type.observedType}"))
     }?.toMap()
         ?: type.properties // fall back to the complete set of properties
 
     val deserializedProperties = deserializedClassProperties?.map {
       it.name to (type.properties[it.name]
-          ?: throw SerializationException("Cannot find property ${it.name} through introspection in $type"))
+          ?: throw SerializationException("Cannot find property ${it.name} through introspection in ${type.observedType}"))
     }?.toMap()
         ?: serializedProperties // fall back to the same set of properties as for serialization
 
@@ -389,7 +389,7 @@ open class ComposableTypeJsonSerializer<T: Any>(
 
   override fun fromJson(value: JsonValue): T {
     if (value.valueType != JsonValue.ValueType.OBJECT) {
-      throw SerializationException("Expected object of type $type, got ${value.valueType}")
+      throw SerializationException("Expected object of type ${type.observedType}, got ${value.valueType}")
     }
 
     val jsonObject = value as JsonObject
@@ -406,7 +406,8 @@ open class ComposableTypeJsonSerializer<T: Any>(
       // absence of value or explicit null are treated the same way
       if (propValue == null || propValue.valueType == JsonValue.ValueType.NULL) {
         if (prop.isMandatory) {
-          throw SerializationException("Received null value for mandatory property $prop")
+          throw SerializationException("Received null value for mandatory property $propertyName " +
+              "of type ${type.observedType}")
         }
       }
 
@@ -439,7 +440,7 @@ open class ComposableTypeJsonSerializer<T: Any>(
           fieldInitializers.add(createFieldInitializer(prop, objValue))
         is LocalPropertyInformation.ReadOnlyProperty -> {}
         is LocalPropertyInformation.CalculatedProperty -> {}
-        else -> throw AssertionError("Unexpected kind of an object property: $prop")
+        else -> throw AssertionError("Unexpected kind of an object property: ${prop.javaClass}")
       }
     }
 
@@ -483,18 +484,18 @@ open class ComposableTypeJsonSerializer<T: Any>(
           is LocalPropertyInformation.GetterSetterProperty -> {
             prop.observedGetter.invoke(obj)
           }
-          else -> throw AssertionError("Don't know how to obtain value for property $prop")
+          else -> throw AssertionError("Don't know how to obtain value for property $propertyName")
         }
       } catch (e: AssertionError) {
         throw e
       } catch (e: Exception) {
-        throw SerializationException("Reflection call failed while reading property $prop", e)
+        throw SerializationException("Reflection call failed while reading property $propertyName", e)
       }
 
       if (v == null) {
         if (prop.isMandatory) {
           // Kotlin should not allow this, but there could be bugs in the introspection logic and/or non-Kotlin classes
-          throw SerializationException("Null value in non-nullable property $prop in object $obj")
+          throw SerializationException("Null value in non-nullable property $propertyName in object $obj")
         }
         generator.writeNull(propertyName)
       } else {
