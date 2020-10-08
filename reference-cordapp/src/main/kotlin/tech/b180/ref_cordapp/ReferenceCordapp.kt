@@ -36,15 +36,17 @@ open class SimpleFlow(
     private val externalId: String
 ) : FlowLogic<SignedTransaction>() {
 
+  companion object {
+
+  }
+
   override fun call() : SignedTransaction {
-    val builder = TransactionBuilder()
+    val builder = TransactionBuilder(notary = serviceHub.networkMapCache.notaryIdentities.first())
     builder.addOutputState(SimpleLinearState(externalId, ourIdentity))
-    builder.addCommand(TrivialContract.Commands.RecordState())
+    builder.addCommand(TrivialContract.Commands.RecordState(), ourIdentity.owningKey)
 
     val tx = serviceHub.signInitialTransaction(builder, ourIdentity.owningKey)
 
-    subFlow(FinalityFlow(tx, emptySet<FlowSession>()))
-
-    return tx
+    return subFlow(FinalityFlow(tx, emptySet<FlowSession>()))
   }
 }
