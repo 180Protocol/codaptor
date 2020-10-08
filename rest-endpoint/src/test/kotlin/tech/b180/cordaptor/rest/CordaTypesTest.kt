@@ -49,7 +49,7 @@ class CordaTypesTest {
         single { CordaPartyAndCertificateSerializer(factory = get()) } bind CustomSerializer::class
 
         // factory for requesting specific serializers into the non-generic serialization code
-        single<JsonSerializer<*>> { (clazz: KClass<*>) -> get<SerializationFactory>().getSerializer(clazz) }
+        factory<JsonSerializer<*>> { (clazz: KClass<*>) -> get<SerializationFactory>().getSerializer(clazz) }
       })
     }
 
@@ -63,7 +63,8 @@ class CordaTypesTest {
 
   @Test
   fun `test x500 name serialization`() {
-    val serializer = koin.get<SerializationFactory>().getSerializer(CordaX500Name::class)
+    val serializer = koin
+        .get<JsonSerializer<CordaX500Name>> { parametersOf(CordaX500Name::class) }
     assertEquals<Class<*>>(CordaX500NameSerializer::class.java, serializer.javaClass)
 
     assertEquals(serializer, koin.get { parametersOf(CordaX500Name::class) },
@@ -80,7 +81,8 @@ class CordaTypesTest {
 
   @Test
   fun `test party serialization`() {
-    val serializer = koin.get<SerializationFactory>().getSerializer(Party::class)
+    val serializer = koin.get<JsonSerializer<Party>> { parametersOf(Party::class) }
+
     assertEquals(CordaPartySerializer::class.java, serializer.javaClass as Class<*>)
 
     assertEquals("""{"type":"object","properties":{"name":{"type":"string"}},"required":["name"]}""".asJsonObject(),
@@ -103,7 +105,7 @@ class CordaTypesTest {
   @Test
   fun `test party and certificate serializer`() {
     val serializer =
-        koin.get<SerializationFactory>().getSerializer(PartyAndCertificate::class)
+        koin.get<JsonSerializer<PartyAndCertificate>> { parametersOf(PartyAndCertificate::class) }
     assertEquals(CordaPartyAndCertificateSerializer::class.java, serializer.javaClass as Class<*>)
 
     assertEquals("""{"type":"object","properties":{"name":{"type":"string"}},"required":["name"]}""".asJsonObject(),
@@ -121,7 +123,7 @@ class CordaTypesTest {
   @Test
   fun `test flows serialization`() {
     // most flows are expected to be just composable objects
-    val serializer = koin.get<SerializationFactory>().getSerializer(TestFlow::class)
+    val serializer = koin.get<JsonSerializer<TestFlow>> { parametersOf(TestFlow::class) }
     assertEquals(ComposableTypeJsonSerializer::class.java, serializer.javaClass as Class<*>)
 
     assertEquals("""{
