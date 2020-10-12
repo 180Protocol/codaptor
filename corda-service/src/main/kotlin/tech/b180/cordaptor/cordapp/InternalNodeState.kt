@@ -1,6 +1,7 @@
 package tech.b180.cordaptor.cordapp
 
 import hu.akarnokd.rxjava3.interop.RxJavaInterop
+import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Single
 import net.corda.core.contracts.*
 import net.corda.core.crypto.SecureHash
@@ -10,13 +11,12 @@ import net.corda.core.node.AppServiceHub
 import net.corda.core.node.NodeInfo
 import net.corda.core.node.services.TransactionStorage
 import net.corda.core.transactions.SignedTransaction
-import net.corda.serialization.internal.model.LocalTypeInformation
-import net.corda.serialization.internal.model.LocalTypeModel
 import org.koin.core.inject
 import tech.b180.cordaptor.corda.*
 import tech.b180.cordaptor.kernel.CordaptorComponent
-import java.lang.reflect.Constructor
+import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.reflect.KClass
 
 /**
  * Implementation of [CordaNodeState] interface providing access to a state
@@ -56,13 +56,19 @@ class CordaNodeStateImpl : CordaNodeStateInner, CordaptorComponent {
     TODO("Not yet implemented")
   }
 
-  override fun initiateFlow(instruction: CordaFlowInstruction): CordaFlowHandle {
-    return flowDispatcher.initiateFlow(instruction)
+  @Suppress("UNCHECKED_CAST")
+  override fun <ReturnType: Any> initiateFlow(flowInstance: FlowLogic<ReturnType>): CordaFlowHandle<ReturnType> {
+    return flowDispatcher.initiateFlow(flowInstance) as CordaFlowHandle<ReturnType>
   }
 
-  override fun trackRunningFlow(runId: StateMachineRunId): CordaFlowHandle {
-    return flowDispatcher.findFlowHandle(runId)
+  @Suppress("UNCHECKED_CAST")
+  override fun <ReturnType: Any> trackRunningFlow(
+      flowClass: KClass<out FlowLogic<ReturnType>>, runId: StateMachineRunId): CordaFlowHandle<ReturnType> {
+
+    val handle = flowDispatcher.findFlowHandle(runId)
         ?: throw NoSuchElementException("Unknown run id $runId -- flow may have already completed")
+
+    return handle as CordaFlowHandle<ReturnType>
   }
 }
 
@@ -72,47 +78,39 @@ class CordaNodeStateImpl : CordaNodeStateInner, CordaptorComponent {
  */
 class CordaFlowDispatcher : CordaptorComponent {
   private val appServiceHub: AppServiceHub by inject()
-  private val localTypeModel: LocalTypeModel by inject()
 
-  private val activeHandles = ConcurrentHashMap<StateMachineRunId, CordaFlowHandle>()
+  private val activeHandles = ConcurrentHashMap<StateMachineRunId, CordaFlowHandle<Any>>()
 
-  fun initiateFlow(instruction: CordaFlowInstruction): CordaFlowHandle {
-    val cordaHandle = appServiceHub.startTrackedFlow(instantiateFlow(instruction))
+  fun initiateFlow(flowInstance: FlowLogic<Any>): CordaFlowHandle<Any> {
+    val startedAt = Instant.now()
+
+    val cordaHandle = appServiceHub.startTrackedFlow(flowInstance)
 
     val ourHandle = CordaFlowHandle(
-        flowClassName = instruction.flowClassName,
-        flowRunId = cordaHandle.id,
-        flowResultPromise = Single.fromFuture(cordaHandle.returnValue),
-        flowProgressUpdates = RxJavaInterop.toV3Observable(cordaHandle.stepsTreeFeed!!.updates).map {
-          CordaFlowProgress(it)
-        }
+        startedAt = startedAt,
+        flowClass = flowInstance::class,
+        flowRunId = cordaHandle.id.uuid,
+        flowResultPromise = Single.fromFuture(cordaHandle.returnValue)
+            .onErrorReturn { CordaFlowResult.forError<Any>(it) }
+            .map { CordaFlowResult.forValue(it) },
+
+        // if the feed is not available, return observable that returns empty progress info once
+        flowProgressUpdates = cordaHandle.stepsTreeFeed?.let { feed ->
+          RxJavaInterop.toV3Observable(feed.updates).map { steps ->
+            CordaFlowProgress(steps.map { step -> CordaFlowProgressStep(step.first, step.second) })
+          }
+        } ?: Observable.just(CordaFlowProgress.noProgressInfo)
     )
 
-    ourHandle.flowResultPromise.onErrorReturnItem(null).subscribe { _, _ -> activeHandles.remove(cordaHandle.id) }
+    ourHandle.flowResultPromise
+        .subscribe { _, _ -> activeHandles.remove(cordaHandle.id) }
 
     activeHandles[cordaHandle.id] = ourHandle
 
     return ourHandle
   }
 
-  fun findFlowHandle(runId: StateMachineRunId): CordaFlowHandle? {
+  fun findFlowHandle(runId: StateMachineRunId): CordaFlowHandle<Any>? {
     return activeHandles[runId]
-  }
-
-  /** Instantiates the flow class using given parameters */
-  private fun instantiateFlow(instruction: CordaFlowInstruction): FlowLogic<Any> {
-    val flowType = localTypeModel.inspect(Class.forName(instruction.flowClassName))
-    if (flowType !is LocalTypeInformation.NonComposable) {
-      throw AssertionError("Unexpected type for the flow class ${instruction.flowClassName}: $flowType")
-    }
-    val flowConstructor = (flowType as LocalTypeInformation.NonComposable).constructor
-        ?: throw AssertionError("No constructor found in $flowType")
-
-    val javaConstructor = flowConstructor.observedMethod as Constructor<FlowLogic<Any>>
-
-    // we are not validating compatibility of the parameters passed in the instruction
-    // as they should have been reconstructed using flow type information at the endpoint
-    // but any type mismatches occurring at this point would yield a reflection error
-    return javaConstructor.newInstance(*instruction.flowConstructorParameters.toTypedArray())
   }
 }

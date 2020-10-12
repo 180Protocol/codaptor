@@ -2,12 +2,14 @@ package tech.b180.cordaptor.cache
 
 import net.corda.core.contracts.*
 import net.corda.core.crypto.SecureHash
+import net.corda.core.flows.FlowLogic
 import net.corda.core.flows.StateMachineRunId
 import net.corda.core.node.NodeInfo
 import net.corda.core.transactions.SignedTransaction
 import tech.b180.cordaptor.corda.*
 import tech.b180.cordaptor.kernel.CordaptorComponent
 import tech.b180.cordaptor.kernel.LifecycleAware
+import kotlin.reflect.KClass
 
 class CachedNodeState(private val delegate: CordaNodeStateInner) : CordaNodeState, CordaptorComponent, LifecycleAware {
 
@@ -34,11 +36,11 @@ class CachedNodeState(private val delegate: CordaNodeStateInner) : CordaNodeStat
     TODO("Not yet implemented")
   }
 
-  override fun initiateFlow(instruction: CordaFlowInstruction): CordaFlowHandle {
+  override fun <ReturnType : Any> initiateFlow(flowInstance: FlowLogic<ReturnType>): CordaFlowHandle<ReturnType> {
     TODO("Not yet implemented")
   }
 
-  override fun trackRunningFlow(runId: StateMachineRunId): CordaFlowHandle {
+  override fun <ReturnType : Any> trackRunningFlow(flowClass: KClass<out FlowLogic<ReturnType>>, runId: StateMachineRunId): CordaFlowHandle<ReturnType> {
     TODO("Not yet implemented")
   }
 

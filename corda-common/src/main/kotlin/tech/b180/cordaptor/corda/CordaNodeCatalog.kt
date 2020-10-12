@@ -1,6 +1,8 @@
 package tech.b180.cordaptor.corda
 
-import net.corda.serialization.internal.model.LocalTypeInformation
+import net.corda.core.contracts.ContractState
+import net.corda.core.flows.FlowLogic
+import kotlin.reflect.KClass
 
 /**
  * Single access point for all descriptive information about CorDapps installed
@@ -28,11 +30,10 @@ data class CordappInfo(
 )
 
 data class CordappFlowInfo(
-    val flowClassName: String,
-    val flowTypeInfo: LocalTypeInformation
+    val flowClass: KClass<out FlowLogic<Any>>,
+    val flowResultClass: KClass<out Any>
 )
 
 data class CordappContractStateInfo(
-    val stateClassName: String,
-    val stateTypeInfo: LocalTypeInformation
+    val stateClass: KClass<out ContractState>
 )

@@ -31,6 +31,7 @@ class TrivialContract : Contract {
 
 @InitiatingFlow
 @StartableByRPC
+@StartableByService
 @Suppress("UNUSED")
 open class SimpleFlow(
     private val externalId: String

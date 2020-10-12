@@ -24,13 +24,18 @@ interface ContextMappedHandlerFactory {
   val handlers: List<ContextMappedHandler>
 }
 
+data class ContextMappingParameters(
+    val contextPath: String,
+    val allowNullPathInfo: Boolean
+)
+
 /**
  * Describes a single handler for a particular context path
  * to be wrapped in Jetty's [ContextHandler] and included into a
  * [ContextHandlerCollection] for routing requests to respective endpoints.
  */
 interface ContextMappedHandler : Handler {
-  val contextPath: String
+  val mappingParameters: ContextMappingParameters
 }
 
 /**
@@ -50,8 +55,11 @@ class JettyServer : LifecycleAware, CordaptorComponent {
     val mappedHandlers = getAll<ContextMappedHandler>() +
         getAll<ContextMappedHandlerFactory>().flatMap { it.handlers }
 
-    val contextHandlers = mappedHandlers.map {
-      handler -> ContextHandler(handler.contextPath).also { it.handler = handler }
+    val contextHandlers = mappedHandlers.map { handler ->
+      ContextHandler(handler.mappingParameters.contextPath).also {
+        it.allowNullPathInfo = handler.mappingParameters.allowNullPathInfo
+        it.handler = handler
+      }
     }
 
     server.handler = ContextHandlerCollection(*contextHandlers.toTypedArray())

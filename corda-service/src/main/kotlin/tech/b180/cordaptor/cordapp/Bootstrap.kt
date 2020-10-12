@@ -4,16 +4,8 @@ import net.corda.core.cordapp.CordappConfig
 import net.corda.core.node.AppServiceHub
 import net.corda.core.node.services.CordaService
 import net.corda.core.node.services.ServiceLifecycleEvent
-import net.corda.core.node.services.TransactionStorage
-import net.corda.core.node.services.VaultService
 import net.corda.core.serialization.SingletonSerializeAsToken
 import net.corda.node.services.api.ServiceHubInternal
-import net.corda.serialization.internal.AllWhitelist
-import net.corda.serialization.internal.amqp.CachingCustomSerializerRegistry
-import net.corda.serialization.internal.amqp.DefaultDescriptorBasedSerializerRegistry
-import net.corda.serialization.internal.amqp.WhitelistBasedTypeModelConfiguration
-import net.corda.serialization.internal.model.ConfigurableLocalTypeModel
-import net.corda.serialization.internal.model.LocalTypeModel
 import org.koin.dsl.module
 import tech.b180.cordaptor.kernel.BootstrapSettings
 import tech.b180.cordaptor.kernel.Container
@@ -94,13 +86,5 @@ data class NodeServicesLocatorImpl(
     serviceHubField.isAccessible = true
 
     serviceHubInternal = serviceHubField.get(appServiceHub) as ServiceHubInternal
-  }
-
-  override val localTypeModel: LocalTypeModel
-
-  init {
-    val customSerializerRegistry = CachingCustomSerializerRegistry(DefaultDescriptorBasedSerializerRegistry())
-    val typeModelConfiguration = WhitelistBasedTypeModelConfiguration(AllWhitelist, customSerializerRegistry)
-    localTypeModel = ConfigurableLocalTypeModel(typeModelConfiguration)
   }
 }

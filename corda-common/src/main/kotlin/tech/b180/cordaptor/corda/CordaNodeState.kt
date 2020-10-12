@@ -4,10 +4,13 @@ import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Single
 import net.corda.core.contracts.*
 import net.corda.core.crypto.SecureHash
+import net.corda.core.flows.FlowLogic
 import net.corda.core.flows.StateMachineRunId
 import net.corda.core.node.NodeInfo
 import net.corda.core.transactions.SignedTransaction
 import java.time.Instant
+import java.util.*
+import kotlin.reflect.KClass
 
 /**
  * Single access point for all state of a particular Corda node that is exposed
@@ -35,7 +38,7 @@ interface CordaNodeState {
 
   fun <T : ContractState> trackStates(query: CordaStateQuery<T>): Observable<T>
 
-  fun initiateFlow(instruction: CordaFlowInstruction): CordaFlowHandle
+  fun <ReturnType: Any> initiateFlow(flowInstance: FlowLogic<ReturnType>): CordaFlowHandle<ReturnType>
 
   /**
    * Allows to observe the execution of a flow that was started earlier.
@@ -45,7 +48,8 @@ interface CordaNodeState {
    *
    * See [CordaFlowCache] for ways of accessing details about completed/failed flows.
    */
-  fun trackRunningFlow(runId: StateMachineRunId): CordaFlowHandle
+  fun <ReturnType: Any> trackRunningFlow(
+      flowClass: KClass<out FlowLogic<ReturnType>>, runId: StateMachineRunId): CordaFlowHandle<ReturnType>
 }
 
 /**
@@ -65,18 +69,65 @@ interface CordaNodeStateInner : CordaNodeState
  */
 interface CordaFlowCache {
 
-  fun getFlowInstance(flowRunId: StateMachineRunId): CordaFlowSnapshot?
+  fun <ReturnType: Any> getFlowInstance(
+      flowClass: KClass<ReturnType>, flowRunId: StateMachineRunId): CordaFlowSnapshot<ReturnType>
+}
+
+/**
+ * Container for a result of executing Corda flow, which may be either
+ * an object or an exception, alongside an [Instant] when the result was captured.
+ */
+class CordaFlowResult<T: Any>(
+    val timestamp: Instant,
+    val value: T?,
+    val error: Throwable?
+) {
+  companion object {
+    fun <T: Any> forValue(value: T) = CordaFlowResult(timestamp = Instant.now(), value = value, error = null)
+    fun <T: Any> forError(error: Throwable) = CordaFlowResult<T>(timestamp = Instant.now(), value = null, error = error)
+  }
 }
 
 /**
  * Information bundle describing Corda flow that has been initiated
  * through the node API.
  */
-data class CordaFlowHandle(
-  val flowClassName: String,
-  val flowRunId: StateMachineRunId,
-  val flowResultPromise: Single<Any>,
-  val flowProgressUpdates: Observable<CordaFlowProgress>)
+data class CordaFlowHandle<ReturnType: Any>(
+    val flowClass: KClass<out FlowLogic<ReturnType>>,
+    val flowRunId: UUID,
+    val startedAt: Instant,
+    val flowResultPromise: Single<CordaFlowResult<ReturnType>>,
+
+    /** There will be at least one initial update with empty progress information */
+    val flowProgressUpdates: Observable<CordaFlowProgress>) {
+
+  /**
+   * Constructs an observable creating a new snapshot every time
+   * there is an update in either flow progress tracker, or when flow completes/fails.
+   *
+   * Note that returned [Observable] will always have its first element available immediately
+   * representing a snapshot with no result and no progress information.
+   */
+  fun observeSnapshots(): Observable<CordaFlowSnapshot<ReturnType>> {
+    // construct versions of observable that issues initial state immediately,
+    // so that combineLatest() has something to work with
+    val prefixedFlowResult = Observable
+        .just<CordaFlowResult<ReturnType>?>(null)
+        .concatWith(flowResultPromise)
+
+    val prefixedFlowProgress = Observable
+        .just(CordaFlowProgress.noProgressInfo)
+        .concatWith(flowProgressUpdates)
+
+    return Observable.combineLatest(listOf(prefixedFlowResult, prefixedFlowProgress)) {
+      @Suppress("UNCHECKED_CAST")
+      val lastResult = it[0] as CordaFlowResult<ReturnType>?
+      val lastProgress = it[1] as CordaFlowProgress
+
+      CordaFlowSnapshot(flowClass, flowRunId, lastProgress, startedAt, lastResult)
+    }
+  }
+}
 
 /**
  * A snapshot of the progress tracker for a particular flow.
@@ -84,35 +135,30 @@ data class CordaFlowHandle(
  * there will be a number of items.
  */
 data class CordaFlowProgress(
-  val progress: List<Pair<Int, String>>
+  val progress: List<CordaFlowProgressStep>
+) {
+
+  companion object {
+    val noProgressInfo = CordaFlowProgress(emptyList())
+  }
+}
+
+data class CordaFlowProgressStep(
+    val stepIndex: Int,
+    val stepName: String
 )
 
 /**
  * Description of the current state of a particular flow.
  */
-data class CordaFlowSnapshot(
-  val flowClassName: String,
-  val currentProgress: CordaFlowProgress,
-  val startedAt: Instant,
-  val completed: Boolean,
+data class CordaFlowSnapshot<ReturnType: Any>(
+    val flowClass: KClass<out FlowLogic<ReturnType>>,
+    val flowRunId: UUID,
+    val currentProgress: CordaFlowProgress,
+    val startedAt: Instant,
 
-  /** Present if [completed] is true */
-  val completedAt: Instant? = null,
-
-  /** Present if [completed] is true and no error occured */
-  val result: Any? = null,
-
-  /** Present if [completed] is true and an error occured */
-  val error: Throwable? = null
-)
-
-/**
- * All information necessary to initiate a Corda flow.
- * regardless of the access method.
- */
-data class CordaFlowInstruction(
-    val flowClassName: String,
-    val flowConstructorParameters: List<Any>
+    /** Result of the flow if available */
+  val result: CordaFlowResult<ReturnType>? = null
 )
 
 /**
