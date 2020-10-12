@@ -1,9 +1,10 @@
 package tech.b180.cordaptor.rest
 
-import org.koin.core.qualifier.named
+import nonapi.io.github.classgraph.json.JSONSerializer
+import org.koin.core.Koin
+import org.koin.core.parameter.parametersOf
 import org.koin.dsl.bind
 import org.koin.dsl.module
-import tech.b180.cordaptor.corda.CordaNodeState
 import tech.b180.cordaptor.kernel.*
 import kotlin.reflect.KClass
 
@@ -40,16 +41,32 @@ class RestEndpointModuleProvider : ModuleProvider {
     single { NodeStateApiProvider("/node") } bind ContextMappedHandlerFactory::class
 
     // JSON serialization enablement
-    single { SerializationFactory(get(), lazyGetAll()) }
+    single { SerializationFactory(lazyGetAll()) }
 
     single { CordaX500NameSerializer() } bind CustomSerializer::class
     single { CordaSecureHashSerializer() } bind CustomSerializer::class
     single { CordaUUIDSerializer() } bind CustomSerializer::class
-    single { CordaPartySerializer(get(), get(), get()) } bind CustomSerializer::class
-    single { CordaSignedTransactionSerializer(get(), get(), get()) } bind CustomSerializer::class
+    single { CordaPartySerializer(get(), get()) } bind CustomSerializer::class
+    single { CordaSignedTransactionSerializer(get(), get()) } bind CustomSerializer::class
     single { CordaPartyAndCertificateSerializer(get()) } bind CustomSerializer::class
+    single { JavaInstantSerializer() } bind CustomSerializer::class
+    single { ThrowableSerializer(get()) } bind CustomSerializer::class
 
     // factory for requesting specific serializers into the non-generic serialization code
-    factory<JsonSerializer<*>> { (clazz: KClass<*>) -> get<SerializationFactory>().getSerializer(clazz) }
+    factory<JsonSerializer<*>> { (key: SerializerKey) -> get<SerializationFactory>().getSerializer(key) }
   }
 }
+
+/**
+ * A shorthand to be used in the client code requesting a JSON serializer
+ * to be injected using given type information
+ */
+fun <T: Any> Koin.getSerializer(clazz: KClass<T>, vararg typeParameters: KClass<*>) =
+    get<JsonSerializer<T>> { parametersOf(SerializerKey(clazz, *typeParameters)) }
+
+/**
+ * A shorthand to be used by an instance of [CordaptorComponent] requesting a JSON serializer
+ * to be injected using given type information
+ */
+fun <T: Any> CordaptorComponent.injectSerializer(clazz: KClass<T>, vararg typeParameters: KClass<*>): Lazy<JsonSerializer<T>> =
+    lazy { getKoin().get<JsonSerializer<T>> { parametersOf(SerializerKey(clazz, *typeParameters)) } }

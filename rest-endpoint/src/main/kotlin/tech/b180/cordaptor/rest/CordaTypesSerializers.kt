@@ -8,14 +8,11 @@ import net.corda.core.node.NodeInfo
 import net.corda.core.node.services.IdentityService
 import net.corda.core.node.services.TransactionStorage
 import net.corda.core.transactions.SignedTransaction
-import net.corda.serialization.internal.model.LocalTypeInformation
-import net.corda.serialization.internal.model.LocalTypeModel
-import net.corda.serialization.internal.model.PropertyName
 import java.security.cert.X509Certificate
+import java.time.Instant
+import java.time.format.DateTimeFormatter
 import java.util.*
 import javax.json.JsonObject
-import javax.json.JsonValue
-import javax.json.stream.JsonGenerator
 import kotlin.reflect.KClass
 
 /**
@@ -24,11 +21,10 @@ import kotlin.reflect.KClass
 class CordaX500NameSerializer : CustomSerializer<CordaX500Name>,
     SerializationFactory.DelegatingSerializer<CordaX500Name, String>(
     delegate = SerializationFactory.StringSerializer,
-    delegate2my = { CordaX500Name.parse(this) },
-    my2delegate = { this.toString() }
+    delegate2my = { CordaX500Name.parse(it) },
+    my2delegate = CordaX500Name::toString
 ) {
-  override val appliedTo: KClass<*>
-    get() = CordaX500Name::class
+  override val appliedTo = CordaX500Name::class
 }
 
 /**
@@ -37,8 +33,8 @@ class CordaX500NameSerializer : CustomSerializer<CordaX500Name>,
 class CordaSecureHashSerializer : CustomSerializer<SecureHash>,
     SerializationFactory.DelegatingSerializer<SecureHash, String>(
     delegate = SerializationFactory.StringSerializer,
-    delegate2my = { SecureHash.parse(this) },
-    my2delegate = { this.toString() }
+    delegate2my = { SecureHash.parse(it) },
+    my2delegate = SecureHash::toString
 ) {
   override val schema: JsonObject = mapOf(
       "type" to "string",
@@ -47,8 +43,7 @@ class CordaSecureHashSerializer : CustomSerializer<SecureHash>,
       "pattern" to "^[A-Z0-9]{64}"
   ).asJsonObject()
 
-  override val appliedTo: KClass<*>
-    get() = SecureHash::class
+  override val appliedTo = SecureHash::class
 }
 
 /**
@@ -59,16 +54,30 @@ class CordaSecureHashSerializer : CustomSerializer<SecureHash>,
 class CordaUUIDSerializer : CustomSerializer<UUID>,
     SerializationFactory.DelegatingSerializer<UUID, String>(
     delegate = SerializationFactory.StringSerializer,
-    my2delegate = { this.toString() },
-    delegate2my = { UUID.fromString(this ) }
+    my2delegate = UUID::toString,
+    delegate2my = UUID::fromString
 ) {
   override val schema: JsonObject = mapOf(
       "type" to "string",
       "format" to "uuid"
   ).asJsonObject()
 
-  override val appliedTo: KClass<*>
-    get() = UUID::class
+  override val appliedTo = UUID::class
+}
+
+class JavaInstantSerializer : CustomSerializer<Instant>,
+    SerializationFactory.DelegatingSerializer<Instant, String>(
+        delegate = SerializationFactory.StringSerializer,
+        my2delegate = { DateTimeFormatter.ISO_INSTANT.format(this) },
+        delegate2my = { Instant.parse(it) }
+    ) {
+
+  override val schema: JsonObject = mapOf(
+      "type" to "string",
+      "format" to "date-time"
+  ).asJsonObject()
+
+  override val appliedTo: KClass<*> = Instant::class
 }
 
 /**
@@ -78,17 +87,15 @@ class CordaUUIDSerializer : CustomSerializer<UUID>,
  * [IdentityService.wellKnownPartyFromX500Name] method
  */
 class CordaPartySerializer(
-    localTypeModel: LocalTypeModel,
     factory: SerializationFactory,
     private val identityService: IdentityService
-) : CustomSerializer<Party>, ComposableTypeJsonSerializer<Party>(
-    type = localTypeModel.inspect(Party::class.java) as LocalTypeInformation.Composable,
-    factory = factory
-) {
+) : CustomStructuredObjectSerializer<Party>(Party::class, factory) {
 
-  override val serializedClassProperties = listOf(Party::name)
+  override val properties: Map<String, ObjectProperty> = mapOf(
+      "name" to KotlinObjectProperty(Party::name, isMandatory = true)
+  )
 
-  override fun initializeInstance(values: Map<PropertyName, Any?>): Party {
+  override fun initializeInstance(values: Map<String, Any?>): Party {
     val nameValue = values["name"]
     assert(nameValue is CordaX500Name) { "Expected X500 name, got $nameValue" }
 
@@ -97,9 +104,6 @@ class CordaPartySerializer(
     return identityService.wellKnownPartyFromX500Name(name)
         ?: throw SerializationException("Party with name $name is not known")
   }
-
-  override val appliedTo: KClass<*>
-    get() = Party::class
 }
 
 /**
@@ -109,18 +113,16 @@ class CordaPartySerializer(
  * is accepted, and then is used to resolve
  */
 class CordaSignedTransactionSerializer(
-    localTypeModel: LocalTypeModel,
     factory: SerializationFactory,
     private val transactionStorage: TransactionStorage
-) : CustomSerializer<SignedTransaction>, ComposableTypeJsonSerializer<SignedTransaction>(
-    type = localTypeModel.inspect(Party::class.java) as LocalTypeInformation.Composable,
-    factory = factory
-) {
+) : CustomStructuredObjectSerializer<SignedTransaction>(SignedTransaction::class, factory) {
 
-  override val serializedClassProperties = listOf(SignedTransaction::id, SignedTransaction::coreTransaction)
-  override val deserializedClassProperties = listOf(SignedTransaction::id)
+  override val properties: Map<String, ObjectProperty> = mapOf(
+      "id" to KotlinObjectProperty(SignedTransaction::id),
+      "core" to KotlinObjectProperty(SignedTransaction::coreTransaction, deserialize = false)
+  )
 
-  override fun initializeInstance(values: Map<PropertyName, Any?>): SignedTransaction {
+  override fun initializeInstance(values: Map<String, Any?>): SignedTransaction {
     val hashValue = values["id"]
     assert(hashValue is SecureHash) { "Expected hash, got $hashValue" }
 
@@ -129,9 +131,6 @@ class CordaSignedTransactionSerializer(
     return transactionStorage.getTransaction(hash)
         ?: throw SerializationException("Transaction with hash $hash is not known")
   }
-
-  override val appliedTo: KClass<*>
-    get() = SignedTransaction::class
 }
 
 /**
@@ -139,24 +138,11 @@ class CordaSignedTransactionSerializer(
  * This object is most commonly used as part of a [NodeInfo] structure.
  *
  * FIXME implement serialization logic for instances of [X509Certificate] abstract class
- * FIXME actually write contents of the class
  */
 class CordaPartyAndCertificateSerializer(private val factory: SerializationFactory)
-  : CustomSerializer<PartyAndCertificate> {
+  : CustomStructuredObjectSerializer<PartyAndCertificate>(PartyAndCertificate::class, factory, deserialize = false) {
 
-  private val partySerializer = lazy { factory.getSerializer(Party::class) }
-
-  override fun fromJson(value: JsonValue): PartyAndCertificate {
-    throw UnsupportedOperationException("PartyAndCertificate cannot be deserialized from JSON")
-  }
-
-  override fun toJson(obj: PartyAndCertificate, generator: JsonGenerator) {
-    partySerializer.value.toJson(obj.party, generator)
-  }
-
-  override val schema: JsonObject
-    get() = partySerializer.value.schema
-
-  override val appliedTo: KClass<*>
-    get() = PartyAndCertificate::class
+  override val properties = mapOf(
+      "party" to KotlinObjectProperty(PartyAndCertificate::party)
+  )
 }

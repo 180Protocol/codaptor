@@ -1,6 +1,7 @@
 package tech.b180.cordaptor.rest
 
 import net.corda.core.contracts.Amount
+import net.corda.core.flows.FlowLogic
 import net.corda.serialization.internal.AllWhitelist
 import net.corda.serialization.internal.amqp.CachingCustomSerializerRegistry
 import net.corda.serialization.internal.amqp.DefaultDescriptorBasedSerializerRegistry
@@ -12,10 +13,10 @@ import net.corda.serialization.internal.model.LocalTypeModel
 import java.io.StringReader
 import java.io.StringWriter
 import java.util.*
-import javax.json.Json
 import javax.json.JsonObject
 import javax.json.JsonValue
 import javax.json.stream.JsonGenerator
+import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
 import kotlin.reflect.full.instanceParameter
 import kotlin.reflect.jvm.javaType
@@ -42,6 +43,8 @@ class SerializationTest {
     assertTrue(localTypeModel.inspect(UUID::class.java) is LocalTypeInformation.Opaque)
 
     assertTrue(localTypeModel.inspect(Amount::class.java) is LocalTypeInformation.NonComposable)
+
+    assertEquals(LocalTypeInformation.AnInterface::class, localTypeModel.inspect(KClass::class.java)::class)
   }
 
   @Test
@@ -119,6 +122,21 @@ class SerializationTest {
   }
 
   @Test
+  fun `test class name serializer`() {
+    assertEquals(TestDataObject::class.java,
+        SerializationFactory.JavaClassSerializer.fromJson("\"${TestDataObject::class.java.canonicalName}\"".asJsonValue()))
+
+    assertEquals(TestDataObject::class,
+        SerializationFactory.KotlinClassSerializer.fromJson("\"${TestDataObject::class.qualifiedName}\"".asJsonValue()))
+
+    assertEquals("\"${TestDataObject::class.java.canonicalName}\"",
+        generateJson { SerializationFactory.JavaClassSerializer.toJson(TestDataObject::class.java, this) } )
+
+    assertEquals("\"${TestDataObject::class.qualifiedName}\"",
+        generateJson { SerializationFactory.KotlinClassSerializer.toJson(TestDataObject::class, this) } )
+  }
+
+  @Test
   fun `test atomic integer serializers`() {
     assertEquals(123, SerializationFactory.IntSerializer.fromJson("123".asJsonValue()))
 
@@ -134,7 +152,7 @@ class SerializationTest {
   @Test
   fun `test composable type serializer`() {
 
-    val f = SerializationFactory(localTypeModel, lazy { emptyList<CustomSerializer<Any>>() })
+    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() })
 
     val publicPropertiesSerializer = f.getSerializer(TestDataObject::class)
     val privatePropertiesSerializer = f.getSerializer(NonPublicPropertiesObject::class)
@@ -158,7 +176,7 @@ class SerializationTest {
   @Test
   fun `test collection types serializer`() {
 
-    val f = SerializationFactory(localTypeModel, lazy { emptyList<CustomSerializer<Any>>() })
+    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() })
 
     // roundabout way to make sure type comes with generic
     val arraySerializer = ListSerializer(localTypeModel.inspectProperty(ObjectWithParametrizedProperties::array), f)
@@ -183,7 +201,7 @@ class SerializationTest {
 
   @Test
   fun `test enum type serialization`() {
-    val f = SerializationFactory(localTypeModel, lazy { emptyList<CustomSerializer<Any>>() })
+    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() })
 
     val serializer = f.getSerializer(TestEnum::class)
 
@@ -205,7 +223,7 @@ class SerializationTest {
 
   @Test
   fun `test composite type schema`() {
-    val f = SerializationFactory(localTypeModel, lazy { emptyList<CustomSerializer<Any>>() })
+    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() })
 
     val publicPropertiesSerializer = f.getSerializer(TestDataObject::class)
 
@@ -233,7 +251,7 @@ class SerializationTest {
 
   @Test
   fun `test collection types schema`() {
-    val f = SerializationFactory(localTypeModel, lazy { emptyList<CustomSerializer<Any>>() })
+    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() })
 
     // roundabout way to make sure type comes with generic
     val arraySerializer = ListSerializer(localTypeModel.inspectProperty(ObjectWithParametrizedProperties::array), f)
@@ -254,6 +272,17 @@ class SerializationTest {
       |"type":"array",
       |"additionalProperties":{"type":"number","format":"int32"}
       |}""".trimMargin().asJsonObject(), mapSerializer.schema)
+  }
+
+  @Test
+  fun `test class literals serialization`() {
+    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() })
+
+    val kotlinClassSerializer = f.getSerializer(KClass::class.java)
+    val javaClassSerializer = f.getSerializer(Class::class.java)
+
+    assertEquals("\"net.corda.core.flows.FlowLogic\"", kotlinClassSerializer.toJsonString(FlowLogic::class))
+    assertEquals("\"net.corda.core.flows.FlowLogic\"", javaClassSerializer.toJsonString(FlowLogic::class.java))
   }
 }
 

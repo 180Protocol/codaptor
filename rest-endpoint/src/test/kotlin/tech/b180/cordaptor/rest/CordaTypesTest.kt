@@ -6,14 +6,6 @@ import net.corda.core.identity.Party
 import net.corda.core.identity.PartyAndCertificate
 import net.corda.core.node.services.IdentityService
 import net.corda.core.transactions.SignedTransaction
-import net.corda.serialization.internal.AllWhitelist
-import net.corda.serialization.internal.amqp.CachingCustomSerializerRegistry
-import net.corda.serialization.internal.amqp.CustomSerializerRegistry
-import net.corda.serialization.internal.amqp.DefaultDescriptorBasedSerializerRegistry
-import net.corda.serialization.internal.amqp.WhitelistBasedTypeModelConfiguration
-import net.corda.serialization.internal.model.ConfigurableLocalTypeModel
-import net.corda.serialization.internal.model.LocalTypeModel
-import net.corda.serialization.internal.model.LocalTypeModelConfiguration
 import net.corda.testing.core.TestIdentity
 import org.junit.AfterClass
 import org.koin.core.context.KoinContextHandler
@@ -21,6 +13,7 @@ import org.koin.core.context.startKoin
 import org.koin.core.parameter.parametersOf
 import org.koin.dsl.bind
 import org.koin.dsl.module
+import tech.b180.cordaptor.corda.CordaFlowSnapshot
 import tech.b180.cordaptor.kernel.lazyGetAll
 import tech.b180.cordaptor.rest.*
 import kotlin.reflect.KClass
@@ -37,19 +30,17 @@ class CordaTypesTest {
 
     private val koinApp = startKoin {
       modules(module {
-        single<CustomSerializerRegistry> { CachingCustomSerializerRegistry(DefaultDescriptorBasedSerializerRegistry()) }
-        single<LocalTypeModelConfiguration> { WhitelistBasedTypeModelConfiguration(AllWhitelist, get()) }
-        single<LocalTypeModel> { ConfigurableLocalTypeModel(get()) }
-        single { SerializationFactory(get(), lazyGetAll()) }
+        single { SerializationFactory(lazyGetAll()) }
 
         // register custom serializers for the factory to discover
         single { CordaX500NameSerializer() } bind CustomSerializer::class
-        single { CordaPartySerializer(factory = get(), localTypeModel = get(),
-            identityService = mockIdentityService) } bind CustomSerializer::class
+        single { CordaPartySerializer(get(), mockIdentityService) } bind CustomSerializer::class
         single { CordaPartyAndCertificateSerializer(factory = get()) } bind CustomSerializer::class
+        single { JavaInstantSerializer() } bind CustomSerializer::class
+        single { ThrowableSerializer(get()) } bind CustomSerializer::class
 
         // factory for requesting specific serializers into the non-generic serialization code
-        factory<JsonSerializer<*>> { (clazz: KClass<*>) -> get<SerializationFactory>().getSerializer(clazz) }
+        factory<JsonSerializer<*>> { (key: SerializerKey) -> get<SerializationFactory>().getSerializer(key) }
       })
     }
 
@@ -63,12 +54,9 @@ class CordaTypesTest {
 
   @Test
   fun `test x500 name serialization`() {
-    val serializer = koin
-        .get<JsonSerializer<CordaX500Name>> { parametersOf(CordaX500Name::class) }
-    assertEquals<Class<*>>(CordaX500NameSerializer::class.java, serializer.javaClass)
-
-    assertEquals(serializer, koin.get { parametersOf(CordaX500Name::class) },
-    "Parametrised resolution should yield custom serializer")
+    val serializer = koin.getSerializer(CordaX500Name::class)
+    assertEquals<Class<*>>(CordaX500NameSerializer::class.java, serializer.javaClass,
+        "Parametrised resolution should yield custom serializer")
 
     assertEquals("""{"type":"string"}""".asJsonObject(), serializer.schema)
 
@@ -81,7 +69,7 @@ class CordaTypesTest {
 
   @Test
   fun `test party serialization`() {
-    val serializer = koin.get<JsonSerializer<Party>> { parametersOf(Party::class) }
+    val serializer = koin.getSerializer(Party::class)
 
     assertEquals(CordaPartySerializer::class.java, serializer.javaClass as Class<*>)
 
@@ -104,16 +92,22 @@ class CordaTypesTest {
 
   @Test
   fun `test party and certificate serializer`() {
-    val serializer =
-        koin.get<JsonSerializer<PartyAndCertificate>> { parametersOf(PartyAndCertificate::class) }
+    val serializer = koin.getSerializer(PartyAndCertificate::class)
     assertEquals(CordaPartyAndCertificateSerializer::class.java, serializer.javaClass as Class<*>)
 
-    assertEquals("""{"type":"object","properties":{"name":{"type":"string"}},"required":["name"]}""".asJsonObject(),
+    assertEquals("""{
+      |"type":"object",
+      |"properties":{
+      | "party":{
+      |   "type":"object",
+      |   "properties":{"name":{"type":"string"}},
+      |   "required":["name"]}},
+      |"required":[]}""".trimMargin().asJsonObject(),
         serializer.schema)
 
     val id = TestIdentity(CordaX500Name("Bank", "London", "GB")).identity
 
-    assertEquals("""{"name":"O=Bank, L=London, C=GB"}""", serializer.toJsonString(id))
+    assertEquals("""{"party":{"name":"O=Bank, L=London, C=GB"}}""", serializer.toJsonString(id))
 
     assertFailsWith(UnsupportedOperationException::class) {
       serializer.fromJson("""{"name":"O=UnknownBank, L=London, C=GB"}""".asJsonObject())
@@ -123,7 +117,7 @@ class CordaTypesTest {
   @Test
   fun `test flows serialization`() {
     // most flows are expected to be just composable objects
-    val serializer = koin.get<JsonSerializer<TestFlow>> { parametersOf(TestFlow::class) }
+    val serializer = koin.getSerializer(TestFlow::class)
     assertEquals(ComposableTypeJsonSerializer::class.java, serializer.javaClass as Class<*>)
 
     assertEquals("""{
@@ -142,6 +136,13 @@ class CordaTypesTest {
 
     assertEquals(TestFlow("ABC", null),
         serializer.fromJson("""{"stringParam":"ABC"}""".asJsonObject()))
+  }
+
+  @Test
+  fun `test flow snapshot serialization`() {
+    val serializer = koin.getSerializer(CordaFlowSnapshot::class, TestFlow::class)
+
+    println(serializer.schema)
   }
 }
 

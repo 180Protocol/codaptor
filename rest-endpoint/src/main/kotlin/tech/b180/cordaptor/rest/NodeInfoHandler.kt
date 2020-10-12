@@ -5,7 +5,6 @@ import org.eclipse.jetty.http.HttpMethod
 import org.eclipse.jetty.server.Request
 import org.eclipse.jetty.server.handler.AbstractHandler
 import org.koin.core.inject
-import org.koin.core.parameter.parametersOf
 import tech.b180.cordaptor.corda.CordaNodeState
 import tech.b180.cordaptor.kernel.CordaptorComponent
 import javax.servlet.http.HttpServletRequest
@@ -15,11 +14,13 @@ import javax.servlet.http.HttpServletResponse
  * Responds to HTTP GET requests providing an instance of [NodeInfo] for the underlying Corda node.
  */
 class NodeInfoHandler(
-    override val contextPath: String
+    contextPath: String
 ) : ContextMappedHandler, AbstractHandler(), CordaptorComponent {
 
+  override val mappingParameters = ContextMappingParameters(contextPath, true)
+
   private val cordaNodeState: CordaNodeState by inject()
-  private val nodeInfoSerializer: JsonSerializer<NodeInfo> by inject { parametersOf(NodeInfo::class) }
+  private val nodeInfoSerializer: JsonSerializer<NodeInfo> by injectSerializer(NodeInfo::class)
 
   override fun handle(target: String?, baseRequest: Request?, request: HttpServletRequest?, response: HttpServletResponse?) {
     baseRequest!!.isHandled = true
