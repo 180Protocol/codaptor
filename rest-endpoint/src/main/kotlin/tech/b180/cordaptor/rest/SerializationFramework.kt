@@ -3,6 +3,8 @@ package tech.b180.cordaptor.rest
 import net.corda.serialization.internal.model.LocalTypeInformation
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
+import java.math.BigDecimal
+import java.math.BigInteger
 import javax.json.JsonObject
 import javax.json.JsonValue
 import javax.json.stream.JsonGenerator
@@ -23,6 +25,13 @@ abstract class CustomStructuredObjectSerializer<T: Any>(
     override val serialize: Boolean = true,
     override val deserialize: Boolean = true
 ) : StructuredObjectSerializer<T>(appliedTo, factory), CustomSerializer<T>
+
+abstract class CustomAbstractClassSerializer<T: Any>(
+    override val appliedTo: KClass<T>,
+    factory: SerializationFactory,
+    override val serialize: Boolean = true,
+    override val deserialize: Boolean = true
+) : AbstractClassSerializer<T>(appliedTo, factory), CustomSerializer<T>
 
 /**
  * Base implementation for JSON serializer that knows how to
@@ -47,8 +56,12 @@ abstract class StructuredObjectSerializer<T: Any>(
   abstract val deserialize: Boolean
 
   private val structure: Map<String, PropertyWithSerializer> by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
-    properties.mapValues { (_, property) ->
-      PropertyWithSerializer(property, factory.getSerializer(property.valueType))
+    properties.mapValues { (name, property) ->
+      try {
+        PropertyWithSerializer(property, factory.getSerializer(property.valueType))
+      } catch (e: Throwable) {
+        throw SerializationException("Error finding serializer for property $name of object ${objectClass.qualifiedName}", e)
+      }
     }
   }
 
@@ -186,3 +199,69 @@ internal val LocalTypeInformation.Composable.objectClass: KClass<*>
     is Class<*> -> (this.observedType as Class<*>).kotlin
     else -> throw AssertionError("Unexpected kind of observedType for composable ${this.prettyPrint()}")
   }
+
+/**
+ *
+ */
+abstract class AbstractClassSerializer<T: Any>(
+    private val baseClass: KClass<T>,
+    factory: SerializationFactory) : JsonSerializer<T> {
+
+  abstract val subclassesMap: Map<String, SerializerKey>
+  abstract val serialize: Boolean
+  abstract val deserialize: Boolean
+
+  private val subclassSerializers by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+    subclassesMap.mapValues { (_, key) ->
+      factory.getSerializer(key)
+    }
+  }
+
+  override fun fromJson(value: JsonValue): T {
+    if (!deserialize) {
+      throw UnsupportedOperationException("Cannot deserialize ${baseClass.qualifiedName} from JSON")
+    }
+
+    if (value.valueType != JsonValue.ValueType.OBJECT) {
+      throw SerializationException("Expected JSON object, got ${value.valueType}")
+    }
+
+    val jsonObject = value as JsonObject
+    val (discriminatorKey, serializer) = subclassSerializers
+        .filterKeys { jsonObject.containsKey(it) }.entries.singleOrNull()
+        ?: throw SerializationException("Unable to find a key for a subclass")
+
+    val subclassObject = jsonObject.getJsonObject(discriminatorKey)!!
+
+    @Suppress("UNCHECKED_CAST")
+    return serializer.fromJson(subclassObject) as T
+  }
+
+  override fun toJson(obj: T, generator: JsonGenerator) {
+    if (!serialize) {
+      throw UnsupportedOperationException("Cannot serialize ${baseClass.qualifiedName} to JSON")
+    }
+
+    val entry = subclassesMap.entries.find { (_, key) ->
+      key.rawType.isAssignableFrom(obj.javaClass) }
+        ?: throw SerializationException("No matching entry for class ${obj.javaClass.canonicalName} " +
+            "which is supposed subclass of ${baseClass.qualifiedName} -- missing entry in subclasses map?")
+
+    val serializer = subclassSerializers[entry.key]
+        ?: throw AssertionError("No initialized serializer for known subclass mapping $entry")
+
+    generator.writeStartObject().writeKey(entry.key)
+    serializer.toJson(obj, generator)
+  }
+
+  override val schema: JsonObject by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+    JsonHome.createObjectBuilder()
+        .add("type", "object")
+        .add("properties", JsonHome.createObjectBuilder().also { builder ->
+          for ((discriminatorKey, serializer) in subclassSerializers) {
+            builder.add(discriminatorKey, serializer.schema)
+          }
+        })
+        .build()
+  }
+}

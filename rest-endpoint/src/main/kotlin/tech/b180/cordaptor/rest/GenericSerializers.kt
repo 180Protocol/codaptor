@@ -8,6 +8,7 @@ import javax.json.JsonObject
 import javax.json.JsonString
 import javax.json.JsonValue
 import javax.json.stream.JsonGenerator
+import kotlin.reflect.KClass
 
 
 /**
@@ -283,4 +284,30 @@ class ThrowableSerializer(factory: SerializationFactory) : CustomStructuredObjec
     val throwableClassAccessor = { it: Throwable -> it.javaClass } as ObjectPropertyValueAccessor
     val throwableCauseAccessor = { it: Throwable -> it.cause.toString() } as ObjectPropertyValueAccessor
   }
+}
+
+/**
+ * Serializer that determines the type of the object in runtime and
+ * attempts to serialize it using [SerializationFactory].
+ * This serializer is unable to restore objects from JSON.
+ */
+class DynamicObjectSerializer(
+    override val appliedTo: KClass<*>,
+    private val factory: SerializationFactory) : CustomSerializer<Any> {
+
+  override fun fromJson(value: JsonValue): Any {
+    throw UnsupportedOperationException("Don't know not to restore an untyped object from JSON")
+  }
+
+  override fun toJson(obj: Any, generator: JsonGenerator) {
+    val serializer = try {
+       factory.getSerializer(obj.javaClass)
+    } catch (e: Exception) {
+      throw SerializationException("Unable to dynamically find a serializer for type ${obj.javaClass.canonicalName}", e)
+    }
+
+    serializer.toJson(obj, generator)
+  }
+
+  override val schema: JsonObject = mapOf("type" to "object", "additionalProperties" to "true").asJsonObject()
 }

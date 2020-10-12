@@ -1,5 +1,6 @@
 package tech.b180.cordaptor.rest
 
+import net.corda.core.contracts.TransactionState
 import net.corda.serialization.internal.AllWhitelist
 import net.corda.serialization.internal.amqp.CachingCustomSerializerRegistry
 import net.corda.serialization.internal.amqp.DefaultDescriptorBasedSerializerRegistry
@@ -224,7 +225,7 @@ class SerializationFactory(
   }
 
   private fun mustUseRaw(type: Type): Boolean {
-    return type in listOf(Class::class.java, KClass::class.java)
+    return type in listOf(Class::class.java, KClass::class.java, TransactionState::class.java)
   }
 
   fun getSerializer(type: Type): JsonSerializer<Any> {
@@ -418,10 +419,13 @@ object JsonHome {
   fun createObjectBuilder(map: Map<String, Any?>): JsonObjectBuilder = provider.createObjectBuilder(map)
   fun createObjectBuilder(jsonObject: JsonObject): JsonObjectBuilder = provider.createObjectBuilder(jsonObject)
 
+  fun createArrayBuilder(): JsonArrayBuilder = provider.createArrayBuilder()
   fun createArrayBuilder(collection: Collection<Any?>): JsonArrayBuilder = provider.createArrayBuilder(collection)
 
   fun createGenerator(writer: StringWriter): JsonGenerator = provider.createGenerator(writer)
   fun createGenerator(writer: PrintWriter): JsonGenerator = provider.createGenerator(writer)
 
   fun createReader(reader: Reader): JsonReader = provider.createReader(reader)
+
+  fun createValue(value: String) = provider.createValue(value)
 }

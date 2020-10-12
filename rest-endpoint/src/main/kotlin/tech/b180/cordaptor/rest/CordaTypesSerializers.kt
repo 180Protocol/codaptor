@@ -1,5 +1,7 @@
 package tech.b180.cordaptor.rest
 
+import net.corda.core.contracts.ContractState
+import net.corda.core.contracts.TransactionState
 import net.corda.core.crypto.SecureHash
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.identity.Party
@@ -7,7 +9,8 @@ import net.corda.core.identity.PartyAndCertificate
 import net.corda.core.node.NodeInfo
 import net.corda.core.node.services.IdentityService
 import net.corda.core.node.services.TransactionStorage
-import net.corda.core.transactions.SignedTransaction
+import net.corda.core.transactions.*
+import java.security.PublicKey
 import java.security.cert.X509Certificate
 import java.time.Instant
 import java.time.format.DateTimeFormatter
@@ -139,10 +142,72 @@ class CordaSignedTransactionSerializer(
  *
  * FIXME implement serialization logic for instances of [X509Certificate] abstract class
  */
-class CordaPartyAndCertificateSerializer(private val factory: SerializationFactory)
+class CordaPartyAndCertificateSerializer(factory: SerializationFactory)
   : CustomStructuredObjectSerializer<PartyAndCertificate>(PartyAndCertificate::class, factory, deserialize = false) {
 
   override val properties = mapOf(
       "party" to KotlinObjectProperty(PartyAndCertificate::party)
   )
+}
+
+/**
+ * Serializer for known subclasses of [WireTransaction] able to represent them as JSON objects.
+ * This will most often be used in the context of [CordaSignedTransactionSerializer]
+ *
+ * The serializer does not allow reading wire transaction data from JSON.
+ */
+class CordaCoreTransactionSerializer(factory: SerializationFactory) : CustomAbstractClassSerializer<CoreTransaction>(
+    CoreTransaction::class, factory, deserialize = false) {
+
+  override val subclassesMap: Map<String, SerializerKey> = mapOf(
+      "wireTransaction" to SerializerKey(WireTransaction::class)
+  )
+}
+
+class CordaWireTransactionSerializer(factory: SerializationFactory)
+  : CustomStructuredObjectSerializer<WireTransaction>(WireTransaction::class, factory, deserialize = false) {
+
+  override val properties = mapOf(
+      "inputs" to KotlinObjectProperty(WireTransaction::inputs),
+      "outputs" to KotlinObjectProperty(WireTransaction::outputs),
+      "inputs" to KotlinObjectProperty(WireTransaction::commands),
+      "references" to KotlinObjectProperty(WireTransaction::references)
+  )
+}
+
+class CordaPublicKeySerializer(
+    factory: SerializationFactory,
+    identityService: IdentityService
+) : CustomStructuredObjectSerializer<PublicKey>(PublicKey::class, factory, deserialize = false) {
+
+  override val properties = mapOf(
+      "fingerprint" to SyntheticObjectProperty(valueType = String::class.java,
+          deserialize = false, isMandatory = false, accessor = { "not implemented" }),
+      "knownParty" to SyntheticObjectProperty(valueType = Party::class.java,
+          deserialize = false, isMandatory = false, accessor = makeKnownPartyAccessor(identityService))
+  )
+
+  companion object {
+    @Suppress("UNCHECKED_CAST")
+    fun makeKnownPartyAccessor(identityService: IdentityService) =
+        { key: PublicKey -> identityService.partyFromKey(key) } as ObjectPropertyValueAccessor
+  }
+}
+
+class CordaTransactionStateSerializer(
+    factory: SerializationFactory
+) : CustomStructuredObjectSerializer<TransactionState<*>>(TransactionState::class, factory, deserialize = false) {
+
+  override val properties = mapOf(
+      "contract" to KotlinObjectProperty(TransactionState<*>::contract),
+      "encumbrance" to KotlinObjectProperty(TransactionState<*>::encumbrance, isMandatory = false),
+      "notary" to KotlinObjectProperty(TransactionState<*>::notary),
+      "data" to SyntheticObjectProperty(valueType = ContractState::class.java,
+          deserialize = false, isMandatory = true, accessor = contractStateAccessor)
+      )
+
+  companion object {
+    @Suppress("UNCHECKED_CAST")
+    val contractStateAccessor = { s: TransactionState<ContractState> -> s.data } as ObjectPropertyValueAccessor
+  }
 }

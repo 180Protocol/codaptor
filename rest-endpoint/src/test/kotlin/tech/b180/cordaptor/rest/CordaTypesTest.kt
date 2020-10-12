@@ -1,22 +1,26 @@
 import io.mockk.every
 import io.mockk.mockkClass
+import net.corda.core.contracts.ContractState
 import net.corda.core.flows.FlowLogic
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.identity.Party
 import net.corda.core.identity.PartyAndCertificate
 import net.corda.core.node.services.IdentityService
+import net.corda.core.node.services.TransactionStorage
 import net.corda.core.transactions.SignedTransaction
 import net.corda.testing.core.TestIdentity
 import org.junit.AfterClass
 import org.koin.core.context.KoinContextHandler
 import org.koin.core.context.startKoin
-import org.koin.core.parameter.parametersOf
+import org.koin.core.qualifier.TypeQualifier
 import org.koin.dsl.bind
 import org.koin.dsl.module
+import tech.b180.cordaptor.corda.CordaFlowProgress
 import tech.b180.cordaptor.corda.CordaFlowSnapshot
 import tech.b180.cordaptor.kernel.lazyGetAll
 import tech.b180.cordaptor.rest.*
-import kotlin.reflect.KClass
+import java.time.Instant
+import java.util.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -27,17 +31,27 @@ class CordaTypesTest {
   companion object {
 
     private val mockIdentityService = mockkClass(IdentityService::class)
+    private val mockTransactionStorage = mockkClass(TransactionStorage::class)
 
     private val koinApp = startKoin {
       modules(module {
         single { SerializationFactory(lazyGetAll()) }
 
         // register custom serializers for the factory to discover
+        single { CordaUUIDSerializer() } bind CustomSerializer::class
+        single { CordaSecureHashSerializer() } bind CustomSerializer::class
         single { CordaX500NameSerializer() } bind CustomSerializer::class
         single { CordaPartySerializer(get(), mockIdentityService) } bind CustomSerializer::class
         single { CordaPartyAndCertificateSerializer(factory = get()) } bind CustomSerializer::class
         single { JavaInstantSerializer() } bind CustomSerializer::class
         single { ThrowableSerializer(get()) } bind CustomSerializer::class
+        single { CordaSignedTransactionSerializer(get(), mockTransactionStorage) } bind CustomSerializer::class
+        single { CordaCoreTransactionSerializer(get()) } bind CustomSerializer::class
+        single { CordaWireTransactionSerializer(get()) } bind CustomSerializer::class
+        single { CordaTransactionStateSerializer(get()) } bind CustomSerializer::class
+        single { CordaPublicKeySerializer(get(), mockIdentityService) } bind CustomSerializer::class
+        single(qualifier = TypeQualifier(Any::class)) { DynamicObjectSerializer(Any::class, get()) } bind CustomSerializer::class
+        single(qualifier = TypeQualifier(ContractState::class)) { DynamicObjectSerializer(ContractState::class, get()) } bind CustomSerializer::class
 
         // factory for requesting specific serializers into the non-generic serialization code
         factory<JsonSerializer<*>> { (key: SerializerKey) -> get<SerializationFactory>().getSerializer(key) }
@@ -140,9 +154,24 @@ class CordaTypesTest {
 
   @Test
   fun `test flow snapshot serialization`() {
-    val serializer = koin.getSerializer(CordaFlowSnapshot::class, TestFlow::class)
+    val serializer = koin.getSerializer(CordaFlowSnapshot::class, String::class)
 
-    println(serializer.schema)
+    val uuid = UUID.randomUUID()
+    val now = Instant.now()
+    assertEquals("""{
+      |"currentProgress":{"progress":[]},
+      |"flowClass":"TestFlow",
+      |"flowRunId":"$uuid",
+      |"result":null,
+      |"startedAt":"$now"}""".trimMargin().asJsonValue(), serializer.toJsonString(
+        CordaFlowSnapshot(flowClass = TestFlow::class,
+            result = null, flowRunId = uuid, startedAt = now,
+            currentProgress = CordaFlowProgress.noProgressInfo)).asJsonValue())
+  }
+
+  @Test
+  fun `test corda transaction serialization`() {
+    val serializer = koin.getSerializer(SignedTransaction::class)
   }
 }
 
@@ -151,9 +180,9 @@ data class TestFlowParam(val intParam: Int)
 data class TestFlow(
     val stringParam: String,
     val objectParam: TestFlowParam?
-) : FlowLogic<SignedTransaction>() {
+) : FlowLogic<String>() {
 
-  override fun call(): SignedTransaction {
+  override fun call(): String {
     throw AssertionError("Not expected to be called in the test")
   }
 }

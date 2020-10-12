@@ -1,8 +1,9 @@
 package tech.b180.cordaptor.rest
 
-import nonapi.io.github.classgraph.json.JSONSerializer
+import net.corda.core.contracts.ContractState
 import org.koin.core.Koin
 import org.koin.core.parameter.parametersOf
+import org.koin.core.qualifier.TypeQualifier
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import tech.b180.cordaptor.kernel.*
@@ -47,10 +48,16 @@ class RestEndpointModuleProvider : ModuleProvider {
     single { CordaSecureHashSerializer() } bind CustomSerializer::class
     single { CordaUUIDSerializer() } bind CustomSerializer::class
     single { CordaPartySerializer(get(), get()) } bind CustomSerializer::class
-    single { CordaSignedTransactionSerializer(get(), get()) } bind CustomSerializer::class
     single { CordaPartyAndCertificateSerializer(get()) } bind CustomSerializer::class
     single { JavaInstantSerializer() } bind CustomSerializer::class
     single { ThrowableSerializer(get()) } bind CustomSerializer::class
+    single { CordaSignedTransactionSerializer(get(), get()) } bind CustomSerializer::class
+    single { CordaCoreTransactionSerializer(get()) } bind CustomSerializer::class
+    single { CordaWireTransactionSerializer(get()) } bind CustomSerializer::class
+    single { CordaTransactionStateSerializer(get()) } bind CustomSerializer::class
+    single { CordaPublicKeySerializer(get(), get()) } bind CustomSerializer::class
+    single(qualifier = TypeQualifier(Any::class)) { DynamicObjectSerializer(Any::class, get()) } bind CustomSerializer::class
+    single(qualifier = TypeQualifier(ContractState::class)) { DynamicObjectSerializer(ContractState::class, get()) } bind CustomSerializer::class
 
     // factory for requesting specific serializers into the non-generic serialization code
     factory<JsonSerializer<*>> { (key: SerializerKey) -> get<SerializationFactory>().getSerializer(key) }
