@@ -1,5 +1,7 @@
 package tech.b180.cordaptor_test
 
+import net.corda.core.contracts.StateRef
+import net.corda.core.crypto.SecureHash
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.utilities.getOrThrow
 import net.corda.node.services.Permissions
@@ -10,13 +12,15 @@ import net.corda.testing.node.User
 import org.eclipse.jetty.client.HttpClient
 import org.eclipse.jetty.client.util.StringContentProvider
 import tech.b180.ref_cordapp.SimpleFlow
+import tech.b180.ref_cordapp.SimpleLinearState
 import java.io.StringReader
 import javax.json.Json
+import javax.json.JsonNumber
+import javax.json.JsonString
 import javax.json.JsonValue
 import javax.servlet.http.HttpServletResponse
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 
 const val NODE_NAME = "O=Bank, L=London, C=GB"
 
@@ -33,6 +37,9 @@ class EmbeddedBundleTest {
 
     testNodeInfoRequest(client)
     testFlowFireAndForget(client)
+    val stateRef = testFlowWaitForCompletion(client)
+    testTransactionQuery(client, stateRef.txhash)
+    testStateQuery(client, stateRef)
   }
 
   private fun testNodeInfoRequest(client: HttpClient) {
@@ -64,6 +71,40 @@ class EmbeddedBundleTest {
     assertEquals(JsonValue.ValueType.NULL, handle.getValue("/result").valueType)
   }
 
+  private fun testFlowWaitForCompletion(client: HttpClient): StateRef {
+    val req = client.POST("http://localhost:8500/node/${SimpleFlow::class.qualifiedName}?wait=-1")
+
+    val content = """{
+      |"externalId":"TEST-111"}""".trimMargin()
+
+    req.content(StringContentProvider("application/json", content, Charsets.UTF_8))
+    val response = req.send()
+    assertEquals(HttpServletResponse.SC_OK, response.status)
+    assertEquals("application/json", response.mediaType)
+
+    val handle = Json.createReader(StringReader(response.contentAsString)).readObject()
+    assertEquals(SimpleFlow::class.qualifiedName!!.asJsonValue(), handle.getValue("/flowClass"))
+    assertEquals(JsonValue.ValueType.STRING, handle.getValue("/flowRunId").valueType)
+    assertEquals(JsonValue.ValueType.OBJECT, handle.getValue("/result").valueType)
+
+    val state = handle.getValue("/result/value/output/state/data").asJsonObject()
+    assertEquals("TEST-111", state.getValue("/linearId/externalId").asString())
+    assertEquals(NODE_NAME, state.getValue("/participant/name").asString())
+
+    return StateRef(SecureHash.parse(handle.getValue("/result/value/output/ref/txhash").asString()),
+        handle.getValue("/result/value/output/ref/index").asInt())
+  }
+
+  private fun testTransactionQuery(client: HttpClient, txid: SecureHash) {
+//    val response = client.GET("http://localhost:8500/node/tx/txid")
+//    println(response.contentAsString)
+  }
+
+  private fun testStateQuery(client: HttpClient, stateRef: StateRef) {
+//    val response = client.GET("http://localhost:8500/node/${SimpleLinearState::class.qualifiedName}/${stateRef}")
+//    println(response.contentAsString)
+  }
+
   private fun DriverDSL.startNode(name: CordaX500Name): NodeHandle {
     return startNode(
         defaultParameters = NodeParameters(
@@ -85,6 +126,9 @@ class EmbeddedBundleTest {
 
 private fun String.asJsonValue() = Json.createValue(this)
 private fun Int.asJsonValue() = Json.createValue(this)
+
+private fun JsonValue.asString() = (this as JsonString).string
+private fun JsonValue.asInt() = (this as JsonNumber).intValue()
 
 private fun withDriver(test: DriverDSL.() -> Unit) = driver(
     DriverParameters(isDebug = true, startNodesInProcess = true)

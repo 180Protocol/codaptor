@@ -43,9 +43,8 @@ class ReferenceCordappTest {
   @Test
   fun `can use simple flow`() {
     val f = node.started.startFlow(SimpleFlow(externalId = "TEST"))
-    val tx = f.getOrThrow().tx
+    val output = f.getOrThrow().output.state.data
 
-    val output = tx.outputs.single().data as SimpleLinearState
-    assertEquals("TEST", output.externalId)
+    assertEquals("TEST", output.linearId.externalId)
   }
 }

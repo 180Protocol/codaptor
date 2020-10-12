@@ -5,16 +5,12 @@ import net.corda.core.flows.*
 import net.corda.core.identity.AbstractParty
 import net.corda.core.identity.Party
 import net.corda.core.transactions.LedgerTransaction
-import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.TransactionBuilder
-import java.util.*
 
 @BelongsToContract(TrivialContract::class)
 data class SimpleLinearState(
-    val externalId: String,
-    val participant: Party) : LinearState {
-
-  override val linearId = UniqueIdentifier(externalId)
+    val participant: Party,
+    override val linearId: UniqueIdentifier) : LinearState {
 
   override val participants: List<AbstractParty>
     get() = listOf(participant)
@@ -35,19 +31,25 @@ class TrivialContract : Contract {
 @Suppress("UNUSED")
 open class SimpleFlow(
     private val externalId: String
-) : FlowLogic<SignedTransaction>() {
+) : FlowLogic<SimpleFlowResult>() {
 
   companion object {
 
   }
 
-  override fun call() : SignedTransaction {
+  override fun call() : SimpleFlowResult {
     val builder = TransactionBuilder(notary = serviceHub.networkMapCache.notaryIdentities.first())
-    builder.addOutputState(SimpleLinearState(externalId, ourIdentity))
+    builder.addOutputState(SimpleLinearState(ourIdentity, UniqueIdentifier(externalId)))
     builder.addCommand(TrivialContract.Commands.RecordState(), ourIdentity.owningKey)
 
     val tx = serviceHub.signInitialTransaction(builder, ourIdentity.owningKey)
 
-    return subFlow(FinalityFlow(tx, emptySet<FlowSession>()))
+    val stx = subFlow(FinalityFlow(tx, emptySet<FlowSession>()))
+
+    return SimpleFlowResult(stx.tx.outRef<SimpleLinearState>(0))
   }
 }
+
+data class SimpleFlowResult(
+    val output: StateAndRef<SimpleLinearState>
+)

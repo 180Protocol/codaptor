@@ -7,10 +7,7 @@ import org.eclipse.jetty.server.Request
 import org.eclipse.jetty.server.handler.AbstractHandler
 import org.koin.core.inject
 import org.koin.core.parameter.parametersOf
-import tech.b180.cordaptor.corda.CordaFlowProgress
-import tech.b180.cordaptor.corda.CordaFlowSnapshot
-import tech.b180.cordaptor.corda.CordaNodeCatalog
-import tech.b180.cordaptor.corda.CordaNodeState
+import tech.b180.cordaptor.corda.*
 import tech.b180.cordaptor.kernel.CordaptorComponent
 import javax.servlet.ServletException
 import javax.servlet.http.HttpServletRequest
@@ -58,7 +55,6 @@ class FlowInitiationHandler<ReturnType: Any>(
   private val cordaNodeState: CordaNodeState by inject()
 
   private val flowSerializer by injectSerializer(flowClass)
-  private val flowResultSerializer by injectSerializer(flowResultClass)
 
   // use explicit type parameter so that the resulting JSON schema is strongly typed
   private val flowSnapshotSerializer: JsonSerializer<CordaFlowSnapshot<ReturnType>>
@@ -96,8 +92,26 @@ class FlowInitiationHandler<ReturnType: Any>(
           .writeSerializedObject(flowSnapshotSerializer, snapshot)
           .flush()
     } else {
+      // switch into async mode and only return when the result promise returns or times out
+      val async = request.startAsync()
 
-      TODO("Not implemented")
+      handle.flowResultPromise.subscribe { result, error ->
+        try {
+          val flowResult = result ?: CordaFlowResult.forError(error)
+          val snapshot = CordaFlowSnapshot(flowClass = flowClass,
+              flowRunId = handle.flowRunId, currentProgress = CordaFlowProgress.noProgressInfo,
+              startedAt = handle.startedAt, result = flowResult)
+
+          response!!.status = HttpServletResponse.SC_OK
+          JsonHome.createGenerator(response!!.writer)
+              .writeSerializedObject(flowSnapshotSerializer, snapshot)
+              .flush()
+//        } catch (e: Exception) {
+//          response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR)
+        } finally {
+          async.complete()
+        }
+      }
     }
   }
 }
