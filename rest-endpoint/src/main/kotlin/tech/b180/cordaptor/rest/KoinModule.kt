@@ -44,6 +44,7 @@ class RestEndpointModuleProvider : ModuleProvider {
 
     // parameterized accessor for obtaining handler instances allowing them to have dependencies managed by Koin
     factory<QueryEndpointHandler<*>> { (endpoint: QueryEndpoint<*>) -> QueryEndpointHandler(endpoint) }
+    factory<OperationEndpointHandler<*, *>> { (endpoint: OperationEndpoint<*, *>) -> OperationEndpointHandler(endpoint) }
 
     // contributes handlers for specific flow and state endpoints
     single { NodeStateApiProvider("/node") } bind ContextMappedHandlerFactory::class

@@ -56,7 +56,8 @@ class JettyServer : LifecycleAware, CordaptorComponent {
 
     val mappedHandlers : List<ContextMappedHandler> = getAll<ContextMappedHandler>() +
         getAll<ContextMappedHandlerFactory>().flatMap { it.handlers } +
-        getAll<QueryEndpoint<*>>().map { get<QueryEndpointHandler<*>> { parametersOf(it) } }
+        getAll<QueryEndpoint<*>>().map { get<QueryEndpointHandler<*>> { parametersOf(it) } } +
+        getAll<OperationEndpoint<*, *>>().map { get<OperationEndpointHandler<*, *>> { parametersOf(it) } }
 
     val contextHandlers = mappedHandlers.map { handler ->
       ContextHandler(handler.mappingParameters.contextPath).also {

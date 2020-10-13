@@ -1,6 +1,8 @@
 package tech.b180.cordaptor.rest
 
+import io.reactivex.rxjava3.core.Single
 import org.eclipse.jetty.client.HttpClient
+import org.eclipse.jetty.client.util.StringContentProvider
 import org.eclipse.jetty.server.Request
 import org.eclipse.jetty.server.handler.AbstractHandler
 import org.junit.After
@@ -12,6 +14,8 @@ import org.koin.test.KoinTest
 import org.koin.test.KoinTestRule
 import org.koin.test.get
 import tech.b180.cordaptor.kernel.HostAndPort
+import java.lang.reflect.Type
+import java.util.concurrent.TimeUnit
 import javax.json.Json
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
@@ -44,9 +48,12 @@ class JettyServerTest : KoinTest {
 
       single { EchoQueryEndpoint("/echo-query") } bind QueryEndpoint::class
       single { MisconfiguredEchoQueryEndpoint("/echo-query-wrong-type") } bind QueryEndpoint::class
+      single { SyncEchoOperationEndpoint("/echo-op-sync") } bind OperationEndpoint::class
+      single { AsyncEchoOperationEndpoint("/echo-op-async") } bind OperationEndpoint::class
 
       // parameterized accessor for obtaining handler instances allowing them to have dependencies managed by Koin
       factory<QueryEndpointHandler<*>> { (endpoint: QueryEndpoint<*>) -> QueryEndpointHandler(endpoint) }
+      factory<OperationEndpointHandler<*, *>> { (endpoint: OperationEndpoint<*, *>) -> OperationEndpointHandler(endpoint) }
 
       single { HttpClient() }
     }
@@ -95,19 +102,75 @@ class JettyServerTest : KoinTest {
 
     httpClient.GET("http://localhost:9000/echo-query").let {
       assertEquals(HttpServletResponse.SC_ACCEPTED, it.status)
-      assertEquals(AbstractEndpointHandler.Companion.JSON_CONTENT_TYPE, it.mediaType)
-      assertEquals("""{"pathInfo":"/"}""".asJsonObject(), it.contentAsString.asJsonObject())
+      assertEquals(AbstractEndpointHandler.JSON_CONTENT_TYPE, it.mediaType)
+      assertEquals("""{"pathInfo":"/","method":"GET","message":"echo"}""".asJsonObject(), it.contentAsString.asJsonObject())
     }
 
     httpClient.GET("http://localhost:9000/echo-query-wrong-type").let {
       assertEquals(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, it.status)
-      assertEquals(AbstractEndpointHandler.Companion.JSON_CONTENT_TYPE, it.mediaType)
+      assertEquals(AbstractEndpointHandler.JSON_CONTENT_TYPE, it.mediaType)
 
       val exceptionObject = it.contentAsString.asJsonObject()
       assertFalse(exceptionObject.containsKey("statusCode"), "Should not send a transient value")
       assertEquals("Endpoint returned an instance of class ${EchoPayload::class.java.canonicalName}, " +
           "where an instance of class java.lang.String was expected",
           exceptionObject.getString("message"))
+    }
+  }
+
+  @Test
+  fun `test sync operation endpoint handling`() {
+    val httpClient = get<HttpClient>()
+
+    httpClient.POST("http://localhost:9000/echo-op-sync").let {
+      it.content(StringContentProvider(""), AbstractEndpointHandler.JSON_CONTENT_TYPE)
+      it.send()
+    }.let {
+      assertEquals(HttpServletResponse.SC_BAD_REQUEST, it.status)
+      assertEquals(AbstractEndpointHandler.JSON_CONTENT_TYPE, it.mediaType)
+
+      val exceptionObject = it.contentAsString.asJsonObject()
+      assertEquals("BadRequest", exceptionObject.getString("errorType"))
+      assertEquals("Empty request payload", exceptionObject.getString("message"))
+    }
+
+    httpClient.POST("http://localhost:9000/echo-op-sync").let {
+      it.content(StringContentProvider("""{value:"ABC"}"""), AbstractEndpointHandler.JSON_CONTENT_TYPE)
+      it.send()
+    }.let {
+      assertEquals(HttpServletResponse.SC_BAD_REQUEST, it.status)
+      assertEquals(AbstractEndpointHandler.JSON_CONTENT_TYPE, it.mediaType)
+
+      val exceptionObject = it.contentAsString.asJsonObject()
+      assertEquals("BadRequest", exceptionObject.getString("errorType"))
+      assertEquals("Malformed JSON in the request payload", exceptionObject.getString("message"))
+    }
+
+    httpClient.POST("http://localhost:9000/echo-op-sync").let {
+      it.content(StringContentProvider("""{"value":"ABC"}"""), AbstractEndpointHandler.JSON_CONTENT_TYPE)
+      it.send()
+    }.let {
+      assertEquals(HttpServletResponse.SC_ACCEPTED, it.status)
+      assertEquals(AbstractEndpointHandler.JSON_CONTENT_TYPE, it.mediaType)
+
+      assertEquals("""{"pathInfo":"","method":"POST","message":"sync"}""".asJsonObject(),
+          it.contentAsString.asJsonObject())
+    }
+  }
+
+  @Test
+  fun `test async operation endpoint handling`() {
+    val httpClient = get<HttpClient>()
+
+    httpClient.POST("http://localhost:9000/echo-op-async").let {
+      it.content(StringContentProvider("""{"value":"ABC"}"""), AbstractEndpointHandler.JSON_CONTENT_TYPE)
+      it.send()
+    }.let {
+      assertEquals(HttpServletResponse.SC_ACCEPTED, it.status)
+      assertEquals(AbstractEndpointHandler.JSON_CONTENT_TYPE, it.mediaType)
+
+      assertEquals("""{"pathInfo":"","method":"POST","message":"async"}""".asJsonObject(),
+          it.contentAsString.asJsonObject())
     }
   }
 }
@@ -133,25 +196,53 @@ class EchoHandler(contextPath: String) : ContextMappedHandler, AbstractHandler()
   }
 }
 
-data class EchoQueryPayload(val pathInfo: String)
+data class SimplePayload(val value: String)
+data class EchoPayload(val pathInfo: String, val method: String, val message: String = "echo")
 
-class EchoQueryEndpoint(contextPath: String) : QueryEndpoint<EchoQueryPayload> {
+class EchoQueryEndpoint(contextPath: String) : QueryEndpoint<EchoPayload> {
 
-  override val responseType = EchoQueryPayload::class.java
+  override val responseType = EchoPayload::class.java
   override val contextMappingParameters = ContextMappingParameters(contextPath, false)
 
-  override fun executeQuery(request: tech.b180.cordaptor.rest.Request): Response<EchoQueryPayload> {
-    return Response(EchoQueryPayload(request.pathInfo!!), statusCode = HttpServletResponse.SC_ACCEPTED)
+  override fun executeQuery(request: tech.b180.cordaptor.rest.Request): Response<EchoPayload> {
+    return Response(EchoPayload(request.pathInfo!!, request.method), statusCode = HttpServletResponse.SC_ACCEPTED)
   }
 }
 
-class MisconfiguredEchoQueryEndpoint(contextPath: String) : QueryEndpoint<EchoQueryPayload> {
+class MisconfiguredEchoQueryEndpoint(contextPath: String) : QueryEndpoint<EchoPayload> {
 
   // incorrect response type information specified here
   override val responseType = String::class.java
   override val contextMappingParameters = ContextMappingParameters(contextPath, false)
 
-  override fun executeQuery(request: tech.b180.cordaptor.rest.Request): Response<EchoQueryPayload> {
-    return Response(EchoQueryPayload(request.pathInfo!!), statusCode = HttpServletResponse.SC_ACCEPTED)
+  override fun executeQuery(request: tech.b180.cordaptor.rest.Request): Response<EchoPayload> {
+    return Response(EchoPayload(request.pathInfo!!, request.method), statusCode = HttpServletResponse.SC_ACCEPTED)
+  }
+}
+
+class SyncEchoOperationEndpoint(contextPath: String) : OperationEndpoint<SimplePayload, EchoPayload> {
+  override val responseType = EchoPayload::class.java
+  override val contextMappingParameters = ContextMappingParameters(contextPath, true)
+  override val requestType: Type = SimplePayload::class.java
+  override val supportedMethods: Collection<String> = listOf("POST")
+
+  override fun executeOperation(request: RequestWithPayload<SimplePayload>): Single<Response<EchoPayload>> {
+    return Single.just(Response(
+        payload = EchoPayload(request.pathInfo ?: "", request.method, message = "sync"),
+        statusCode = HttpServletResponse.SC_ACCEPTED))
+  }
+}
+
+class AsyncEchoOperationEndpoint(contextPath: String) : OperationEndpoint<SimplePayload, EchoPayload> {
+  override val responseType = EchoPayload::class.java
+  override val contextMappingParameters = ContextMappingParameters(contextPath, true)
+  override val requestType: Type = SimplePayload::class.java
+  override val supportedMethods: Collection<String> = listOf("POST")
+
+  override fun executeOperation(request: RequestWithPayload<SimplePayload>): Single<Response<EchoPayload>> {
+    // actual amount of delay is irrelevant, anything that wraps SingleJust would trigger the async pathway
+    return Single.just(Response(
+        payload = EchoPayload(request.pathInfo ?: "", request.method, message = "async"),
+        statusCode = HttpServletResponse.SC_ACCEPTED)).delay(1, TimeUnit.SECONDS)
   }
 }
