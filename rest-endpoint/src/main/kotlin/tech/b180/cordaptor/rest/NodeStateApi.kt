@@ -2,6 +2,7 @@ package tech.b180.cordaptor.rest
 
 import net.corda.core.crypto.SecureHash
 import net.corda.core.flows.FlowLogic
+import net.corda.core.transactions.SignedTransaction
 import org.eclipse.jetty.http.HttpMethod
 import org.eclipse.jetty.server.Request
 import org.eclipse.jetty.server.handler.AbstractHandler
@@ -135,19 +136,23 @@ class TransactionQueryHandler(contextPath: String)
   : ContextMappedHandler, AbstractHandler(), CordaptorComponent {
 
   private val nodeState: CordaNodeState by inject()
-//  private val txSerializer: CordaSignedTransactionSerializer by inject()
+  private val txSerializer by injectSerializer(SignedTransaction::class)
 
-  override val mappingParameters = ContextMappingParameters(contextPath, true)
+  override val mappingParameters = ContextMappingParameters(contextPath, false)
 
   override fun handle(target: String?, baseRequest: Request?, request: HttpServletRequest?, response: HttpServletResponse?) {
     when (baseRequest!!.method) {
       "GET" -> {
+        baseRequest.isHandled = true
+
         val hash = SecureHash.parse(request!!.pathInfo!!)
         val tx = nodeState.findTransactionByHash(hash)
             ?: throw NoSuchElementException()
 
-//        val serializedTx = txSerializer.toJson(tx)
-//        response!!.outputStream.print(serializedTx.toString())
+        response!!.status = HttpServletResponse.SC_OK
+        JsonHome.createGenerator(response!!.writer)
+            .writeSerializedObject(txSerializer, tx)
+            .flush()
       }
       else -> {
         response!!.status = HttpServletResponse.SC_METHOD_NOT_ALLOWED

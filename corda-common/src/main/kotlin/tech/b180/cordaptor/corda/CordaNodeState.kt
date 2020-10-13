@@ -7,6 +7,7 @@ import net.corda.core.crypto.SecureHash
 import net.corda.core.flows.FlowLogic
 import net.corda.core.flows.StateMachineRunId
 import net.corda.core.node.NodeInfo
+import net.corda.core.node.services.diagnostics.NodeVersionInfo
 import net.corda.core.transactions.SignedTransaction
 import java.time.Instant
 import java.util.*
@@ -28,13 +29,13 @@ interface CordaNodeState {
 
   val nodeInfo: NodeInfo
 
+  val nodeVersionInfo: NodeVersionInfo
+
   fun <T : ContractState> findStateByRef(stateRef: StateRef, clazz: Class<T>): StateAndRef<T>?
 
   fun findTransactionByHash(hash: SecureHash): SignedTransaction?
 
   fun <T : ContractState> countStates(query: CordaStateQuery<T>): Int
-
-  fun <T : Any> aggregateFungibleState(query: CordaStateQuery<FungibleState<T>>, clazz: Class<T>): Amount<T>
 
   fun <T : ContractState> trackStates(query: CordaStateQuery<T>): Observable<T>
 

@@ -3,13 +3,17 @@ package tech.b180.cordaptor.cordapp
 import hu.akarnokd.rxjava3.interop.RxJavaInterop
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Single
-import net.corda.core.contracts.*
+import net.corda.core.contracts.ContractState
+import net.corda.core.contracts.StateAndRef
+import net.corda.core.contracts.StateRef
+import net.corda.core.contracts.TransactionResolutionException
 import net.corda.core.crypto.SecureHash
 import net.corda.core.flows.FlowLogic
 import net.corda.core.flows.StateMachineRunId
 import net.corda.core.node.AppServiceHub
 import net.corda.core.node.NodeInfo
 import net.corda.core.node.services.TransactionStorage
+import net.corda.core.node.services.diagnostics.NodeVersionInfo
 import net.corda.core.transactions.SignedTransaction
 import org.koin.core.inject
 import tech.b180.cordaptor.corda.*
@@ -31,6 +35,9 @@ class CordaNodeStateImpl : CordaNodeStateInner, CordaptorComponent {
   override val nodeInfo: NodeInfo
     get() = appServiceHub.myInfo
 
+  override val nodeVersionInfo: NodeVersionInfo
+    get() = appServiceHub.diagnosticsService.nodeVersionInfo()
+
   override fun <T : ContractState> findStateByRef(stateRef: StateRef, clazz: Class<T>): StateAndRef<T>? {
     return try {
       appServiceHub.toStateAndRef(stateRef)
@@ -44,10 +51,6 @@ class CordaNodeStateImpl : CordaNodeStateInner, CordaptorComponent {
   }
 
   override fun <T : ContractState> countStates(query: CordaStateQuery<T>): Int {
-    TODO("Not yet implemented")
-  }
-
-  override fun <T : Any> aggregateFungibleState(query: CordaStateQuery<FungibleState<T>>, clazz: Class<T>): Amount<T> {
     TODO("Not yet implemented")
   }
 

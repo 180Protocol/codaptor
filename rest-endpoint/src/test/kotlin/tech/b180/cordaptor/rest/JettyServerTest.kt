@@ -3,13 +3,13 @@ package tech.b180.cordaptor.rest
 import org.eclipse.jetty.client.HttpClient
 import org.eclipse.jetty.server.Request
 import org.eclipse.jetty.server.handler.AbstractHandler
-import org.junit.AfterClass
-import org.junit.BeforeClass
-import org.koin.core.context.KoinContextHandler
-import org.koin.core.context.startKoin
-import org.koin.dsl.koinApplication
+import org.junit.After
+import org.junit.Before
+import org.junit.Rule
+import org.koin.dsl.bind
 import org.koin.dsl.module
 import org.koin.test.KoinTest
+import org.koin.test.KoinTestRule
 import org.koin.test.get
 import tech.b180.cordaptor.kernel.HostAndPort
 import javax.json.Json
@@ -21,35 +21,46 @@ import kotlin.test.assertEquals
 
 class JettyServerTest : KoinTest {
 
+  @get:Rule
+  val koinTestRule = KoinTestRule.create {
+    // Your KoinApplication instance here
+    modules(testModule)
+  }
+
   companion object {
 
-    private val koinApp = startKoin {
-      modules(module {
-        // initialize a server with plain HTTP connection
-        single { JettyServer() }
-        single<JettyConfigurator> { ConnectorFactory(JettyConnectorConfiguration(
-            HostAndPort("localhost", 9000))) }
+    private val testModule = module {
+      single { SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() }) }
 
-        single<ContextMappedHandler> { EchoHandler("/test") }
+      factory<JsonSerializer<*>> { (key: SerializerKey) -> get<SerializationFactory>().getSerializer(key) }
 
-        single { HttpClient() }
-      })
+      // initialize a server with plain HTTP connection
+      single { JettyServer() }
+      single<JettyConfigurator> { ConnectorFactory(JettyConnectorConfiguration(
+          HostAndPort("localhost", 9000))) }
+
+      single<ContextMappedHandler> { EchoHandler("/test") }
+
+      single { EchoQueryEndpoint("/echo-query") } bind QueryEndpoint::class
+      single { MisconfiguredEchoQueryEndpoint("/echo-query-wrong-type") } bind QueryEndpoint::class
+
+      // parameterized accessor for obtaining handler instances allowing them to have dependencies managed by Koin
+      factory<QueryEndpointHandler<*>> { (endpoint: QueryEndpoint<*>) -> QueryEndpointHandler(endpoint) }
+
+      single { HttpClient() }
     }
-    private val koin = koinApp.koin
+  }
 
-    @BeforeClass @JvmStatic
-    fun `start Jetty`() {
-      koin.get<JettyServer>().initialize()
-      koin.get<HttpClient>().start()
-    }
+  @Before
+  fun setUp() {
+    get<JettyServer>().initialize()
+    get<HttpClient>().start()
+  }
 
-    @AfterClass @JvmStatic
-    fun `stop Jetty`() {
-      koin.get<HttpClient>().stop()
-      koin.get<JettyServer>().shutdown()
-
-      KoinContextHandler.stop()
-    }
+  @After
+  fun tearDown() {
+    get<HttpClient>().stop()
+    get<JettyServer>().shutdown()
   }
 
   @Test
@@ -62,7 +73,7 @@ class JettyServerTest : KoinTest {
       val data = it.contentAsString.asJsonObject()
       assertEquals("/", data.getString("target"))
       assertEquals("/test", data.getString("contextPath"))
-      assertEquals("/", data.getString("pathInfo"))
+      assertEquals("", data.getString("pathInfo"))
       assertEquals("", data.getString("queryString"))
     }
 
@@ -76,9 +87,32 @@ class JettyServerTest : KoinTest {
       assertEquals("query", data.getString("queryString"))
     }
   }
+
+  @Test
+  fun `test query endpoint handling`() {
+    val httpClient = get<HttpClient>()
+
+    httpClient.GET("http://localhost:9000/echo-query").let {
+      println(it.contentAsString)
+      assertEquals(HttpServletResponse.SC_ACCEPTED, it.status)
+      assertEquals(AbstractEndpointHandler.Companion.JSON_CONTENT_TYPE, it.mediaType)
+      assertEquals("""{"pathInfo":"/"}""".asJsonObject(), it.contentAsString.asJsonObject())
+    }
+
+    httpClient.GET("http://localhost:9000/echo-query-wrong-type").let {
+      println(it.contentAsString)
+      assertEquals(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, it.status)
+      assertEquals(AbstractEndpointHandler.Companion.JSON_CONTENT_TYPE, it.mediaType)
+      assertEquals("Endpoint returned an instance of class ${EchoQueryPayload::class.java.canonicalName}, " +
+          "where an instance of class java.lang.String was expected",
+          it.contentAsString.asJsonObject().getString("message"))
+    }
+  }
 }
 
-class EchoHandler(override val contextPath: String) : ContextMappedHandler, AbstractHandler() {
+class EchoHandler(contextPath: String) : ContextMappedHandler, AbstractHandler() {
+
+  override val mappingParameters = ContextMappingParameters(contextPath, true)
 
   override fun handle(target: String?, baseRequest: Request?, request: HttpServletRequest?, response: HttpServletResponse?) {
     response!!.status = HttpServletResponse.SC_OK
@@ -94,5 +128,28 @@ class EchoHandler(override val contextPath: String) : ContextMappedHandler, Abst
         .flush()
 
     baseRequest!!.isHandled = true
+  }
+}
+
+data class EchoQueryPayload(val pathInfo: String)
+
+class EchoQueryEndpoint(contextPath: String) : QueryEndpoint<EchoQueryPayload> {
+
+  override val responseType = EchoQueryPayload::class.java
+  override val contextMappingParameters = ContextMappingParameters(contextPath, false)
+
+  override fun executeQuery(request: tech.b180.cordaptor.rest.Request): Response<EchoQueryPayload> {
+    return Response(EchoQueryPayload(request.pathInfo!!), statusCode = HttpServletResponse.SC_ACCEPTED)
+  }
+}
+
+class MisconfiguredEchoQueryEndpoint(contextPath: String) : QueryEndpoint<EchoQueryPayload> {
+
+  // incorrect response type information specified here
+  override val responseType = String::class.java
+  override val contextMappingParameters = ContextMappingParameters(contextPath, false)
+
+  override fun executeQuery(request: tech.b180.cordaptor.rest.Request): Response<EchoQueryPayload> {
+    return Response(EchoQueryPayload(request.pathInfo!!), statusCode = HttpServletResponse.SC_ACCEPTED)
   }
 }

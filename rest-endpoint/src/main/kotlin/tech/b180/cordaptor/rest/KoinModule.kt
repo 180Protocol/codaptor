@@ -7,6 +7,8 @@ import org.koin.core.qualifier.TypeQualifier
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import tech.b180.cordaptor.kernel.*
+import java.lang.reflect.Type
+import javax.json.Json
 import kotlin.reflect.KClass
 
 /**
@@ -29,14 +31,19 @@ class RestEndpointModuleProvider : ModuleProvider {
 
     single { ConnectorFactory(get()) } bind JettyConfigurator::class
 
-    // definitions for various context handlers
+    // definitions for Cordaptor API endpoints handlers
+    single { NodeInfoEndpoint("/node/info") } bind QueryEndpoint::class
+    single { NodeVersionEndpoint("/node/version") } bind QueryEndpoint::class
+
     single { ApiDefinitionHandler("/api.json") } bind ContextMappedHandler::class
     single { SwaggerUIHandler("/swagger-ui.html") } bind ContextMappedHandler::class
-    single { NodeInfoHandler("/node/info") } bind ContextMappedHandler::class
     single { TransactionQueryHandler("/node/tx") } bind ContextMappedHandler::class
     single { VaultQueryHandler("/node/states") } bind ContextMappedHandler::class
     single { CountingVaultQueryHandler("/node/statesCount") } bind ContextMappedHandler::class
     single { AggregatingVaultQueryHandler("/node/statesTotalAmount") } bind ContextMappedHandler::class
+
+    // parameterized accessor for obtaining handler instances allowing them to have dependencies managed by Koin
+    factory<QueryEndpointHandler<*>> { (endpoint: QueryEndpoint<*>) -> QueryEndpointHandler(endpoint) }
 
     // contributes handlers for specific flow and state endpoints
     single { NodeStateApiProvider("/node") } bind ContextMappedHandlerFactory::class
@@ -77,3 +84,10 @@ fun <T: Any> Koin.getSerializer(clazz: KClass<T>, vararg typeParameters: KClass<
  */
 fun <T: Any> CordaptorComponent.injectSerializer(clazz: KClass<T>, vararg typeParameters: KClass<*>): Lazy<JsonSerializer<T>> =
     lazy { getKoin().get<JsonSerializer<T>> { parametersOf(SerializerKey(clazz, *typeParameters)) } }
+
+/**
+ * A shorthand to be used by an instance of [CordaptorComponent] requesting a JSON serializer
+ * to be injected using given type information
+ */
+fun <T: Any> CordaptorComponent.injectSerializer(type: Type): Lazy<JsonSerializer<T>> =
+    lazy { getKoin().get<JsonSerializer<T>> { parametersOf(SerializerKey.forType(type)) } }

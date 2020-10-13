@@ -4,6 +4,8 @@ import org.eclipse.jetty.server.Handler
 import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.server.handler.ContextHandler
 import org.eclipse.jetty.server.handler.ContextHandlerCollection
+import org.koin.core.get
+import org.koin.core.parameter.parametersOf
 import tech.b180.cordaptor.kernel.CordaptorComponent
 import tech.b180.cordaptor.kernel.LifecycleAware
 import tech.b180.cordaptor.kernel.getAll
@@ -52,8 +54,9 @@ class JettyServer : LifecycleAware, CordaptorComponent {
       it.configure(server)
     }
 
-    val mappedHandlers = getAll<ContextMappedHandler>() +
-        getAll<ContextMappedHandlerFactory>().flatMap { it.handlers }
+    val mappedHandlers : List<ContextMappedHandler> = getAll<ContextMappedHandler>() +
+        getAll<ContextMappedHandlerFactory>().flatMap { it.handlers } +
+        getAll<QueryEndpoint<*>>().map { get<QueryEndpointHandler<*>> { parametersOf(it) } }
 
     val contextHandlers = mappedHandlers.map { handler ->
       ContextHandler(handler.mappingParameters.contextPath).also {

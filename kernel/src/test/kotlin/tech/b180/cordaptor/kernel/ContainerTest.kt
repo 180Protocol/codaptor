@@ -15,7 +15,7 @@ class ContainerTest {
 
     @BeforeClass @JvmStatic
     fun `init`() {
-      containerInstance = Container {
+      containerInstance = Container(SystemPropertiesBootstrapSettings()) {
         module(override = true) {
           single { WrapperComponent(get()) }
           single<TestService>(named("override")) {

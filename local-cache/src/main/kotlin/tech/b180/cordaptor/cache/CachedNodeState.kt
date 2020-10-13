@@ -5,6 +5,7 @@ import net.corda.core.crypto.SecureHash
 import net.corda.core.flows.FlowLogic
 import net.corda.core.flows.StateMachineRunId
 import net.corda.core.node.NodeInfo
+import net.corda.core.node.services.diagnostics.NodeVersionInfo
 import net.corda.core.transactions.SignedTransaction
 import tech.b180.cordaptor.corda.*
 import tech.b180.cordaptor.kernel.CordaptorComponent
@@ -16,6 +17,9 @@ class CachedNodeState(private val delegate: CordaNodeStateInner) : CordaNodeStat
   override val nodeInfo: NodeInfo
     get() = delegate.nodeInfo
 
+  override val nodeVersionInfo: NodeVersionInfo
+    get() = delegate.nodeVersionInfo
+
   override fun <T : ContractState> findStateByRef(stateRef: StateRef, clazz: Class<T>): StateAndRef<T>? {
     TODO("Not yet implemented")
   }
@@ -25,10 +29,6 @@ class CachedNodeState(private val delegate: CordaNodeStateInner) : CordaNodeStat
   }
 
   override fun <T : ContractState> countStates(query: CordaStateQuery<T>): Int {
-    TODO("Not yet implemented")
-  }
-
-  override fun <T : Any> aggregateFungibleState(query: CordaStateQuery<FungibleState<T>>, clazz: Class<T>): Amount<T> {
     TODO("Not yet implemented")
   }
 

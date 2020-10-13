@@ -2,6 +2,7 @@ package tech.b180.cordaptor.kernel
 
 import org.koin.core.Koin
 import org.koin.core.KoinApplication
+import org.koin.core.context.KoinContextHandler
 import org.koin.core.logger.Level
 import org.koin.core.logger.Logger
 import org.koin.core.logger.PrintLogger
@@ -33,10 +34,15 @@ class Container(bootstrapSettings: BootstrapSettings, contextModuleFactory: () -
 
     val koinInstance: Koin
       get() = koinApp?.koin
-          ?: throw IllegalStateException("Container has not been instantiated")
+          ?: KoinContextHandler.getOrNull() // this caters for tests using KoinTest API
+          ?: throw IllegalStateException("No Koin instance -- was Container instantiated or test set up correctly?")
   }
 
   init {
+    if (KoinContextHandler.getOrNull() != null) {
+      throw AssertionError("A Koin instance was started with startKoin call -- incorrect test setup?")
+    }
+
     koinApp = koinApplication {
       logger(logger)
       fileProperties()
