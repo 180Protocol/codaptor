@@ -17,6 +17,7 @@ import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 
 
 class JettyServerTest : KoinTest {
@@ -93,19 +94,20 @@ class JettyServerTest : KoinTest {
     val httpClient = get<HttpClient>()
 
     httpClient.GET("http://localhost:9000/echo-query").let {
-      println(it.contentAsString)
       assertEquals(HttpServletResponse.SC_ACCEPTED, it.status)
       assertEquals(AbstractEndpointHandler.Companion.JSON_CONTENT_TYPE, it.mediaType)
       assertEquals("""{"pathInfo":"/"}""".asJsonObject(), it.contentAsString.asJsonObject())
     }
 
     httpClient.GET("http://localhost:9000/echo-query-wrong-type").let {
-      println(it.contentAsString)
       assertEquals(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, it.status)
       assertEquals(AbstractEndpointHandler.Companion.JSON_CONTENT_TYPE, it.mediaType)
-      assertEquals("Endpoint returned an instance of class ${EchoQueryPayload::class.java.canonicalName}, " +
+
+      val exceptionObject = it.contentAsString.asJsonObject()
+      assertFalse(exceptionObject.containsKey("statusCode"), "Should not send a transient value")
+      assertEquals("Endpoint returned an instance of class ${EchoPayload::class.java.canonicalName}, " +
           "where an instance of class java.lang.String was expected",
-          it.contentAsString.asJsonObject().getString("message"))
+          exceptionObject.getString("message"))
     }
   }
 }

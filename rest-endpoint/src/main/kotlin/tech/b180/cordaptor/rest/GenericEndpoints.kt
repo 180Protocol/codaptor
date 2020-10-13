@@ -4,6 +4,7 @@ import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Single
 import org.eclipse.jetty.server.handler.AbstractHandler
 import tech.b180.cordaptor.kernel.CordaptorComponent
+import java.beans.Transient
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
 import javax.servlet.http.HttpServletRequest
@@ -20,6 +21,8 @@ class EndpointOperationException(
     cause: Throwable? = null,
     val errorType: String = "Error",
     val statusCode: Int = HttpServletResponse.SC_INTERNAL_SERVER_ERROR
+    @Suppress("unused") val errorType: String = "Error",
+    @get:Transient val statusCode: Int = HttpServletResponse.SC_INTERNAL_SERVER_ERROR
 ) : Exception(message, cause)
 
 interface Request {
