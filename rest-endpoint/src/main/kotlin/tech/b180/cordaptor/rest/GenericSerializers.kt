@@ -36,27 +36,40 @@ class ComposableTypeJsonSerializer<T: Any>(
   override val deserialize = true
 
   override val properties: Map<String, IntrospectedProperty> =
-      typeInfo.properties.mapValues { (_, prop) ->
-        val accessor: ObjectPropertyValueAccessor? = when (prop) {
-          is LocalPropertyInformation.ConstructorPairedProperty -> { obj: Any -> prop.observedGetter.invoke(obj) }
-          is LocalPropertyInformation.PrivateConstructorPairedProperty -> {
-            prop.observedField.apply {
-              if (!isAccessible) {
-                try {
-                  isAccessible = true
-                } catch (e: Exception) {
-                  throw SerializationException("Unable to make private field ${prop.observedField} accessible", e)
-                }
-              }
-            };
-            { obj: Any -> prop.observedField.get(obj) }
+      typeInfo.properties
+          .filterValues { prop ->
+            // skip properties that have getters market with java.beans.Transient annotation
+            when (prop) {
+              is LocalPropertyInformation.ConstructorPairedProperty ->
+                prop.observedGetter.getAnnotation(java.beans.Transient::class.java)?.value?.not() ?: true
+              is LocalPropertyInformation.GetterSetterProperty ->
+                prop.observedGetter.getAnnotation(java.beans.Transient::class.java)?.value?.not() == null
+              is LocalPropertyInformation.ReadOnlyProperty ->
+                prop.observedGetter.getAnnotation(java.beans.Transient::class.java)?.value?.not() == null
+              else -> true
+            }
           }
-          is LocalPropertyInformation.GetterSetterProperty -> { obj: Any -> prop.observedGetter.invoke(obj) }
-          is LocalPropertyInformation.ReadOnlyProperty -> { obj: Any -> prop.observedGetter.invoke(obj) }
-          else -> null
-        }
-        IntrospectedProperty(accessor, prop)
-      }
+          .mapValues { (_, prop) ->
+            val accessor: ObjectPropertyValueAccessor? = when (prop) {
+              is LocalPropertyInformation.ConstructorPairedProperty -> { obj: Any -> prop.observedGetter.invoke(obj) }
+              is LocalPropertyInformation.PrivateConstructorPairedProperty -> {
+                prop.observedField.apply {
+                  if (!isAccessible) {
+                    try {
+                      isAccessible = true
+                    } catch (e: Exception) {
+                      throw SerializationException("Unable to make private field ${prop.observedField} accessible", e)
+                    }
+                  }
+                };
+                { obj: Any -> prop.observedField.get(obj) }
+              }
+              is LocalPropertyInformation.GetterSetterProperty -> { obj: Any -> prop.observedGetter.invoke(obj) }
+              is LocalPropertyInformation.ReadOnlyProperty -> { obj: Any -> prop.observedGetter.invoke(obj) }
+              else -> null
+            }
+            IntrospectedProperty(accessor, prop)
+          }
 
   override fun initializeInstance(values: Map<String, Any?>): T {
     val ctor = typeInfo.constructor

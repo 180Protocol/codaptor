@@ -10,6 +10,7 @@ import net.corda.serialization.internal.model.ConfigurableLocalTypeModel
 import net.corda.serialization.internal.model.LocalPropertyInformation
 import net.corda.serialization.internal.model.LocalTypeInformation
 import net.corda.serialization.internal.model.LocalTypeModel
+import java.beans.Transient
 import java.io.StringReader
 import java.io.StringWriter
 import java.util.*
@@ -284,6 +285,16 @@ class SerializationTest {
     assertEquals("\"net.corda.core.flows.FlowLogic\"", kotlinClassSerializer.toJsonString(FlowLogic::class))
     assertEquals("\"net.corda.core.flows.FlowLogic\"", javaClassSerializer.toJsonString(FlowLogic::class.java))
   }
+
+  @Test
+  fun `test transient annotation`() {
+    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() })
+
+    val serializer = f.getSerializer(ObjectWithTransientProperties::class.java)
+
+    assertEquals("""{"one":"123","two":123}""", serializer.toJsonString(
+        ObjectWithTransientProperties("123", 123, 321)))
+  }
 }
 
 fun generateJson(block: JsonGenerator.() -> Unit): String {
@@ -361,3 +372,9 @@ enum class TestEnum {
   VAL1,
   VAL2
 }
+
+data class ObjectWithTransientProperties(
+    val one: String,
+    val two: Int,
+    @get:Transient val three: Int
+)
