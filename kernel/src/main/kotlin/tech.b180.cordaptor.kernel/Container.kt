@@ -4,12 +4,14 @@ import org.koin.core.Koin
 import org.koin.core.KoinApplication
 import org.koin.core.context.KoinContextHandler
 import org.koin.core.logger.Level
-import org.koin.core.logger.Logger
+import org.koin.core.logger.Logger as KoinLogger
+import org.koin.core.logger.MESSAGE
 import org.koin.core.logger.PrintLogger
 import org.koin.core.module.Module
 import org.koin.core.qualifier.Qualifier
 import org.koin.dsl.koinApplication
 import org.koin.dsl.module
+import org.slf4j.Logger
 import java.util.*
 import kotlin.reflect.KClass
 
@@ -26,8 +28,6 @@ import kotlin.reflect.KClass
  * Koin does not like its Module DSL used outside of Koin instantiation flow.
  */
 class Container(bootstrapSettings: BootstrapSettings, contextModuleFactory: () -> Module = { module {  } }) {
-
-  private val logger: Logger = PrintLogger(Level.INFO)
 
   companion object {
     private val logger = loggerFor<Container>()
@@ -46,7 +46,7 @@ class Container(bootstrapSettings: BootstrapSettings, contextModuleFactory: () -
     }
 
     koinApp = koinApplication {
-      logger(logger)
+      logger(KoinLoggerAdapter(logger))
       fileProperties()
       environmentProperties()
 
@@ -91,6 +91,17 @@ class Container(bootstrapSettings: BootstrapSettings, contextModuleFactory: () -
     val all = koinInstance.getAll<LifecycleAware>().toSet()
     all.forEach {
       it.shutdown();
+    }
+  }
+}
+
+class KoinLoggerAdapter(private val delegate: Logger) : KoinLogger() {
+  override fun log(level: Level, msg: MESSAGE) {
+    when (level) {
+      Level.DEBUG -> delegate.debug(msg)
+      Level.INFO -> delegate.info(msg)
+      Level.ERROR -> delegate.error(msg)
+      else -> { }
     }
   }
 }

@@ -4,6 +4,7 @@ import net.corda.core.contracts.StateRef
 import net.corda.core.crypto.SecureHash
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.utilities.getOrThrow
+import net.corda.core.utilities.loggerFor
 import net.corda.node.services.Permissions
 import net.corda.testing.driver.*
 import net.corda.testing.node.NotarySpec
@@ -26,9 +27,15 @@ const val NODE_NAME = "O=Bank, L=London, C=GB"
 
 class EmbeddedBundleTest {
 
+  companion object {
+    private val logger = loggerFor<EmbeddedBundleTest>()
+  }
+
   @Test
   fun testRestAPI() = withDriver {
     val handle = startNode(CordaX500Name.parse(NODE_NAME))
+
+    logger.info("Started node $handle")
 
     val client = HttpClient()
     client.isFollowRedirects = false
