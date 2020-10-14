@@ -45,7 +45,7 @@ tasks.withType(Test) {
     jvmArgs += "-Dnet.corda.client.rpc.trackRpcCallSites=true"
 }
 
-task embeddedBundleTest(type: Test, dependsOn: [":bundle-rest-embedded:build"]) {
+task embeddedBundleTest(type: Test, dependsOn: [":bundle-rest-embedded:build", "jar"]) {
     def bundleProject = project(":bundle-rest-embedded")
     def bundleJarPath = bundleProject.tasks["jar"].archivePath
 
