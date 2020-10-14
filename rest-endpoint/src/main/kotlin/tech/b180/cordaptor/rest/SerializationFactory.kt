@@ -247,6 +247,11 @@ class SerializationFactory(
   }
 }
 
+/**
+ * A wrapper for a type, which is potentially parameterized, alongside with a specific
+ * set of parameters. This structure is used as a key to obtain a serializer from
+ * the [SerializationFactory].
+ */
 data class SerializerKey(
     val rawType: Class<*>,
     val typeParameters: List<Type>) {
@@ -257,6 +262,9 @@ data class SerializerKey(
 
   fun asRaw() = this.copy(typeParameters = emptyList())
 
+  /**
+   * Reconstitutes a parameterised type from the associated raw type and given type parameters
+   */
   fun asType() = if (typeParameters.isEmpty()) {
     rawType
   } else {
