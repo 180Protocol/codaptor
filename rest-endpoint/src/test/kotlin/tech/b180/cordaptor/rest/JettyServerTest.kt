@@ -130,7 +130,7 @@ class JettyServerTest : KoinTest {
       assertEquals(AbstractEndpointHandler.JSON_CONTENT_TYPE, it.mediaType)
 
       val exceptionObject = it.contentAsString.asJsonObject()
-      assertEquals("BadRequest", exceptionObject.getString("errorType"))
+      assertEquals("BAD_REQUEST", exceptionObject.getString("errorType"))
       assertEquals("Empty request payload", exceptionObject.getString("message"))
     }
 
@@ -142,7 +142,7 @@ class JettyServerTest : KoinTest {
       assertEquals(AbstractEndpointHandler.JSON_CONTENT_TYPE, it.mediaType)
 
       val exceptionObject = it.contentAsString.asJsonObject()
-      assertEquals("BadRequest", exceptionObject.getString("errorType"))
+      assertEquals("BAD_REQUEST", exceptionObject.getString("errorType"))
       assertEquals("Malformed JSON in the request payload", exceptionObject.getString("message"))
     }
 

@@ -33,10 +33,6 @@ open class SimpleFlow(
     private val externalId: String
 ) : FlowLogic<SimpleFlowResult>() {
 
-  companion object {
-
-  }
-
   override fun call() : SimpleFlowResult {
     val builder = TransactionBuilder(notary = serviceHub.networkMapCache.notaryIdentities.first())
     builder.addOutputState(SimpleLinearState(ourIdentity, UniqueIdentifier(externalId)))

@@ -8,7 +8,6 @@ import org.koin.dsl.bind
 import org.koin.dsl.module
 import tech.b180.cordaptor.kernel.*
 import java.lang.reflect.Type
-import javax.json.Json
 import kotlin.reflect.KClass
 
 /**
@@ -34,10 +33,10 @@ class RestEndpointModuleProvider : ModuleProvider {
     // definitions for Cordaptor API endpoints handlers
     single { NodeInfoEndpoint("/node/info") } bind QueryEndpoint::class
     single { NodeVersionEndpoint("/node/version") } bind QueryEndpoint::class
+    single { TransactionQueryEndpoint("/node/tx") } bind QueryEndpoint::class
 
     single { ApiDefinitionHandler("/api.json") } bind ContextMappedHandler::class
     single { SwaggerUIHandler("/swagger-ui.html") } bind ContextMappedHandler::class
-    single { TransactionQueryHandler("/node/tx") } bind ContextMappedHandler::class
     single { VaultQueryHandler("/node/states") } bind ContextMappedHandler::class
     single { CountingVaultQueryHandler("/node/statesCount") } bind ContextMappedHandler::class
     single { AggregatingVaultQueryHandler("/node/statesTotalAmount") } bind ContextMappedHandler::class
@@ -47,7 +46,7 @@ class RestEndpointModuleProvider : ModuleProvider {
     factory<OperationEndpointHandler<*, *>> { (endpoint: OperationEndpoint<*, *>) -> OperationEndpointHandler(endpoint) }
 
     // contributes handlers for specific flow and state endpoints
-    single { NodeStateApiProvider("/node") } bind ContextMappedHandlerFactory::class
+    single { NodeStateAPIProvider("/node") } bind ContextMappedHandlerFactory::class
 
     // JSON serialization enablement
     single { SerializationFactory(lazyGetAll()) }

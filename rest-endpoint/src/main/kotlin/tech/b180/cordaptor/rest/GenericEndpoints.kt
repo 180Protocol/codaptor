@@ -4,10 +4,8 @@ import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.internal.operators.single.SingleJust
 import org.eclipse.jetty.server.handler.AbstractHandler
-import tech.b180.cordaptor.corda.CordaFlowProgress
-import tech.b180.cordaptor.corda.CordaFlowResult
-import tech.b180.cordaptor.corda.CordaFlowSnapshot
 import tech.b180.cordaptor.kernel.CordaptorComponent
+import tech.b180.cordaptor.kernel.loggerFor
 import java.beans.Transient
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
@@ -15,6 +13,12 @@ import javax.json.stream.JsonParsingException
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 import org.eclipse.jetty.server.Request as JettyRequest
+
+enum class OperationErrorType(val protocolStatusCode: Int) {
+  GENERIC_ERROR(HttpServletResponse.SC_INTERNAL_SERVER_ERROR),
+  BAD_REQUEST(HttpServletResponse.SC_BAD_REQUEST),
+  NOT_FOUND(HttpServletResponse.SC_NOT_FOUND)
+}
 
 /**
  * Base class for any exceptions that may arise when executing a Cordaptor API operation.
@@ -24,8 +28,8 @@ import org.eclipse.jetty.server.Request as JettyRequest
 open class EndpointOperationException(
     message: String,
     cause: Throwable? = null,
-    @Suppress("unused") val errorType: String = "Error",
-    @get:Transient val statusCode: Int = HttpServletResponse.SC_INTERNAL_SERVER_ERROR
+    @Suppress("unused") val errorType: OperationErrorType = OperationErrorType.GENERIC_ERROR,
+    @get:Transient val statusCode: Int = errorType.protocolStatusCode
 ) : Exception(message, cause)
 
 /**
@@ -34,7 +38,7 @@ open class EndpointOperationException(
 class BadOperationRequestException(
     message: String,
     cause: Throwable? = null
-) : EndpointOperationException(message, cause, errorType = "BadRequest", statusCode = HttpServletResponse.SC_BAD_REQUEST)
+) : EndpointOperationException(message, cause, errorType = OperationErrorType.BAD_REQUEST)
 
 /**
  * Generic protocol request for an API operation,
@@ -43,6 +47,11 @@ class BadOperationRequestException(
 interface Request {
   val pathInfo: String?
   val method: String
+
+  /**
+   * Returns a query string parameter value or null
+   */
+  fun getParameter(name: String): String?
 }
 
 /**
@@ -68,7 +77,8 @@ interface GenericEndpoint {
 
   /**
    * Returned type may be parameterized in order to correctly configure the serializer
-   * used by the endpoint handler
+   * used by the endpoint handler. Note that returned type could be parameterized,
+   * which comes handy if a specific serializer need to be used.
    */
   val responseType: Type
 
@@ -98,7 +108,8 @@ interface OperationEndpoint<RequestType: Any, ResponseType: Any> : GenericEndpoi
 
   /**
    * Returned type may be parameterized in order to correctly configure the serializer
-   * used by the endpoint handler
+   * used by the endpoint handler. Note that returned type could be parameterized,
+   * which comes handy if a specific serializer need to be used.
    */
   val requestType: Type
 
@@ -118,6 +129,10 @@ interface OperationEndpoint<RequestType: Any, ResponseType: Any> : GenericEndpoi
    * @return a promise for the operation result or an error
    */
   fun executeOperation(request: RequestWithPayload<RequestType>): Single<Response<ResponseType>>
+
+  companion object {
+    val POST_ONLY = listOf("POST")
+  }
 }
 
 /**
@@ -165,9 +180,11 @@ abstract class AbstractEndpointHandler<ResponseType: Any>(
       doHandle(request, response)
 
     } catch (e: EndpointOperationException) {
+      logger.debug("Endpoint operation threw a protocol exception, which will be serialized", e)
       sendError(response, e)
 
     } catch (e: Throwable) {
+      logger.error("Endpoint operation threw an unexpected exception", e)
       response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR)
     }
   }
@@ -182,6 +199,8 @@ abstract class AbstractEndpointHandler<ResponseType: Any>(
   abstract fun doHandle(request: HttpServletRequest, response: HttpServletResponse)
 
   fun sendError(servletResponse: HttpServletResponse, error: EndpointOperationException) {
+    logger.debug("Sending a protocol error to the client", error)
+
     servletResponse.status = error.statusCode
     servletResponse.contentType = JSON_CONTENT_TYPE
 
@@ -191,6 +210,8 @@ abstract class AbstractEndpointHandler<ResponseType: Any>(
   }
 
   fun sendResponse(servletResponse: HttpServletResponse, endpointResponse: Response<ResponseType>) {
+    logger.debug("Sending response {}", endpointResponse)
+
     // validation for correct return type instead of failing to serialize with a cryptic message
     // this may occur if the endpoint's responseType is incorrectly set
     if (!responseType.isAssignableFrom(endpointResponse.payload.javaClass)) {
@@ -214,6 +235,8 @@ abstract class AbstractEndpointHandler<ResponseType: Any>(
       get() = request.pathInfo
     override val method: String
       get() = request.method
+
+    override fun getParameter(name: String): String? = request.getParameter(name)
   }
 
   /**
@@ -226,6 +249,8 @@ abstract class AbstractEndpointHandler<ResponseType: Any>(
 
   companion object {
     const val JSON_CONTENT_TYPE = "application/json"
+
+    private val logger = loggerFor<AbstractEndpointHandler<*>>()
   }
 }
 
@@ -246,6 +271,10 @@ class QueryEndpointHandler<ResponseType: Any>(
     val endpointResponse = endpoint.executeQuery(endpointRequest)
     sendResponse(response, endpointResponse)
   }
+
+  override fun toString(): String {
+    return "QueryEndpointHandler(responseType=${endpoint.responseType.typeName}, endpoint=${endpoint}"
+  }
 }
 
 /**
@@ -258,6 +287,10 @@ class QueryEndpointHandler<ResponseType: Any>(
 class OperationEndpointHandler<RequestType: Any, ResponseType: Any>(
     private val endpoint: OperationEndpoint<RequestType, ResponseType>
 ): AbstractEndpointHandler<ResponseType>(endpoint.responseType, endpoint.contextMappingParameters) {
+
+  companion object {
+    private val logger = loggerFor<OperationEndpointHandler<*, *>>()
+  }
 
   private val requestSerializer by injectSerializer<RequestType>(endpoint.requestType)
 
@@ -273,8 +306,10 @@ class OperationEndpointHandler<RequestType: Any, ResponseType: Any>(
       val requestJsonPayload = JsonHome.createReader(request.reader).readObject()
       requestSerializer.fromJson(requestJsonPayload)
     } catch (e: JsonParsingException) {
+      logger.debug("JSON parsing exception, which will be returned to the client", e)
       throw BadOperationRequestException("Malformed JSON in the request payload", e)
     } catch (e: SerializationException) {
+      logger.debug("Exception during payload deserialization, which will be returned to the client", e)
       throw BadOperationRequestException("Unable to deserialize the request payload", e)
     }
 
@@ -293,11 +328,11 @@ class OperationEndpointHandler<RequestType: Any, ResponseType: Any>(
       try {
         if (result != null) {
           sendResponse(async.response as HttpServletResponse, result)
+        } else {
+          // error must be not null at this point
+          sendError(async.response as HttpServletResponse, error as? EndpointOperationException
+              ?: EndpointOperationException(error?.message ?: "Unknown internal error", error))
         }
-        // error must be not null at this point
-        sendError(async.response as HttpServletResponse, error as? EndpointOperationException
-            ?: EndpointOperationException(error?.message ?: "Unknown internal error", error))
-
       } catch (e: SerializationException) {
         sendError(async.response as HttpServletResponse,
             EndpointOperationException("Unable to serialize response payload", e))
@@ -306,6 +341,10 @@ class OperationEndpointHandler<RequestType: Any, ResponseType: Any>(
         async.complete()
       }
     }
+  }
+
+  override fun toString(): String {
+    return "OperationEndpointHandler(requestType=${endpoint.requestType.typeName}, responseType=${endpoint.responseType.typeName}, endpoint=${endpoint}"
   }
 }
 
