@@ -30,6 +30,8 @@ class Container(bootstrapSettings: BootstrapSettings, contextModuleFactory: () -
   private val logger: Logger = PrintLogger(Level.INFO)
 
   companion object {
+    private val logger = loggerFor<Container>()
+
     private var koinApp : KoinApplication? = null
 
     val koinInstance: Koin

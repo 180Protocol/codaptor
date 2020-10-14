@@ -6,9 +6,11 @@ import org.eclipse.jetty.server.handler.ContextHandler
 import org.eclipse.jetty.server.handler.ContextHandlerCollection
 import org.koin.core.get
 import org.koin.core.parameter.parametersOf
+import org.slf4j.LoggerFactory
 import tech.b180.cordaptor.kernel.CordaptorComponent
 import tech.b180.cordaptor.kernel.LifecycleAware
 import tech.b180.cordaptor.kernel.getAll
+import tech.b180.cordaptor.kernel.loggerFor
 
 /**
  * Describes a logic configuring a given instance of Jetty server.
@@ -47,6 +49,10 @@ interface ContextMappedHandler : Handler {
  */
 class JettyServer : LifecycleAware, CordaptorComponent {
 
+  companion object {
+    private val logger = loggerFor<JettyServer>()
+  }
+
   private val server = Server()
 
   override fun initialize() {
@@ -60,6 +66,9 @@ class JettyServer : LifecycleAware, CordaptorComponent {
         getAll<OperationEndpoint<*, *>>().map { get<OperationEndpointHandler<*, *>> { parametersOf(it) } }
 
     val contextHandlers = mappedHandlers.map { handler ->
+      logger.info("Mapping $handler at ${handler.mappingParameters.contextPath} " +
+          "(allowNullPathInfo=${handler.mappingParameters.allowNullPathInfo})")
+
       ContextHandler(handler.mappingParameters.contextPath).also {
         it.allowNullPathInfo = handler.mappingParameters.allowNullPathInfo
         it.handler = handler
@@ -69,7 +78,7 @@ class JettyServer : LifecycleAware, CordaptorComponent {
     server.handler = ContextHandlerCollection(*contextHandlers.toTypedArray())
 
     server.start()
-    println("Jetty server started $server")
+    logger.info("Jetty server started $server")
   }
 
   override fun shutdown() {

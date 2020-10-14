@@ -3,6 +3,11 @@ apply plugin: 'org.jetbrains.kotlin.jvm'
 dependencies {
     api "org.koin:koin-core:$koin_version"
 
+    // not bundling in, as it is available in the embedded mode
+    compileOnly "org.slf4j:slf4j-api:$slf4j_version"
+
+    testImplementation "org.apache.logging.log4j:log4j-slf4j-impl:$log4j_version"
+
     testImplementation "org.koin:koin-test:$koin_version"
     testImplementation 'org.jetbrains.kotlin:kotlin-test'
     testImplementation 'org.jetbrains.kotlin:kotlin-test-junit'
