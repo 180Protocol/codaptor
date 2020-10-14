@@ -10,14 +10,18 @@ import net.corda.core.contracts.TransactionResolutionException
 import net.corda.core.crypto.SecureHash
 import net.corda.core.flows.FlowLogic
 import net.corda.core.flows.StateMachineRunId
+import net.corda.core.identity.CordaX500Name
+import net.corda.core.identity.Party
 import net.corda.core.node.AppServiceHub
 import net.corda.core.node.NodeInfo
 import net.corda.core.node.services.TransactionStorage
+import net.corda.core.node.services.Vault
 import net.corda.core.node.services.diagnostics.NodeVersionInfo
 import net.corda.core.transactions.SignedTransaction
 import org.koin.core.inject
 import tech.b180.cordaptor.corda.*
 import tech.b180.cordaptor.kernel.CordaptorComponent
+import java.security.PublicKey
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
@@ -38,7 +42,15 @@ class CordaNodeStateImpl : CordaNodeStateInner, CordaptorComponent {
   override val nodeVersionInfo: NodeVersionInfo
     get() = appServiceHub.diagnosticsService.nodeVersionInfo()
 
-  override fun <T : ContractState> findStateByRef(stateRef: StateRef, clazz: Class<T>): StateAndRef<T>? {
+  override fun wellKnownPartyFromX500Name(name: CordaX500Name): Party? {
+    return appServiceHub.identityService.wellKnownPartyFromX500Name(name)
+  }
+
+  override fun partyFromKey(publicKey: PublicKey): Party? {
+    return appServiceHub.identityService.partyFromKey(publicKey)
+  }
+
+  override fun <T : ContractState> findStateByRef(stateRef: StateRef, clazz: Class<T>, vaultStateStatus: Vault.StateStatus): StateAndRef<T>? {
     return try {
       appServiceHub.toStateAndRef(stateRef)
     } catch (e: TransactionResolutionException) {

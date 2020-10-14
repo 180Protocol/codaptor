@@ -46,6 +46,7 @@ class EmbeddedBundleTest {
     val stateRef = testFlowWaitForCompletion(client)
     testTransactionQuery(client, stateRef.txhash)
     testStateQuery(client, stateRef)
+    testVaultQuery(client)
   }
 
   private fun testNodeInfoRequest(client: HttpClient) {
@@ -107,7 +108,7 @@ class EmbeddedBundleTest {
     val tx = Json.createReader(StringReader(response.contentAsString)).readObject()
     assertEquals(txid.toString(), tx.getString("id"))
     assertEquals("TEST-111",
-        tx.getValue("/core/wireTransaction/outputs/0/data/linearId/externalId").asString())
+        tx.getValue("/content/wireTransaction/outputs/0/data/linearId/externalId").asString())
   }
 
   private fun testStateQuery(client: HttpClient, stateRef: StateRef) {
@@ -117,6 +118,10 @@ class EmbeddedBundleTest {
     val state = Json.createReader(StringReader(response.contentAsString)).readObject()
     assertEquals("TEST-111",
         state.getValue("/linearId/externalId").asString())
+  }
+
+  private fun testVaultQuery(client: HttpClient) {
+
   }
 
   private fun DriverDSL.startNode(name: CordaX500Name): NodeHandle {

@@ -6,7 +6,10 @@ import net.corda.core.contracts.StateRef
 import net.corda.core.crypto.SecureHash
 import net.corda.core.flows.FlowLogic
 import net.corda.core.flows.StateMachineRunId
+import net.corda.core.identity.CordaX500Name
+import net.corda.core.identity.Party
 import net.corda.core.node.NodeInfo
+import net.corda.core.node.services.Vault
 import net.corda.core.node.services.diagnostics.NodeVersionInfo
 import net.corda.core.transactions.SignedTransaction
 import tech.b180.cordaptor.corda.CordaFlowHandle
@@ -15,6 +18,7 @@ import tech.b180.cordaptor.corda.CordaNodeStateInner
 import tech.b180.cordaptor.corda.CordaStateQuery
 import tech.b180.cordaptor.kernel.CordaptorComponent
 import tech.b180.cordaptor.kernel.LifecycleAware
+import java.security.PublicKey
 import kotlin.reflect.KClass
 
 class ClusteredNodeState(private val delegate: CordaNodeStateInner)
@@ -26,7 +30,16 @@ class ClusteredNodeState(private val delegate: CordaNodeStateInner)
   override val nodeVersionInfo: NodeVersionInfo
     get() = TODO("Not yet implemented")
 
-  override fun <T : ContractState> findStateByRef(stateRef: StateRef, clazz: Class<T>): StateAndRef<T>? {
+  override fun wellKnownPartyFromX500Name(name: CordaX500Name): Party? {
+    TODO("Not yet implemented")
+  }
+
+  override fun partyFromKey(publicKey: PublicKey): Party? {
+    TODO("Not yet implemented")
+  }
+
+  override fun <T : ContractState> findStateByRef(stateRef: StateRef, clazz: Class<T>,
+                                                  vaultStateStatus: Vault.StateStatus): StateAndRef<T>? {
     TODO("Not yet implemented")
   }
 

@@ -5,8 +5,6 @@ import net.corda.core.flows.FlowLogic
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.identity.Party
 import net.corda.core.identity.PartyAndCertificate
-import net.corda.core.node.services.IdentityService
-import net.corda.core.node.services.TransactionStorage
 import net.corda.core.transactions.SignedTransaction
 import net.corda.testing.core.TestIdentity
 import org.junit.AfterClass
@@ -17,6 +15,7 @@ import org.koin.dsl.bind
 import org.koin.dsl.module
 import tech.b180.cordaptor.corda.CordaFlowProgress
 import tech.b180.cordaptor.corda.CordaFlowSnapshot
+import tech.b180.cordaptor.corda.CordaNodeState
 import tech.b180.cordaptor.kernel.lazyGetAll
 import tech.b180.cordaptor.rest.*
 import java.time.Instant
@@ -30,8 +29,7 @@ class CordaTypesTest {
 
   companion object {
 
-    private val mockIdentityService = mockkClass(IdentityService::class)
-    private val mockTransactionStorage = mockkClass(TransactionStorage::class)
+    private val mockNodeState = mockkClass(CordaNodeState::class)
 
     private val koinApp = startKoin {
       modules(module {
@@ -41,16 +39,16 @@ class CordaTypesTest {
         single { CordaUUIDSerializer() } bind CustomSerializer::class
         single { CordaSecureHashSerializer() } bind CustomSerializer::class
         single { CordaX500NameSerializer() } bind CustomSerializer::class
-        single { CordaPartySerializer(get(), mockIdentityService) } bind CustomSerializer::class
+        single { CordaPartySerializer(get(), mockNodeState) } bind CustomSerializer::class
         single { CordaPartyAndCertificateSerializer(factory = get()) } bind CustomSerializer::class
         single { JavaInstantSerializer() } bind CustomSerializer::class
         single { ThrowableSerializer(get()) } bind CustomSerializer::class
-        single { CordaSignedTransactionSerializer(get(), mockTransactionStorage) } bind CustomSerializer::class
+        single { CordaSignedTransactionSerializer(get()) } bind CustomSerializer::class
         single { CordaTransactionSignatureSerializer(get()) } bind CustomSerializer::class
         single { CordaCoreTransactionSerializer(get()) } bind CustomSerializer::class
         single { CordaWireTransactionSerializer(get()) } bind CustomSerializer::class
         single { CordaTransactionStateSerializer(get()) } bind CustomSerializer::class
-        single { CordaPublicKeySerializer(get(), mockIdentityService) } bind CustomSerializer::class
+        single { CordaPublicKeySerializer(get(), mockNodeState) } bind CustomSerializer::class
         single(qualifier = TypeQualifier(Any::class)) { DynamicObjectSerializer(Any::class, get()) } bind CustomSerializer::class
         single(qualifier = TypeQualifier(ContractState::class)) { DynamicObjectSerializer(ContractState::class, get()) } bind CustomSerializer::class
 
@@ -94,8 +92,8 @@ class CordaTypesTest {
     val party = TestIdentity(CordaX500Name("Bank", "London", "GB")).party
     assertEquals("""{"name":"O=Bank, L=London, C=GB"}""", serializer.toJsonString(party))
 
-    every { mockIdentityService.wellKnownPartyFromX500Name(party.name) }.returns(party)
-    every { mockIdentityService.wellKnownPartyFromX500Name(not(party.name)) }.returns(null)
+    every { mockNodeState.wellKnownPartyFromX500Name(party.name) }.returns(party)
+    every { mockNodeState.wellKnownPartyFromX500Name(not(party.name)) }.returns(null)
 
     assertSame(party, serializer.fromJson("""{"name":"O=Bank, L=London, C=GB"}""".asJsonObject()),
         "Party should have been resolved through the identity service")

@@ -5,6 +5,7 @@ import net.corda.core.contracts.ContractState
 import net.corda.core.contracts.StateRef
 import net.corda.core.crypto.SecureHash
 import net.corda.core.flows.FlowLogic
+import net.corda.core.node.services.Vault
 import net.corda.core.transactions.SignedTransaction
 import org.eclipse.jetty.server.handler.AbstractHandler
 import org.koin.core.get
@@ -155,7 +156,8 @@ class ContractStateQueryEndpoint<StateType: ContractState>(
 
     logger.debug("Parsed stateRef parameter is {}", stateRef)
 
-    val stateAndRef = nodeState.findStateByRef(stateRef, contractStateClass.java)
+    // we are interested in consumed states too, as this is a permanent URL
+    val stateAndRef = nodeState.findStateByRef(stateRef, contractStateClass.java, Vault.StateStatus.ALL)
         ?: throw EndpointOperationException(
             message = "No such state with ref $stateRef",
             errorType = OperationErrorType.NOT_FOUND)

@@ -2,13 +2,19 @@ package tech.b180.cordaptor.corda
 
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Single
-import net.corda.core.contracts.*
+import net.corda.core.contracts.ContractState
+import net.corda.core.contracts.StateAndRef
+import net.corda.core.contracts.StateRef
 import net.corda.core.crypto.SecureHash
 import net.corda.core.flows.FlowLogic
 import net.corda.core.flows.StateMachineRunId
+import net.corda.core.identity.CordaX500Name
+import net.corda.core.identity.Party
 import net.corda.core.node.NodeInfo
+import net.corda.core.node.services.Vault
 import net.corda.core.node.services.diagnostics.NodeVersionInfo
 import net.corda.core.transactions.SignedTransaction
+import java.security.PublicKey
 import java.time.Instant
 import java.util.*
 import kotlin.reflect.KClass
@@ -31,9 +37,30 @@ interface CordaNodeState {
 
   val nodeVersionInfo: NodeVersionInfo
 
-  fun <T : ContractState> findStateByRef(stateRef: StateRef, clazz: Class<T>): StateAndRef<T>?
+  /**
+   * @see net.corda.core.node.services.IdentityService.wellKnownPartyFromX500Name
+   * @see net.corda.core.messaging.CordaRPCOps.wellKnownPartyFromX500Name
+   */
+  fun wellKnownPartyFromX500Name(name: CordaX500Name): Party?
 
+  /**
+   * @see net.corda.core.node.services.IdentityService.partyFromKey
+   * @see net.corda.core.messaging.CordaRPCOps.partyFromKey
+   */
+  fun partyFromKey(publicKey: PublicKey): Party?
+
+  /**
+   * FIXME Corda RPC implementation uses a deprecated API method, may be removed in future
+   *
+   * @see net.corda.core.node.services.TransactionStorage.getTransaction
+   * @see net.corda.core.messaging.CordaRPCOps.internalFindVerifiedTransaction
+   */
   fun findTransactionByHash(hash: SecureHash): SignedTransaction?
+
+  /**
+   * Returns [StateAndRef] for a particular [ContractState] identified by a reference.
+   */
+  fun <T : ContractState> findStateByRef(stateRef: StateRef, clazz: Class<T>, vaultStateStatus: Vault.StateStatus): StateAndRef<T>?
 
   fun <T : ContractState> countStates(query: CordaStateQuery<T>): Int
 

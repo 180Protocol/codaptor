@@ -8,9 +8,10 @@ import net.corda.core.identity.CordaX500Name
 import net.corda.core.identity.Party
 import net.corda.core.identity.PartyAndCertificate
 import net.corda.core.node.NodeInfo
-import net.corda.core.node.services.IdentityService
-import net.corda.core.node.services.TransactionStorage
-import net.corda.core.transactions.*
+import net.corda.core.transactions.CoreTransaction
+import net.corda.core.transactions.SignedTransaction
+import net.corda.core.transactions.WireTransaction
+import tech.b180.cordaptor.corda.CordaNodeState
 import java.security.PublicKey
 import java.security.cert.X509Certificate
 import java.time.Instant
@@ -90,14 +91,14 @@ class JavaInstantSerializer : CustomSerializer<Instant>,
 }
 
 /**
- * Serializer for [Party] representing it as an object with X500 name.
+ * Serializer for a [Party] representing it as a JSON object containing its X.500 name.
  *
  * When reading from JSON, it attempts to resolve the party by calling
- * [IdentityService.wellKnownPartyFromX500Name] method
+ * [CordaNodeState.wellKnownPartyFromX500Name] method
  */
 class CordaPartySerializer(
     factory: SerializationFactory,
-    private val identityService: IdentityService
+    private val nodeState: CordaNodeState
 ) : CustomStructuredObjectSerializer<Party>(Party::class, factory) {
 
   override val properties: Map<String, ObjectProperty> = mapOf(
@@ -110,37 +111,24 @@ class CordaPartySerializer(
 
     val name = nameValue as CordaX500Name
 
-    return identityService.wellKnownPartyFromX500Name(name)
+    return nodeState.wellKnownPartyFromX500Name(name)
         ?: throw SerializationException("Party with name $name is not known")
   }
 }
 
 /**
- * Serializer for [SignedTransaction] representing it as JSON value.
- *
- * All transaction details are includes only in the output. For the input only transaction hash
- * is accepted, and then is used to resolve
+ * Serializer for a [SignedTransaction] representing it as a JSON object.
+ * There is no support for restoring instances of [SignedTransaction] from JSON structures.
  */
 class CordaSignedTransactionSerializer(
-    factory: SerializationFactory,
-    private val transactionStorage: TransactionStorage
-) : CustomStructuredObjectSerializer<SignedTransaction>(SignedTransaction::class, factory) {
+    factory: SerializationFactory
+) : CustomStructuredObjectSerializer<SignedTransaction>(SignedTransaction::class, factory, deserialize = false) {
 
   override val properties: Map<String, ObjectProperty> = mapOf(
       "id" to KotlinObjectProperty(SignedTransaction::id),
-      "core" to KotlinObjectProperty(SignedTransaction::coreTransaction, deserialize = false),
-      "sigs" to KotlinObjectProperty(SignedTransaction::sigs, deserialize = false)
+      "content" to KotlinObjectProperty(SignedTransaction::coreTransaction),
+      "sigs" to KotlinObjectProperty(SignedTransaction::sigs)
   )
-
-  override fun initializeInstance(values: Map<String, Any?>): SignedTransaction {
-    val hashValue = values["id"]
-    assert(hashValue is SecureHash) { "Expected hash, got $hashValue" }
-
-    val hash = hashValue as SecureHash
-
-    return transactionStorage.getTransaction(hash)
-        ?: throw SerializationException("Transaction with hash $hash is not known")
-  }
 }
 
 /**
@@ -210,20 +198,20 @@ class CordaWireTransactionSerializer(factory: SerializationFactory)
  */
 class CordaPublicKeySerializer(
     factory: SerializationFactory,
-    identityService: IdentityService
+    nodeState: CordaNodeState
 ) : CustomStructuredObjectSerializer<PublicKey>(PublicKey::class, factory, deserialize = false) {
 
   override val properties = mapOf(
       "fingerprint" to SyntheticObjectProperty(valueType = String::class.java,
           deserialize = false, isMandatory = false, accessor = { "not implemented" }),
       "knownParty" to SyntheticObjectProperty(valueType = Party::class.java,
-          deserialize = false, isMandatory = false, accessor = makeKnownPartyAccessor(identityService))
+          deserialize = false, isMandatory = false, accessor = makeKnownPartyAccessor(nodeState))
   )
 
   companion object {
     @Suppress("UNCHECKED_CAST")
-    fun makeKnownPartyAccessor(identityService: IdentityService) =
-        { key: PublicKey -> identityService.partyFromKey(key) } as ObjectPropertyValueAccessor
+    fun makeKnownPartyAccessor(nodeState: CordaNodeState) =
+        { key: PublicKey -> nodeState.partyFromKey(key) } as ObjectPropertyValueAccessor
   }
 }
 
