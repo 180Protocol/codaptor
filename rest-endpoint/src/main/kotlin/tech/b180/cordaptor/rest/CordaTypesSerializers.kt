@@ -3,6 +3,7 @@ package tech.b180.cordaptor.rest
 import net.corda.core.contracts.ContractState
 import net.corda.core.contracts.TransactionState
 import net.corda.core.crypto.SecureHash
+import net.corda.core.crypto.TransactionSignature
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.identity.Party
 import net.corda.core.identity.PartyAndCertificate
@@ -122,7 +123,8 @@ class CordaSignedTransactionSerializer(
 
   override val properties: Map<String, ObjectProperty> = mapOf(
       "id" to KotlinObjectProperty(SignedTransaction::id),
-      "core" to KotlinObjectProperty(SignedTransaction::coreTransaction, deserialize = false)
+      "core" to KotlinObjectProperty(SignedTransaction::coreTransaction, deserialize = false),
+      "sigs" to KotlinObjectProperty(SignedTransaction::sigs, deserialize = false)
   )
 
   override fun initializeInstance(values: Map<String, Any?>): SignedTransaction {
@@ -134,6 +136,20 @@ class CordaSignedTransactionSerializer(
     return transactionStorage.getTransaction(hash)
         ?: throw SerializationException("Transaction with hash $hash is not known")
   }
+}
+
+/**
+ * Serializer for [TransactionSignature] representing it as JSON value.
+ * This object is most commonly used as part of a [SignedTransaction] structure.
+ */
+class CordaTransactionSignatureSerializer(
+    factory: SerializationFactory
+) : CustomStructuredObjectSerializer<TransactionSignature>(TransactionSignature::class, factory, deserialize = false) {
+
+  override val properties: Map<String, ObjectProperty> = mapOf(
+      "by" to KotlinObjectProperty(TransactionSignature::by),
+      "metadata" to KotlinObjectProperty(TransactionSignature::signatureMetadata, deserialize = false)
+  )
 }
 
 /**

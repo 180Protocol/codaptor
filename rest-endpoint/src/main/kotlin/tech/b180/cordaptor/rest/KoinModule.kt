@@ -59,6 +59,7 @@ class RestEndpointModuleProvider : ModuleProvider {
     single { JavaInstantSerializer() } bind CustomSerializer::class
     single { ThrowableSerializer(get()) } bind CustomSerializer::class
     single { CordaSignedTransactionSerializer(get(), get()) } bind CustomSerializer::class
+    single { CordaTransactionSignatureSerializer(get()) } bind CustomSerializer::class
     single { CordaCoreTransactionSerializer(get()) } bind CustomSerializer::class
     single { CordaWireTransactionSerializer(get()) } bind CustomSerializer::class
     single { CordaTransactionStateSerializer(get()) } bind CustomSerializer::class
