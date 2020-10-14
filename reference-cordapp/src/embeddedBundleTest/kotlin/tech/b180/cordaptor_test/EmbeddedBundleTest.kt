@@ -13,7 +13,6 @@ import net.corda.testing.node.User
 import org.eclipse.jetty.client.HttpClient
 import org.eclipse.jetty.client.util.StringContentProvider
 import tech.b180.ref_cordapp.SimpleFlow
-import tech.b180.ref_cordapp.SimpleLinearState
 import java.io.StringReader
 import javax.json.Json
 import javax.json.JsonNumber
@@ -62,7 +61,7 @@ class EmbeddedBundleTest {
   }
 
   private fun testFlowFireAndForget(client: HttpClient) {
-    val req = client.POST("http://localhost:8500/node/${SimpleFlow::class.qualifiedName}")
+    val req = client.POST("http://localhost:8500/node/reference/SimpleFlow")
 
     val content = """{
       |"externalId":"TEST-111"}""".trimMargin()
@@ -79,7 +78,7 @@ class EmbeddedBundleTest {
   }
 
   private fun testFlowWaitForCompletion(client: HttpClient): StateRef {
-    val req = client.POST("http://localhost:8500/node/${SimpleFlow::class.qualifiedName}?wait=-1")
+    val req = client.POST("http://localhost:8500/node/reference/SimpleFlow?wait=-1")
 
     val content = """{
       |"externalId":"TEST-111"}""".trimMargin()
@@ -112,7 +111,8 @@ class EmbeddedBundleTest {
   }
 
   private fun testStateQuery(client: HttpClient, stateRef: StateRef) {
-    val response = client.GET("http://localhost:8500/node/${SimpleLinearState::class.qualifiedName}/${stateRef}")
+    val response = client.GET(
+        "http://localhost:8500/node/reference/SimpleLinearState/${stateRef}")
 
     val state = Json.createReader(StringReader(response.contentAsString)).readObject()
     assertEquals("TEST-111",

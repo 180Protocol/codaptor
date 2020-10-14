@@ -25,7 +25,11 @@ interface CordaNodeCatalog {
  */
 interface CordaNodeCatalogInner : CordaNodeCatalog
 
+/**
+ * General metadata about a CorDapp obtained from a node and/or available CorDapp JAR files.
+ */
 data class CordappInfo(
+    /** Name taken from the CorDapp metadata, which is used to construct API endpoint URLs */
     val shortName: String,
     val flows: List<CordappFlowInfo>,
     val contractStates: List<CordappContractStateInfo>,

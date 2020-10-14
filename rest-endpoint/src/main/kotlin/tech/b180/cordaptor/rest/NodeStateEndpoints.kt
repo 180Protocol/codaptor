@@ -34,17 +34,17 @@ class NodeStateAPIProvider(private val contextPath: String) : ContextMappedHandl
 
   init {
     @Suppress("UNCHECKED_CAST")
-    handlers = nodeCatalog.cordapps.flatMap {
-      val flowHandlers : List<ContextMappedHandler> = it.flows.map { flowInfo ->
-        val handlerPath = "$contextPath/${flowInfo.flowClass.qualifiedName}"
+    handlers = nodeCatalog.cordapps.flatMap { cordapp ->
+      val flowHandlers : List<ContextMappedHandler> = cordapp.flows.map { flowInfo ->
+        val handlerPath = "$contextPath/${cordapp.shortName}/${flowInfo.flowClass.simpleName}"
         val endpoint = FlowInitiationEndpoint(handlerPath,
             flowInfo.flowClass, flowInfo.flowResultClass as KClass<Any>)
 
         get<OperationEndpointHandler<*, *>> { parametersOf(endpoint) }
       }
 
-      val stateHandlers = it.contractStates.map { stateInfo ->
-        val handlerPath = "$contextPath/${stateInfo.stateClass.qualifiedName}"
+      val stateHandlers = cordapp.contractStates.map { stateInfo ->
+        val handlerPath = "$contextPath/${cordapp.shortName}/${stateInfo.stateClass.simpleName}"
         val endpoint = ContractStateQueryEndpoint(handlerPath,
             stateInfo.stateClass)
 
