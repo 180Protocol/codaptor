@@ -19,9 +19,9 @@ class CordaRpcClientModuleProvider : ModuleProvider {
 
   override fun provideModule(settings: BootstrapSettings) = module {
     single {
-      CordaRpcConnection(
+      NodeConnection(
           getHostAndPortProperty("node.address")
-      ) as LifecycleAware
+      )
     } bind LifecycleAware::class
   }
 }

@@ -29,6 +29,13 @@ sourceSets {
             srcDir file('src/embeddedBundleTest/kotlin')
         }
     }
+    standaloneBundleTest {
+        kotlin {
+            compileClasspath += main.output
+            runtimeClasspath += main.output
+            srcDir file('src/standaloneBundleTest/kotlin')
+        }
+    }
 }
 
 configurations {
@@ -38,6 +45,8 @@ configurations {
     // and they interfere with glassfish javax.json impl, which has more recent version
     embeddedBundleTestRuntime.exclude module: 'geronimo-json_1.0_spec'
     embeddedBundleTestRuntime.exclude module: 'johnzon-core'
+    standaloneBundleTestRuntime.exclude module: 'geronimo-json_1.0_spec'
+    standaloneBundleTestRuntime.exclude module: 'johnzon-core'
 }
 
 tasks.withType(Test) {
@@ -59,10 +68,14 @@ task embeddedBundleTest(type: Test, dependsOn: [":bundle-rest-embedded:build", "
     // caused by transitive subproject dependencies, which would cause TestCordapp to fail
     classpath = sourceSets.embeddedBundleTest.runtimeClasspath + bundleProject.files(bundleJarPath)
 
-    jvmArgs += "-Xmx2g" // OOMs unless enough memory is given
-    jvmArgs += "-javaagent:lib/quasar.jar"
-    jvmArgs += "-Dnet.corda.client.rpc.trackRpcCallSites=true"
     testClassesDirs = sourceSets.embeddedBundleTest.output.classesDirs
+    outputs.upToDateWhen { false }
+}
+
+task standaloneBundleTest(type: Test, dependsOn: ["jar"]) {
+    classpath = sourceSets.standaloneBundleTest.runtimeClasspath
+
+    testClassesDirs = sourceSets.standaloneBundleTest.output.classesDirs
     outputs.upToDateWhen { false }
 }
 
@@ -83,9 +96,24 @@ dependencies {
     testImplementation 'org.jetbrains.kotlin:kotlin-test'
     testImplementation 'org.jetbrains.kotlin:kotlin-test-junit'
 
+    // Embedded bundle is deployed as a fat CorDapp JAR to make it possible to use Corda's node test driver
+    // This interferes with Cordaptor's defaul module resolution mechanism based on java.util.ServiceLoader
+    // As a workaround embedded bundle tests are adding Cordaptor bundle JAR to the classpath at task launch
     embeddedBundleTestImplementation 'org.jetbrains.kotlin:kotlin-test'
     embeddedBundleTestImplementation 'org.jetbrains.kotlin:kotlin-test-junit'
     embeddedBundleTestImplementation "net.corda:corda-node-driver:$corda_core_release_version"
     embeddedBundleTestImplementation "org.eclipse.jetty:jetty-client:$jetty_version"
     embeddedBundleTestImplementation "org.glassfish:javax.json:$glassfish_json_version"
+
+    // Cordaptor running standalone mode can rely on its default module resolution mechanism,
+    // so it's enough to add relevant modules as dependencies
+    standaloneBundleTestImplementation project(":kernel")
+    standaloneBundleTestImplementation project(":rest-endpoint")
+    standaloneBundleTestImplementation project(":local-cache")
+    standaloneBundleTestImplementation project(":corda-rpc-client")
+    standaloneBundleTestImplementation 'org.jetbrains.kotlin:kotlin-test'
+    standaloneBundleTestImplementation 'org.jetbrains.kotlin:kotlin-test-junit'
+    standaloneBundleTestImplementation "net.corda:corda-node-driver:$corda_core_release_version"
+    standaloneBundleTestImplementation "org.eclipse.jetty:jetty-client:$jetty_version"
+    standaloneBundleTestImplementation "org.glassfish:javax.json:$glassfish_json_version"
 }
