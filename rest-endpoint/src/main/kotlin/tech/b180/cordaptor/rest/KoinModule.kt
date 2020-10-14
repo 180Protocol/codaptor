@@ -34,12 +34,10 @@ class RestEndpointModuleProvider : ModuleProvider {
     single { NodeInfoEndpoint("/node/info") } bind QueryEndpoint::class
     single { NodeVersionEndpoint("/node/version") } bind QueryEndpoint::class
     single { TransactionQueryEndpoint("/node/tx") } bind QueryEndpoint::class
+    single { VaultQueryEndpoint("/node/states") } bind QueryEndpoint::class
 
     single { ApiDefinitionHandler("/api.json") } bind ContextMappedHandler::class
     single { SwaggerUIHandler("/swagger-ui.html") } bind ContextMappedHandler::class
-    single { VaultQueryHandler("/node/states") } bind ContextMappedHandler::class
-    single { CountingVaultQueryHandler("/node/statesCount") } bind ContextMappedHandler::class
-    single { AggregatingVaultQueryHandler("/node/statesTotalAmount") } bind ContextMappedHandler::class
 
     // parameterized accessor for obtaining handler instances allowing them to have dependencies managed by Koin
     factory<QueryEndpointHandler<*>> { (endpoint: QueryEndpoint<*>) -> QueryEndpointHandler(endpoint) }

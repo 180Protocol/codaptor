@@ -61,7 +61,7 @@ class NodeStateAPIProvider(private val contextPath: String) : ContextMappedHandl
  * Jetty HTTP handler allowing to initiate a Corda flow asynchronously and optionally
  * wait for the flow to complete.
  *
- * This class uses type parameters to reduce the change of introducing any type-related bugs
+ * This class uses type parameters to reduce the chance of introducing any type-related bugs
  * in the implementation code. However, this class is not instantiated with type parameters.
  */
 class FlowInitiationEndpoint<FlowReturnType: Any>(
@@ -81,7 +81,7 @@ class FlowInitiationEndpoint<FlowReturnType: Any>(
 
   private val cordaNodeState: CordaNodeState by inject()
 
-  override val responseType = SerializerKey(CordaFlowSnapshot::class, flowResultClass).asType()
+  override val responseType = CordaFlowSnapshot::class.asParameterizedType(flowResultClass)
   override val contextMappingParameters = ContextMappingParameters(contextPath, true)
   override val requestType = flowClass.java
   override val supportedMethods = OperationEndpoint.POST_ONLY
@@ -128,6 +128,9 @@ class FlowInitiationEndpoint<FlowReturnType: Any>(
 
 /**
  * Resolves REST API queries for specific contract state using a stateRef.
+ *
+ * This class uses type parameters to reduce the chance of introducing any type-related bugs
+ * in the implementation code. However, this class is not instantiated with type parameters.
  */
 class ContractStateQueryEndpoint<StateType: ContractState>(
     contextPath: String,
@@ -189,32 +192,16 @@ class TransactionQueryEndpoint(contextPath: String)
   }
 }
 
-class VaultQueryHandler(contextPath: String) : ContextMappedHandler, AbstractHandler() {
+/**
+ * Allows flexible querying of the node vault for states.
+ */
+class VaultQueryEndpoint(contextPath: String)
+  : QueryEndpoint<List<ContractState>>, CordaptorComponent {
 
-  override val mappingParameters = ContextMappingParameters(contextPath, true)
+  override val responseType = List::class.asParameterizedType(ContractState::class)
+  override val contextMappingParameters = ContextMappingParameters(contextPath, true)
 
-  override fun handle(target: String?, baseRequest: JettyRequest?, request: HttpServletRequest?, response: HttpServletResponse?) {
+  override fun executeQuery(request: Request): Response<List<ContractState>> {
     TODO("Not yet implemented")
   }
-
-}
-
-class CountingVaultQueryHandler(contextPath: String) : ContextMappedHandler, AbstractHandler() {
-
-  override val mappingParameters = ContextMappingParameters(contextPath, true)
-
-  override fun handle(target: String?, baseRequest: JettyRequest?, request: HttpServletRequest?, response: HttpServletResponse?) {
-    TODO("Not yet implemented")
-  }
-
-}
-
-class AggregatingVaultQueryHandler(contextPath: String) : ContextMappedHandler, AbstractHandler() {
-
-  override val mappingParameters = ContextMappingParameters(contextPath, true)
-
-  override fun handle(target: String?, baseRequest: JettyRequest?, request: HttpServletRequest?, response: HttpServletResponse?) {
-    TODO("Not yet implemented")
-  }
-
 }

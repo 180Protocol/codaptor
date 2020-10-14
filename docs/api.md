@@ -137,12 +137,15 @@ GET /node/info
 ## Vault queries
 If multiple values given to a particular field, value containing at least one of them will be returned 
 * type - one or more of FQCN or simple name, actual type or a supertype
-* uuid - one or more of UUID
-* externalId - one or more of UUID
-* owner - one or more of X500 names
+* uuid - one or more of UUID for LinearStates
+* externalId - one or more of externalIds for LinearStates
+* owner - one or more of X500 names for OwnableStates
 * participant - one or more of X500 names
-* state - one or more of CONSUMED, UNCONSUMED
 * notary - one or more of X500 names
+Special parameters accepting only one value:
+* consumed - one of ignore (default), include, or only
+* pageNumber - above-zero integer, defaults to 1
+* pageSize - above-zero integer, defaults to Corda DEFAULT_PAGE_SIZE (200 for 4.5)
 In addition, all schema fields declared in queryable state schema could be used in filtering.
 Different syntax forms apply:
 * For exact comparison add suffix 'Is'
