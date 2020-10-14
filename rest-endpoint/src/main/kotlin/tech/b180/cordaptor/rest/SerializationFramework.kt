@@ -252,6 +252,7 @@ abstract class AbstractClassSerializer<T: Any>(
 
     generator.writeStartObject().writeKey(entry.key)
     serializer.toJson(obj, generator)
+    generator.writeEnd()
   }
 
   override val schema: JsonObject by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {

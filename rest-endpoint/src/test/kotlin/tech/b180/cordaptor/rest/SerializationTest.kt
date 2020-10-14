@@ -295,6 +295,28 @@ class SerializationTest {
     assertEquals("""{"one":"123","two":123}""", serializer.toJsonString(
         ObjectWithTransientProperties("123", 123, 321)))
   }
+
+  @Test
+  fun `test abstract class serialization`() {
+    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() })
+
+    val serializer = object : CustomAbstractClassSerializer<BaseObject>(BaseObject::class, f) {
+      override val subclassesMap = mapOf(
+          "one" to SerializerKey.forType(DerivedObjectOne::class.java),
+          "two" to SerializerKey.forType(DerivedObjectTwo::class.java)
+      )
+    }
+
+    assertEquals("""{"one":{"stringValue":"ABC"}}""",
+        serializer.toJsonString(DerivedObjectOne("ABC")))
+    assertEquals("""{"two":{"intValue":123}}""",
+        serializer.toJsonString(DerivedObjectTwo(123)))
+    
+    assertEquals(DerivedObjectOne("ABC"),
+        serializer.fromJson("""{"one":{"stringValue":"ABC"}}""".asJsonObject()))
+    assertEquals(DerivedObjectTwo(123),
+        serializer.fromJson("""{"two":{"intValue":123}}""".asJsonObject()))
+  }
 }
 
 fun generateJson(block: JsonGenerator.() -> Unit): String {
@@ -378,3 +400,8 @@ data class ObjectWithTransientProperties(
     val two: Int,
     @get:Transient val three: Int
 )
+
+abstract class BaseObject
+
+data class DerivedObjectOne(val stringValue: String) : BaseObject()
+data class DerivedObjectTwo(val intValue: Int) : BaseObject()
