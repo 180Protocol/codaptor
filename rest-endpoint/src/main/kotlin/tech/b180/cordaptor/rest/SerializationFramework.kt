@@ -22,14 +22,41 @@ import kotlin.reflect.jvm.javaMethod
 abstract class CustomStructuredObjectSerializer<T: Any>(
     override val appliedTo: KClass<T>,
     factory: SerializationFactory,
+
+    /**
+     * Indicates whether objects can be represented as JSON structures.
+     * Note that if this flag is set to false, settings on individual properties are ignored.
+     */
     override val serialize: Boolean = true,
+
+    /**
+     * Indicates whether objects can be restored from JSON structures.
+     * Note that if this flag is set to false, settings on individual properties are ignored.
+     */
     override val deserialize: Boolean = true
+
 ) : StructuredObjectSerializer<T>(appliedTo, factory), CustomSerializer<T>
 
+/**
+ * Base class for creating serializers of JSON objects which represent one of a number
+ * of subclasses of the the base class identified by [appliedTo] property.
+ *
+ * Subclasses are responsible for providing details of the mapping.
+ */
 abstract class CustomAbstractClassSerializer<T: Any>(
     override val appliedTo: KClass<T>,
     factory: SerializationFactory,
+
+    /**
+     * Indicates whether objects can be represented as JSON structures.
+     * Note that if this flag is set to false, settings on individual properties are ignored.
+     */
     override val serialize: Boolean = true,
+
+    /**
+     * Indicates whether objects can be restored from JSON structures.
+     * Note that if this flag is set to false, settings on individual properties are ignored.
+     */
     override val deserialize: Boolean = true
 ) : AbstractClassSerializer<T>(appliedTo, factory), CustomSerializer<T>
 

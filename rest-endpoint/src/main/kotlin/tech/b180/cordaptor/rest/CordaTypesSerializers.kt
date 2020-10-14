@@ -51,7 +51,7 @@ class CordaSecureHashSerializer : CustomSerializer<SecureHash>,
 }
 
 /**
- * Serializer for [UUID] converting to/from a string value.
+ * Serializer for a [UUID] converting to/from a string value.
  *
  * Technically it is not a Corda class, but it is commonly used in Corda API.
  */
@@ -69,6 +69,11 @@ class CordaUUIDSerializer : CustomSerializer<UUID>,
   override val appliedTo = UUID::class
 }
 
+/**
+ * Serializer for an [Instant] representing it as a JSON string value formatted as an ISO-8601 timestamp.
+ *
+ * @see DateTimeFormatter.ISO_INSTANT
+ */
 class JavaInstantSerializer : CustomSerializer<Instant>,
     SerializationFactory.DelegatingSerializer<Instant, String>(
         delegate = SerializationFactory.StringSerializer,
@@ -139,8 +144,9 @@ class CordaSignedTransactionSerializer(
 }
 
 /**
- * Serializer for [TransactionSignature] representing it as JSON value.
- * This object is most commonly used as part of a [SignedTransaction] structure.
+ * Serializer for a [TransactionSignature] representing it as a JSON object.
+ * This object is most commonly serialized as part of a [SignedTransaction].
+ * There is no support for restoring instances of [TransactionSignature] from JSON structures.
  */
 class CordaTransactionSignatureSerializer(
     factory: SerializationFactory
@@ -153,8 +159,9 @@ class CordaTransactionSignatureSerializer(
 }
 
 /**
- * Serializer for [PartyAndCertificate] representing it as JSON value.
- * This object is most commonly used as part of a [NodeInfo] structure.
+ * Serializer for a [PartyAndCertificate] representing it as a JSON object.
+ * This object is most commonly serialized as part of a [NodeInfo].
+ * There is no support for restoring instances of [PartyAndCertificate] from JSON structures.
  *
  * FIXME implement serialization logic for instances of [X509Certificate] abstract class
  */
@@ -167,19 +174,24 @@ class CordaPartyAndCertificateSerializer(factory: SerializationFactory)
 }
 
 /**
- * Serializer for known subclasses of [WireTransaction] able to represent them as JSON objects.
- * This will most often be used in the context of [CordaSignedTransactionSerializer]
- *
- * The serializer does not allow reading wire transaction data from JSON.
+ * Serializer for known subclasses of [CoreTransaction] able to represent them as JSON objects.
+ * This object is most commonly serialized as part of a [SignedTransaction].
+ * There is no support for restoring instances of [CoreTransaction] from JSON structures.
  */
 class CordaCoreTransactionSerializer(factory: SerializationFactory) : CustomAbstractClassSerializer<CoreTransaction>(
     CoreTransaction::class, factory, deserialize = false) {
 
+  // FIXME add support for notary change and contract upgrade transactions
   override val subclassesMap: Map<String, SerializerKey> = mapOf(
       "wireTransaction" to SerializerKey(WireTransaction::class)
   )
 }
 
+/**
+ * Serializer for a [WireTransaction] representing it as a JSON object.
+ * This object is most commonly serialized as part of a [SignedTransaction].
+ * There is no support for restoring instances of [WireTransaction] from JSON structures.
+ */
 class CordaWireTransactionSerializer(factory: SerializationFactory)
   : CustomStructuredObjectSerializer<WireTransaction>(WireTransaction::class, factory, deserialize = false) {
 
@@ -191,6 +203,11 @@ class CordaWireTransactionSerializer(factory: SerializationFactory)
   )
 }
 
+/**
+ * Serializer for a [PublicKey] representing it as a JSON object.
+ * This object is most commonly serialized as part of a [SignedTransaction].
+ * There is no support for restoring instances of [WireTransaction] from JSON structures.
+ */
 class CordaPublicKeySerializer(
     factory: SerializationFactory,
     identityService: IdentityService
@@ -210,6 +227,11 @@ class CordaPublicKeySerializer(
   }
 }
 
+/**
+ * Serializer for a [TransactionState] representing it as a JSON object.
+ * This object is most commonly serialized as part of a [SignedTransaction].
+ * There is no support for restoring instances of [TransactionState] from JSON structures.
+ */
 class CordaTransactionStateSerializer(
     factory: SerializationFactory
 ) : CustomStructuredObjectSerializer<TransactionState<*>>(TransactionState::class, factory, deserialize = false) {
@@ -219,8 +241,8 @@ class CordaTransactionStateSerializer(
       "encumbrance" to KotlinObjectProperty(TransactionState<*>::encumbrance, isMandatory = false),
       "notary" to KotlinObjectProperty(TransactionState<*>::notary),
       "data" to SyntheticObjectProperty(valueType = ContractState::class.java,
-          deserialize = false, isMandatory = true, accessor = contractStateAccessor)
-      )
+          isMandatory = true, accessor = contractStateAccessor)
+  )
 
   companion object {
     @Suppress("UNCHECKED_CAST")

@@ -166,10 +166,13 @@ class SerializationFactory(
   }
 
   // Delegate serialization logic for Java wrapper types to Kotlin handlers
+  @Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN", "RemoveRedundantQualifierName")
   object JavaIntegerSerializer : DelegatingSerializer<java.lang.Integer, Int>(
       IntSerializer, Integer::toInt, { Integer(it) })
+  @Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN", "RemoveRedundantQualifierName")
   object JavaLongSerializer : DelegatingSerializer<java.lang.Long, Long>(
       LongSerializer, java.lang.Long::toLong, { java.lang.Long(it) })
+  @Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN", "RemoveRedundantQualifierName")
   object JavaBooleanSerializer : DelegatingSerializer<java.lang.Boolean, Boolean>(
       BooleanSerializer, java.lang.Boolean::booleanValue, { java.lang.Boolean(it) })
 
@@ -246,6 +249,13 @@ class SerializationFactory(
     }
   }
 }
+
+/**
+ * Shorthand for creating a reconstituted parameterised type using
+ * a raw type and a collection of type parameters
+ */
+fun <T: Any> KClass<T>.asParameterizedType(vararg params: KClass<*>): Type =
+    SerializerKey(this.java, params.map { it.java }).asType()
 
 /**
  * A wrapper for a type, which is potentially parameterized, alongside with a specific
@@ -351,22 +361,6 @@ fun <T: Any> JsonGenerator.writeSerializedObject(
     obj: T): JsonGenerator {
 
   serializer.toJson(obj, this)
-  return this
-}
-
-/**
- * Helper method allowing [JsonSerializer] to be used in a fluent way
- */
-fun <T: Any> JsonGenerator.writeSerializedObjectOrNull(
-    name: String,
-    serializer: JsonSerializer<T>,
-    obj: T?): JsonGenerator {
-
-  if (obj == null) {
-    this.writeNull()
-  } else {
-    serializer.toJson(obj, this)
-  }
   return this
 }
 
