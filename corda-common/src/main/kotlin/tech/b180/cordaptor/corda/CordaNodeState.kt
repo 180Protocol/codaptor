@@ -83,8 +83,11 @@ class CordaFlowResult<T: Any>(
     val value: T?,
     val error: Throwable?
 ) {
+  val isError: Boolean
+    get() = error != null
+
   companion object {
-    fun <T: Any> forValue(value: T) = CordaFlowResult(timestamp = Instant.now(), value = value, error = null)
+    fun <T: Any> forValue(value: T) = CordaFlowResult<T>(timestamp = Instant.now(), value = value, error = null)
     fun <T: Any> forError(error: Throwable) = CordaFlowResult<T>(timestamp = Instant.now(), value = null, error = error)
   }
 }

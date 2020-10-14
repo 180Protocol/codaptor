@@ -1,7 +1,9 @@
 package tech.b180.cordaptor.corda
 
 import net.corda.core.contracts.ContractState
+import net.corda.core.crypto.SecureHash
 import net.corda.core.flows.FlowLogic
+import java.net.URL
 import kotlin.reflect.KClass
 
 /**
@@ -26,7 +28,9 @@ interface CordaNodeCatalogInner : CordaNodeCatalog
 data class CordappInfo(
     val shortName: String,
     val flows: List<CordappFlowInfo>,
-    val contractStates: List<CordappContractStateInfo>
+    val contractStates: List<CordappContractStateInfo>,
+    val jarHash: SecureHash.SHA256,
+    val jarURL: URL
 )
 
 data class CordappFlowInfo(

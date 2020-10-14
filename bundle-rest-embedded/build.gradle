@@ -5,6 +5,7 @@ cordapp {
     targetPlatformVersion 7
     minimumPlatformVersion 7
     workflow {
+        // must be kept in sync with koin.properties
         name "cordaptor-embedded-bundle"
         vendor "B180"
         versionId 1

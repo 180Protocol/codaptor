@@ -21,6 +21,8 @@ interface NodeServicesLocator {
   val serviceHubInternal: ServiceHubInternal
 }
 
+const val BUNDLE_CORDAPP_NAME_PROPERTY = "bundle.cordapp.name"
+
 /**
  * Implementation of the microkernel module provider that makes the components
  * of this module available for injection into other modules' components.
@@ -35,7 +37,7 @@ class CordaServiceModuleProvider : ModuleProvider {
   override val salience = ModuleProvider.INNER_MODULE_SALIENCE
 
   override fun provideModule(settings: BootstrapSettings) = module {
-    single<CordaNodeCatalog> { CordaNodeCatalogImpl(get()) } bind CordaNodeCatalogInner::class
+    single<CordaNodeCatalog> { CordaNodeCatalogImpl(get(), getProperty(BUNDLE_CORDAPP_NAME_PROPERTY)) } bind CordaNodeCatalogInner::class
     single<CordaNodeState> { CordaNodeStateImpl() } bind CordaNodeStateInner::class
     single { CordaFlowDispatcher() }
 
