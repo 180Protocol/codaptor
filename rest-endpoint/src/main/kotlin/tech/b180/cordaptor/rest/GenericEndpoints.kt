@@ -3,6 +3,7 @@ package tech.b180.cordaptor.rest
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.internal.operators.single.SingleJust
+import io.reactivex.rxjava3.observers.DisposableSingleObserver
 import org.eclipse.jetty.server.handler.AbstractHandler
 import tech.b180.cordaptor.kernel.CordaptorComponent
 import tech.b180.cordaptor.kernel.loggerFor
@@ -344,23 +345,31 @@ class OperationEndpointHandler<RequestType: Any, ResponseType: Any>(
 
     // switch into async mode and only return when the result promise returns or times out
     val async = request.startAsync()
-    endpointResponse.subscribe { result, error ->
-      try {
-        if (result != null) {
-          sendResponse(async.response as HttpServletResponse, result)
-        } else {
-          // error must be not null at this point
-          sendError(async.response as HttpServletResponse, error as? EndpointOperationException
-              ?: EndpointOperationException(error?.message ?: "Unknown internal error", error))
-        }
-      } catch (e: SerializationException) {
-        sendError(async.response as HttpServletResponse,
-            EndpointOperationException("Unable to serialize response payload", e))
-
-      } finally {
-        async.complete()
+    endpointResponse.subscribe(object : DisposableSingleObserver<Response<ResponseType>>() {
+      override fun onSuccess(result: Response<ResponseType>?) = sendAndClose {
+        sendResponse(async.response as HttpServletResponse, result!!)
       }
-    }
+
+      override fun onError(error: Throwable?) = sendAndClose {
+        sendError(async.response as HttpServletResponse, error as? EndpointOperationException
+            ?: EndpointOperationException(error?.message ?: "Unknown internal error", error))
+      }
+
+      /** Wrapper for the action communicating the outcome of the operation to the client
+       * that makes sure that all necessary resources are disposed correctly */
+      private fun sendAndClose(action: () -> Unit) {
+        try {
+          action()
+        } catch (e: SerializationException) {
+          sendError(async.response as HttpServletResponse,
+              EndpointOperationException("Unable to send response payload", e))
+
+        } finally {
+          async.complete()
+          dispose()
+        }
+      }
+    })
   }
 
   override fun toString(): String {
