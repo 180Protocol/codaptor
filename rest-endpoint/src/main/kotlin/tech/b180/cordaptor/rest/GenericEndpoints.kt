@@ -28,16 +28,18 @@ enum class OperationErrorType(val protocolStatusCode: Int) {
 open class EndpointOperationException(
     message: String,
     cause: Throwable? = null,
-    @Suppress("unused") val errorType: OperationErrorType = OperationErrorType.GENERIC_ERROR,
+    @Suppress("UNUSED_PARAMETER") val errorType: OperationErrorType = OperationErrorType.GENERIC_ERROR,
     @get:Transient val statusCode: Int = errorType.protocolStatusCode
 ) : Exception(message, cause)
 
 /**
- * Indicates that passed parameters are invalid in the context of a particular operation
+ * Indicates that passed parameters are invalid in the context of a particular operation.
+ * Optionally may indicate which parameter had invalid value.
  */
 class BadOperationRequestException(
     message: String,
-    cause: Throwable? = null
+    cause: Throwable? = null,
+    @Suppress("UNUSED_PARAMETER") parameterName: String? = null
 ) : EndpointOperationException(message, cause, errorType = OperationErrorType.BAD_REQUEST)
 
 /**
@@ -53,6 +55,24 @@ interface Request {
    */
   fun getParameter(name: String): String?
 }
+
+fun Request.getIntParameter(name: String): Int? =
+    getParameter(name)?.let {
+      it.toIntOrNull() ?: throw BadOperationRequestException(
+          "Expected integer value for parameter $name, got [$it]", parameterName = name)
+    }
+
+fun Request.getIntParameter(name: String, defaultValue: Int): Int =
+    getIntParameter(name) ?: defaultValue
+
+fun Request.getPositiveIntParameter(name: String): Int? =
+    getIntParameter(name)?.let {
+      if (it >= 0) it else throw BadOperationRequestException(
+          "Expected positive value for parameter $name, got $it", parameterName = name)
+    }
+
+fun Request.getPositiveIntParameter(name: String, defaultValue: Int): Int =
+    getPositiveIntParameter(name) ?: defaultValue
 
 /**
  * Extension of the protocol request type for an API operation
