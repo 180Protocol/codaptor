@@ -82,6 +82,7 @@ task standaloneBundleTest(type: Test, dependsOn: ["jar"]) {
 dependencies {
     implementation project(":kernel")
 
+    compileOnly name: 'quasar'
     runtimeOnly name: 'quasar'
 
     compileOnly "net.corda:corda-core:$corda_core_release_version"

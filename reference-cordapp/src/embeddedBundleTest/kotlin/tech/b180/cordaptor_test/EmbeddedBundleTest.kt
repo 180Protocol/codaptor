@@ -12,8 +12,11 @@ import net.corda.testing.node.TestCordapp
 import net.corda.testing.node.User
 import org.eclipse.jetty.client.HttpClient
 import org.eclipse.jetty.client.util.StringContentProvider
+import tech.b180.ref_cordapp.DelayedProgressFlow
 import tech.b180.ref_cordapp.SimpleFlow
 import java.io.StringReader
+import java.time.Duration
+import java.time.Instant
 import javax.json.Json
 import javax.json.JsonNumber
 import javax.json.JsonString
@@ -21,6 +24,7 @@ import javax.json.JsonValue
 import javax.servlet.http.HttpServletResponse
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 const val NODE_NAME = "O=Bank, L=London, C=GB"
 
@@ -43,6 +47,7 @@ class EmbeddedBundleTest {
 
     testNodeInfoRequest(client)
     testFlowFireAndForget(client)
+    testFlowWaitWithTimeout(client)
     val stateRef = testFlowWaitForCompletion(client)
     testTransactionQuery(client, stateRef.txhash)
     testStateQuery(client, stateRef)
@@ -78,21 +83,52 @@ class EmbeddedBundleTest {
     assertEquals(JsonValue.ValueType.NULL, handle.getValue("/result").valueType)
   }
 
+  private fun testFlowWaitWithTimeout(client: HttpClient) {
+    val maxRequestTime = Duration.ofSeconds(5)    // more than wait parameter, less than delay
+    val req = client.POST("http://localhost:8500/node/reference/DelayedProgressFlow?wait=2")
+
+    val content = """{
+      |"externalId":"TEST-111",
+      |"delay":5}""".trimMargin()
+
+    req.content(StringContentProvider("application/json", content, Charsets.UTF_8))
+    val requestTimestamp = Instant.now()
+    val response = req.send()
+    assertTrue(Instant.now() < requestTimestamp + maxRequestTime,
+        "Request should have completed before the flow")
+    assertEquals(HttpServletResponse.SC_ACCEPTED, response.status)
+    assertEquals("application/json", response.mediaType)
+
+    val handle = Json.createReader(StringReader(response.contentAsString)).readObject()
+    assertEquals(DelayedProgressFlow::class.qualifiedName, handle.getValue("/flowClass").asString())
+    assertEquals(JsonValue.ValueType.NULL, handle.getValue("/result").valueType)
+    assertEquals(JsonValue.ValueType.OBJECT, handle.getValue("/currentProgress").valueType)
+    assertEquals("Sleeping", handle.getValue("/currentProgress/currentStepName").asString())
+
+    val lastProgressTimestamp = Instant.parse(handle.getValue("/currentProgress/timestamp").asString())
+    assertTrue(lastProgressTimestamp > requestTimestamp)
+    assertTrue(lastProgressTimestamp < Instant.now())
+  }
+
   private fun testFlowWaitForCompletion(client: HttpClient): StateRef {
-    val req = client.POST("http://localhost:8500/node/reference/SimpleFlow?wait=-1")
+    val maxRequestTime = Duration.ofSeconds(5)
+    val req = client.POST("http://localhost:8500/node/reference/SimpleFlow?wait=100")
 
     val content = """{
       |"externalId":"TEST-111"}""".trimMargin()
 
     req.content(StringContentProvider("application/json", content, Charsets.UTF_8))
+    val requestTimestamp = Instant.now()
     val response = req.send()
     assertEquals(HttpServletResponse.SC_OK, response.status)
     assertEquals("application/json", response.mediaType)
+    assertTrue(Instant.now() < requestTimestamp + maxRequestTime)
 
     val handle = Json.createReader(StringReader(response.contentAsString)).readObject()
     assertEquals(SimpleFlow::class.qualifiedName!!.asJsonValue(), handle.getValue("/flowClass"))
     assertEquals(JsonValue.ValueType.STRING, handle.getValue("/flowRunId").valueType)
     assertEquals(JsonValue.ValueType.OBJECT, handle.getValue("/result").valueType)
+    assertEquals(JsonValue.ValueType.NULL, handle.getValue("/currentProgress").valueType)
 
     val state = handle.getValue("/result/value/output/state/data").asJsonObject()
     assertEquals("TEST-111", state.getValue("/linearId/externalId").asString())
