@@ -220,7 +220,7 @@ abstract class AbstractEndpointHandler<ResponseType: Any>(
   abstract fun doHandle(request: HttpServletRequest, response: HttpServletResponse)
 
   fun sendError(servletResponse: HttpServletResponse, error: EndpointOperationException) {
-    logger.debug("Sending a protocol error to the client", error)
+    logger.debug("Sending a protocol error to the client: {}", error)
 
     servletResponse.status = error.statusCode
     servletResponse.contentType = JSON_CONTENT_TYPE
@@ -231,7 +231,7 @@ abstract class AbstractEndpointHandler<ResponseType: Any>(
   }
 
   fun sendResponse(servletResponse: HttpServletResponse, endpointResponse: Response<ResponseType>) {
-    logger.debug("Sending response {}", endpointResponse)
+    logger.debug("Sending response payload: {}", endpointResponse)
 
     // validation for correct return type instead of failing to serialize with a cryptic message
     // this may occur if the endpoint's responseType is incorrectly set
