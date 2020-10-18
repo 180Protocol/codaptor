@@ -105,11 +105,16 @@ interface CordaFlowCache {
  * Container for a result of executing Corda flow, which may be either
  * an object or an exception, alongside an [Instant] when the result was captured.
  */
-class CordaFlowResult<T: Any>(
+data class CordaFlowResult<T: Any>(
     val timestamp: Instant,
     val value: T?,
     val error: Throwable?
 ) {
+  init {
+    require(value != null || error != null) { "Either value or error must be provided" }
+    require(value == null || error == null) { "Cannot have both value and error" }
+  }
+
   val isError: Boolean
     get() = error != null
 
@@ -125,59 +130,46 @@ class CordaFlowResult<T: Any>(
  */
 data class CordaFlowHandle<ReturnType: Any>(
     val flowClass: KClass<out FlowLogic<ReturnType>>,
+
+    /** Unique identifier of the flow instance within the Corda node's state machine */
     val flowRunId: UUID,
+
+    /**
+     * Timestamp of the moment when the flow was submitted for execution.
+     * This time is local to JVM running Cordaptor, which may or may not
+     * be the same JVM running Corda depending on the deployment.
+     */
     val startedAt: Instant,
+
+    /**
+     * A single (promise) for a flow completion result or an error.
+     * Client code that is no longer interested in the result of the flow
+     * should dispose the single to avoid wasting server resources.
+     *
+     * When running as a service, returned single will resolve on the flow completion thread,
+     * so any lengthy operation will hold up node's state machine.
+     */
     val flowResultPromise: Single<CordaFlowResult<ReturnType>>,
 
-    /** There will be at least one initial update with empty progress information */
+    /**
+     * A feed of flow progress updates.
+     * This observable will complete when [flowResultPromise] is complete.
+     * Client code that is no longer interested in the result of the flow
+     * should dispose the single to avoid wasting server resources.
+     */
     val flowProgressUpdates: Observable<CordaFlowProgress>) {
 
-  /**
-   * Constructs an observable creating a new snapshot every time
-   * there is an update in either flow progress tracker, or when flow completes/fails.
-   *
-   * Note that returned [Observable] will always have its first element available immediately
-   * representing a snapshot with no result and no progress information.
-   */
-  fun observeSnapshots(): Observable<CordaFlowSnapshot<ReturnType>> {
-    // construct versions of observable that issues initial state immediately,
-    // so that combineLatest() has something to work with
-    val prefixedFlowResult = Observable
-        .just<CordaFlowResult<ReturnType>?>(null)
-        .concatWith(flowResultPromise)
+  /** Returns an 'initial' snapshot with no progress information and not result */
+  fun asInitialSnapshot() = CordaFlowSnapshot(flowClass = flowClass,
+      flowRunId = flowRunId, currentProgress = null,
+      startedAt = startedAt)
 
-    val prefixedFlowProgress = Observable
-        .just(CordaFlowProgress.noProgressInfo)
-        .concatWith(flowProgressUpdates)
+  fun asSnapshotWithResult(result: CordaFlowResult<ReturnType>) =
+      asInitialSnapshot().withResult(result)
 
-    return Observable.combineLatest(listOf(prefixedFlowResult, prefixedFlowProgress)) {
-      @Suppress("UNCHECKED_CAST")
-      val lastResult = it[0] as CordaFlowResult<ReturnType>?
-      val lastProgress = it[1] as CordaFlowProgress
-
-      CordaFlowSnapshot(flowClass, flowRunId, lastProgress, startedAt, lastResult)
-    }
-  }
+  fun asSnapshotWithProgress(currentProgress: CordaFlowProgress) =
+      asInitialSnapshot().withProgress(currentProgress)
 }
-
-/**
- * A snapshot of the progress tracker for a particular flow.
- * Progress may potentially have nested elements, in which case
- * there will be a number of items.
- */
-data class CordaFlowProgress(
-  val progress: List<CordaFlowProgressStep>
-) {
-
-  companion object {
-    val noProgressInfo = CordaFlowProgress(emptyList())
-  }
-}
-
-data class CordaFlowProgressStep(
-    val stepIndex: Int,
-    val stepName: String
-)
 
 /**
  * Description of the current state of a particular flow.
@@ -185,12 +177,26 @@ data class CordaFlowProgressStep(
 data class CordaFlowSnapshot<ReturnType: Any>(
     val flowClass: KClass<out FlowLogic<ReturnType>>,
     val flowRunId: UUID,
-    val currentProgress: CordaFlowProgress,
+
+    /**
+     * A snapshot of the progress tracker for a particular flow.
+     * Progress may potentially have nested elements, in which case
+     * there will be a number of items.
+     */
+    val currentProgress: CordaFlowProgress?,
     val startedAt: Instant,
 
     /** Result of the flow if available */
   val result: CordaFlowResult<ReturnType>? = null
-)
+) {
+
+  fun withResult(result: CordaFlowResult<ReturnType>) = copy(result = result)
+  fun withProgress(currentProgress: CordaFlowProgress) = copy(currentProgress = currentProgress)
+}
+
+data class CordaFlowProgress(
+    val currentStepName: String,
+    val timestamp: Instant = Instant.now())
 
 /**
  * All information necessary to query vault states or

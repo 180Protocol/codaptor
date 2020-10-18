@@ -1,5 +1,6 @@
 package tech.b180.cordaptor.rest
 
+import com.google.common.collect.ImmutableList
 import net.corda.serialization.internal.model.LocalPropertyInformation
 import net.corda.serialization.internal.model.LocalTypeInformation
 import java.lang.reflect.ParameterizedType
@@ -136,6 +137,7 @@ class ListSerializer private constructor(
         when (parameterizedType.rawType) {
           Collection::class.java -> ::newArrayList
           List::class.java -> ::newArrayList
+          ImmutableList::class.java -> ::newImmutableList
           else -> throw AssertionError("Don't know how to make instances of ${parameterizedType.rawType}")
         }
       } else {
@@ -152,6 +154,7 @@ class ListSerializer private constructor(
 
   companion object {
     fun newArrayList(items: List<*>) = ArrayList(items)
+    fun newImmutableList(items: List<*>): ImmutableList<*> = ImmutableList.of(items)
     // FIXME instantiate an array of a certain type via Java reflection
     fun newArray(items: List<*>): Array<Any> = TODO("Deserialization of arrays is not supported yet")
 

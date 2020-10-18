@@ -1,8 +1,8 @@
 package tech.b180.cordaptor.cordapp
 
 import hu.akarnokd.rxjava3.interop.RxJavaInterop
-import io.reactivex.rxjava3.core.Observable
-import io.reactivex.rxjava3.core.Single
+import io.reactivex.rxjava3.subjects.ReplaySubject
+import io.reactivex.rxjava3.subjects.SingleSubject
 import net.corda.core.contracts.ContractState
 import net.corda.core.contracts.StateAndRef
 import net.corda.core.contracts.StateRef
@@ -18,9 +18,11 @@ import net.corda.core.node.services.TransactionStorage
 import net.corda.core.node.services.Vault
 import net.corda.core.node.services.diagnostics.NodeVersionInfo
 import net.corda.core.transactions.SignedTransaction
+import net.corda.core.utilities.getOrThrow
 import org.koin.core.inject
 import tech.b180.cordaptor.corda.*
 import tech.b180.cordaptor.kernel.CordaptorComponent
+import tech.b180.cordaptor.kernel.loggerFor
 import java.security.PublicKey
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
@@ -92,29 +94,56 @@ class CordaNodeStateImpl : CordaNodeStateInner, CordaptorComponent {
  * flows and allowing to look them up by run id.
  */
 class CordaFlowDispatcher : CordaptorComponent {
+  companion object {
+    val logger = loggerFor<CordaFlowDispatcher>()
+  }
+
   private val appServiceHub: AppServiceHub by inject()
 
   private val activeHandles = ConcurrentHashMap<StateMachineRunId, CordaFlowHandle<Any>>()
 
   fun initiateFlow(flowInstance: FlowLogic<Any>): CordaFlowHandle<Any> {
-    val startedAt = Instant.now()
-
     val cordaHandle = appServiceHub.startTrackedFlow(flowInstance)
+    logger.debug("Flow {} started with run id {}", flowInstance.javaClass.canonicalName, cordaHandle.id)
+
+    // asynchronously emit the result when flow result future completes
+    // this will happen on the node's state machine thread
+    val resultSubject = SingleSubject.create<CordaFlowResult<Any>>()
+    cordaHandle.returnValue.then {
+      try {
+        val flowResult = it.getOrThrow()
+        logger.debug("Flow {} returned {}", cordaHandle.id, flowResult)
+        resultSubject.onSuccess(CordaFlowResult.forValue(flowResult))
+      } catch (e: Throwable) {
+        logger.debug("Flow {} threw error {}", cordaHandle.id, e)
+        resultSubject.onSuccess(CordaFlowResult.forError(e))
+      }
+    }
+
+    val flowProgressFeed = flowInstance.track()
+    val progressUpdates = if (flowProgressFeed != null) {
+      RxJavaInterop.toV3Observable(flowProgressFeed.updates).map {
+        logger.debug("Progress update for flow {}: {}", cordaHandle.id, it)
+        CordaFlowProgress(it)
+      }
+    } else {
+      logger.info("Flow {} does not use progress tracker, no progress updates will be emitted",
+          flowInstance.javaClass.canonicalName)
+
+      // effectively it creates an observable that produces no items and never completes
+      ReplaySubject.create()
+    }
 
     val ourHandle = CordaFlowHandle(
-        startedAt = startedAt,
+        startedAt = Instant.now(),
         flowClass = flowInstance::class,
         flowRunId = cordaHandle.id.uuid,
-        flowResultPromise = Single.fromFuture(cordaHandle.returnValue)
-            .onErrorReturn { CordaFlowResult.forError<Any>(it) }
-            .map { CordaFlowResult.forValue(it) },
-
-        // if the feed is not available, return observable that returns empty progress info once
-        flowProgressUpdates = cordaHandle.stepsTreeFeed?.let { feed ->
-          RxJavaInterop.toV3Observable(feed.updates).map { steps ->
-            CordaFlowProgress(steps.map { step -> CordaFlowProgressStep(step.first, step.second) })
-          }
-        } ?: Observable.just(CordaFlowProgress.noProgressInfo)
+        flowResultPromise = resultSubject,
+        flowProgressUpdates = progressUpdates.doOnDispose {
+          logger.debug("Progress observable for flow {} was disposed", cordaHandle.id)
+        }.doOnComplete {
+          logger.debug("Progress observable for flow {} completed", cordaHandle.id)
+        }
     )
 
     ourHandle.flowResultPromise

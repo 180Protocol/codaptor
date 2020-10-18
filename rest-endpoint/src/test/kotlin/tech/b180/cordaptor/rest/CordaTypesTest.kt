@@ -1,3 +1,5 @@
+package tech.b180.cordaptor.rest
+
 import io.mockk.every
 import io.mockk.mockkClass
 import net.corda.core.contracts.ContractState
@@ -17,7 +19,6 @@ import tech.b180.cordaptor.corda.CordaFlowProgress
 import tech.b180.cordaptor.corda.CordaFlowSnapshot
 import tech.b180.cordaptor.corda.CordaNodeState
 import tech.b180.cordaptor.kernel.lazyGetAll
-import tech.b180.cordaptor.rest.*
 import java.time.Instant
 import java.util.*
 import kotlin.test.Test
@@ -158,14 +159,24 @@ class CordaTypesTest {
     val uuid = UUID.randomUUID()
     val now = Instant.now()
     assertEquals("""{
-      |"currentProgress":{"progress":[]},
-      |"flowClass":"TestFlow",
+      |"currentProgress":null,
+      |"flowClass":"tech.b180.cordaptor.rest.TestFlow",
       |"flowRunId":"$uuid",
       |"result":null,
       |"startedAt":"$now"}""".trimMargin().asJsonValue(), serializer.toJsonString(
         CordaFlowSnapshot(flowClass = TestFlow::class,
             result = null, flowRunId = uuid, startedAt = now,
-            currentProgress = CordaFlowProgress.noProgressInfo)).asJsonValue())
+            currentProgress = null)).asJsonValue())
+
+    assertEquals("""{
+      |"currentProgress":{"currentStepName":"Step 1","timestamp":"$now"},
+      |"flowClass":"tech.b180.cordaptor.rest.TestFlow",
+      |"flowRunId":"$uuid",
+      |"result":null,
+      |"startedAt":"$now"}""".trimMargin().asJsonValue(), serializer.toJsonString(
+        CordaFlowSnapshot(flowClass = TestFlow::class,
+            result = null, flowRunId = uuid, startedAt = now,
+            currentProgress = CordaFlowProgress("Step 1", now))).asJsonValue())
   }
 
   @Test

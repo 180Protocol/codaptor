@@ -17,4 +17,5 @@ dependencies {
 
     testImplementation 'org.jetbrains.kotlin:kotlin-test'
     testImplementation 'org.jetbrains.kotlin:kotlin-test-junit'
+    testImplementation "com.google.guava:guava:$guava_version"
 }

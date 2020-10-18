@@ -5,6 +5,7 @@ dependencies {
     api project(":corda-common")
 
     implementation "com.github.akarnokd:rxjava3-interop:3.0.2"
+    compileOnly "com.google.guava:guava:$guava_version"
 
     compileOnly "net.corda:corda-core:$corda_core_release_version"
     compileOnly "net.corda:corda-node-api:$corda_core_release_version"
@@ -17,4 +18,5 @@ dependencies {
 
     testImplementation 'org.jetbrains.kotlin:kotlin-test'
     testImplementation 'org.jetbrains.kotlin:kotlin-test-junit'
+    testImplementation "com.google.guava:guava:$guava_version"
 }
