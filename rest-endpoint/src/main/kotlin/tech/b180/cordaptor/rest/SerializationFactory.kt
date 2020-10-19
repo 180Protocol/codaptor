@@ -10,15 +10,19 @@ import net.corda.serialization.internal.model.ConfigurableLocalTypeModel
 import net.corda.serialization.internal.model.LocalTypeInformation
 import net.corda.serialization.internal.model.LocalTypeModelConfiguration
 import org.glassfish.json.JsonProviderImpl
+import tech.b180.cordaptor.kernel.loggerFor
 import java.io.PrintWriter
 import java.io.Reader
 import java.io.StringWriter
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
+import java.lang.reflect.TypeVariable
+import java.lang.reflect.WildcardType
 import java.util.concurrent.ConcurrentHashMap
 import javax.json.*
 import javax.json.stream.JsonGenerator
 import kotlin.reflect.KClass
+import kotlin.reflect.full.allSupertypes
 
 class SerializationException(
     override val message: String,
@@ -28,6 +32,10 @@ class SerializationException(
 class SerializationFactory(
     private val lazySerializers: Lazy<List<CustomSerializer<Any>>>
 ) {
+  companion object {
+    private val logger = loggerFor<SerializationFactory>()
+  }
+
   private var lazyInitialization = false
 
   private val customSerializers by lazySerializers
@@ -38,7 +46,7 @@ class SerializationFactory(
         delegate = WhitelistBasedTypeModelConfiguration(AllWhitelist, customSerializerRegistry),
         // add all types with custom serializers to the opaque list, so that
         // Corda does not flag any transitive introspection problems
-        additionalOpaqueTypes = customSerializers.map { it.appliedTo.java }.toSet()
+        additionalOpaqueTypes = customSerializers.map { it.valueType.asType() }.toSet()
     )
     ConfigurableLocalTypeModel(typeModelConfiguration)
   }
@@ -63,7 +71,7 @@ class SerializationFactory(
     map[SerializerKey(Class::class.java)] = JavaClassSerializer as JsonSerializer<Any>
 
     for (serializer in lazySerializers.value) {
-      map[SerializerKey(serializer.appliedTo.javaObjectType)] = serializer
+      map[serializer.valueType] = serializer
     }
 
     lazyInitialization = false
@@ -90,10 +98,28 @@ class SerializationFactory(
     }
   }
 
-  /** Built-in serializer for atomic value of type [String] */
-  object StringSerializer : JsonSerializer<String> {
-    override val schema: JsonObject = mapOf("type" to "string").asJsonObject()
+  /** Base implementation taking care of some boilerplate */
+  abstract class PrimitiveTypeSerializer<T: Any>(
+      jsonType: String,
+      jsonFormat: String? = null
+  ) : JsonSerializer<T> {
 
+    private val schema: JsonObject
+
+    init {
+      val b = JsonHome.createObjectBuilder().add("type", jsonType)
+      if (jsonFormat != null) {
+        b.add("format", jsonFormat)
+      }
+      schema = b.build()
+    }
+
+    override val valueType = SerializerKey.fromSuperclassTypeArgument(PrimitiveTypeSerializer::class, this::class)
+    override fun generateSchema(generator: JsonSchemaGenerator) = schema
+  }
+
+  /** Built-in serializer for atomic value of type [String] */
+  object StringSerializer : PrimitiveTypeSerializer<String>("string") {
     override fun fromJson(value: JsonValue): String {
       return when (value.valueType) {
         // provide limited number of type conversions
@@ -112,9 +138,7 @@ class SerializationFactory(
   }
 
   /** Built-in serializer for atomic value of type [Int] */
-  object IntSerializer : JsonSerializer<Int> {
-    override val schema = mapOf("type" to "number", "format" to "int32").asJsonObject()
-
+  object IntSerializer : PrimitiveTypeSerializer<Int>("number", "int32") {
     override fun fromJson(value: JsonValue): Int {
       return when (value.valueType) {
         // provide limited number of type conversions
@@ -130,9 +154,7 @@ class SerializationFactory(
   }
 
   /** Built-in serializer for atomic value of type [Long] */
-  object LongSerializer : JsonSerializer<Long> {
-    override val schema = mapOf("type" to "number", "format" to "int64").asJsonObject()
-
+  object LongSerializer : PrimitiveTypeSerializer<Long>("number", "int64") {
     override fun fromJson(value: JsonValue): Long {
       return when (value.valueType) {
         // provide limited number of type conversions
@@ -148,9 +170,7 @@ class SerializationFactory(
   }
 
   /** Built-in serializer for atomic value of type [Boolean] */
-  object BooleanSerializer : JsonSerializer<Boolean> {
-    override val schema = mapOf("type" to "boolean").asJsonObject()
-
+  object BooleanSerializer : PrimitiveTypeSerializer<Boolean>("boolean") {
     override fun fromJson(value: JsonValue): Boolean {
       return when (value.valueType) {
         // provide limited number of type conversions
@@ -195,8 +215,9 @@ class SerializationFactory(
       delegate.toJson(my2delegate(obj), generator)
     }
 
-    override val schema: JsonObject
-      get() = delegate.schema
+    override val valueType = SerializerKey.fromSuperclassTypeArgument(DelegatingSerializer::class, this::class)
+
+    override fun generateSchema(generator: JsonSchemaGenerator) = delegate.generateSchema(generator)
   }
 
   /**
@@ -223,6 +244,7 @@ class SerializationFactory(
     }
 
     return objectSerializers.getOrPut(key, {
+      logger.debug("Creating new serializer for {}", key)
       createSerializer(key)
     })!!  // this map will never have null values
   }
@@ -239,7 +261,8 @@ class SerializationFactory(
     val type = localTypeModel.inspect(key.asType())
     return when (type) {
       is LocalTypeInformation.Composable -> ComposableTypeJsonSerializer(type, this)
-//      is LocalTypeInformation.Abstract -> AbstractTypeJsonSerializer(type, this)
+      is LocalTypeInformation.Abstract -> DynamicObjectSerializer(SerializerKey.forType(type.observedType), this)
+      is LocalTypeInformation.AnInterface -> DynamicObjectSerializer(SerializerKey.forType(type.observedType), this)
       is LocalTypeInformation.AnArray -> ListSerializer(type, this)
       is LocalTypeInformation.ACollection -> ListSerializer(type, this)
       is LocalTypeInformation.AnEnum -> EnumSerializer(type) as JsonSerializer<Any>
@@ -255,7 +278,7 @@ class SerializationFactory(
  * a raw type and a collection of type parameters
  */
 fun <T: Any> KClass<T>.asParameterizedType(vararg params: KClass<*>): Type =
-    SerializerKey(this.java, params.map { it.java }).asType()
+    SerializerKey(this.java, params.map { SerializerKey.forType(it.java) }).asType()
 
 /**
  * A wrapper for a type, which is potentially parameterized, alongside with a specific
@@ -264,27 +287,34 @@ fun <T: Any> KClass<T>.asParameterizedType(vararg params: KClass<*>): Type =
  */
 data class SerializerKey(
     val rawType: Class<*>,
-    val typeParameters: List<Type>) {
+    val typeParameters: List<SerializerKey>) {
 
-  constructor(type: ParameterizedType) : this(type.rawType as Class<*>, type.actualTypeArguments.asList())
-  constructor(clazz: Class<*>, vararg typeParameters: Class<*>) : this(clazz, typeParameters.asList())
-  constructor(klazz: KClass<*>, vararg typeParameters: KClass<*>) : this(klazz.java, typeParameters.asList().map { it.java })
+  constructor(clazz: Class<*>, vararg typeParameters: Type) : this(clazz, typeParameters.map { forType(it) })
+  constructor(klazz: KClass<*>, vararg typeParameters: KClass<*>)
+      : this(klazz.java, typeParameters.map { forType(it.java) })
 
   fun asRaw() = this.copy(typeParameters = emptyList())
+
+  // e.g. java.util.List<java.lang.String>
+  override fun toString(): String = if (typeParameters.isEmpty())
+    rawType.canonicalName
+  else
+      """${rawType.canonicalName}<${typeParameters.joinToString(",")}>"""
 
   /**
    * Reconstitutes a parameterised type from the associated raw type and given type parameters
    */
-  fun asType() = if (typeParameters.isEmpty()) {
+  fun asType(): Type = if (typeParameters.isEmpty()) {
     rawType
   } else {
-    ReconstitutedParameterizedType(rawType, rawType.enclosingClass, typeParameters.toTypedArray())
+    ReconstitutedParameterizedType(this)
   }
 
   private data class ReconstitutedParameterizedType(
-      val _rawType: Type,
-      val _ownerType: Type?,
-      val _actualTypeArguments: Array<Type>
+      val key: SerializerKey,
+      val _rawType: Type = key.rawType,
+      val _ownerType: Type? = key.rawType.enclosingClass,
+      val _actualTypeArguments: Array<Type> = key.typeParameters.map { it.asType() }.toTypedArray()
   ) : ParameterizedType {
     override fun getRawType() = _rawType
     override fun getOwnerType() = _ownerType
@@ -294,10 +324,63 @@ data class SerializerKey(
   companion object {
     fun forType(type: Type): SerializerKey {
       return when (type) {
-        is ParameterizedType -> SerializerKey(type)
+        is ReconstitutedParameterizedType -> type.key // shortcut for our own representation
+        is TypeVariable<*> -> if (type.bounds.size == 1)
+          forType(type.bounds[0])
+        else
+          throw AssertionError("Cannot differentiate between type bounds in $type")
+        is ParameterizedType -> forParameterizedType(type)
         is Class<*> -> SerializerKey(type)
-        else -> throw SerializationException("Don't know how to find serializer for type $type")
+        else -> throw SerializationException("Don't know how to deconstruct type ${type::class.simpleName}")
       }
+    }
+
+    private fun forParameterizedType(type: ParameterizedType): SerializerKey {
+      val args = type.actualTypeArguments.mapNotNull {
+        when (it) {
+          is ReconstitutedParameterizedType -> it.key // shortcut for our own representation
+          is Class<*> -> SerializerKey(it)
+          is ParameterizedType -> forType(it)
+          is WildcardType -> null
+          else -> null
+        }
+      }
+      if (args.isNotEmpty() && args.size != type.actualTypeArguments.size) {
+        throw SerializationException("Type $type has a mixture of wildcard and actual arguments")
+      }
+      return SerializerKey(type.rawType as Class<*>, args)
+    }
+
+    /**
+     * Determines value type for this serializer by analysing actual type parameter passed to a subclass.
+     * Only the first type argument of the given base class classifier is analysed.
+     */
+    fun <B: Any, S: Any> fromSuperclassTypeArgument(baseClass: KClass<B>, subclass: KClass<S>): SerializerKey {
+      val baseType = subclass.allSupertypes.find { it.classifier == baseClass }
+          ?: throw AssertionError("Cannot find ${baseClass.simpleName} among supertypes of $subclass")
+
+      if (baseType.arguments.isEmpty()) {
+        throw AssertionError("Base type ${baseClass.simpleName} is not parameterized")
+      }
+
+      val argumentType = baseType.arguments[0].type
+          ?: throw AssertionError("First type argument of $baseType is not a valid type")
+
+      val argumentRawClass = argumentType.classifier as? KClass<*>
+          ?: throw AssertionError("Type $argumentType does not correspond to a valid classifier")
+
+      // Kotlin's supertypes don't make Java equivalent available, so we cannot simply pass it to forType(Class)
+      val args = argumentType.arguments.mapNotNull {
+        when {
+          (it.type?.classifier is KClass<*>) -> SerializerKey(it.javaClass)
+          (it.type == null) -> null
+          else -> throw SerializationException("Don't know how to deconstruct argument $it of type $argumentType")
+        }
+      }
+      if (args.isNotEmpty() && args.size != argumentType.arguments.size) {
+        throw SerializationException("Type $argumentType has a mixture of wildcard and actual arguments")
+      }
+      return SerializerKey(argumentRawClass.java, args)
     }
   }
 }
@@ -378,6 +461,11 @@ fun <T: Any> JsonGenerator.writeSerializedObject(
 interface JsonSerializer<T> {
 
   /**
+   * Returns value type information that this instance is able to read and/or write.
+   */
+  val valueType: SerializerKey
+
+  /**
    * The value is passed in as-is without any validation, so the implementation
    * must guard against just input and fail with a meaningful error message.
    *
@@ -393,13 +481,31 @@ interface JsonSerializer<T> {
   fun toJson(obj: T, generator: JsonGenerator)
 
   /**
-   * Returns JSON Schema structure describing the value type.
+   * Creates a JSON object describing the structure of the value type according to JSON Schema specification.
    * The output is an object containing 'type' property and other descriptive details.
+   *
+   * Implementations normally are not expected to invoke this method directly for nested types
+   * such as object properties or array elements. Instead, they need to rely on [JsonSchemaGenerator]
+   * to create such nested schemas. This will make sure that commonly used and important types
+   * are declared in the components section of JSON Schema and correctly referenced.
    *
    * The object may need to be extended by the calling code, e.g. to add 'readOnly' flag
    * for a property of an atomic type
    */
-  val schema: JsonObject
+  fun generateSchema(generator: JsonSchemaGenerator): JsonObject
+}
+
+/**
+ * Entry point for generating a JSON schema for an value type identified by the given key.
+ * Depending on the circumstances this may output full object or a reference to relevant schema
+ * defined in another part of the document.
+ */
+interface JsonSchemaGenerator {
+
+  /**
+   * @see JsonSerializer.generateSchema
+   */
+  fun generateSchema(key: SerializerKey): JsonObject
 }
 
 /**
@@ -410,7 +516,6 @@ interface JsonSerializer<T> {
  * because a list of
  */
 interface CustomSerializer<T> : JsonSerializer<T> {
-  val appliedTo: KClass<*>
 }
 
 object JsonHome {

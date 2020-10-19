@@ -3,8 +3,6 @@ package tech.b180.cordaptor.rest
 import net.corda.serialization.internal.model.LocalTypeInformation
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
-import java.math.BigDecimal
-import java.math.BigInteger
 import javax.json.JsonObject
 import javax.json.JsonValue
 import javax.json.stream.JsonGenerator
@@ -20,7 +18,6 @@ import kotlin.reflect.jvm.javaMethod
  * means initialize a new instance from a set of property values.
  */
 abstract class CustomStructuredObjectSerializer<T: Any>(
-    override val appliedTo: KClass<T>,
     factory: SerializationFactory,
 
     /**
@@ -33,18 +30,20 @@ abstract class CustomStructuredObjectSerializer<T: Any>(
      * Indicates whether objects can be restored from JSON structures.
      * Note that if this flag is set to false, settings on individual properties are ignored.
      */
-    override val deserialize: Boolean = true
+    override val deserialize: Boolean = true,
 
-) : StructuredObjectSerializer<T>(appliedTo, factory), CustomSerializer<T>
+    /** @see StructuredObjectSerializer */
+    explicitValueType: SerializerKey? = null
+
+) : StructuredObjectSerializer<T>(factory, explicitValueType), CustomSerializer<T>
 
 /**
  * Base class for creating serializers of JSON objects which represent one of a number
- * of subclasses of the the base class identified by [appliedTo] property.
+ * of subclasses of the the base class identified by [valueType] property.
  *
  * Subclasses are responsible for providing details of the mapping.
  */
 abstract class CustomAbstractClassSerializer<T: Any>(
-    override val appliedTo: KClass<T>,
     factory: SerializationFactory,
 
     /**
@@ -57,22 +56,31 @@ abstract class CustomAbstractClassSerializer<T: Any>(
      * Indicates whether objects can be restored from JSON structures.
      * Note that if this flag is set to false, settings on individual properties are ignored.
      */
-    override val deserialize: Boolean = true
-) : AbstractClassSerializer<T>(appliedTo, factory), CustomSerializer<T>
+    override val deserialize: Boolean = true,
+
+    /** @see AbstractClassSerializer */
+    explicitValueType: SerializerKey? = null
+
+) : AbstractClassSerializer<T>(factory, explicitValueType), CustomSerializer<T>
 
 /**
  * Base implementation for JSON serializer that knows how to
  * read and write list of properties
  */
 abstract class StructuredObjectSerializer<T: Any>(
-    private val objectClass: KClass<*>,
-    factory: SerializationFactory
+    factory: SerializationFactory,
+
+    /** If null, it will be inferred from the type parameter passed in by the superclass */
+    explicitValueType: SerializerKey? = null
 ) : JsonSerializer<T> {
 
   data class PropertyWithSerializer(
       private val property: ObjectProperty,
       val serializer: JsonSerializer<Any>
   ) : ObjectProperty by property
+
+  override val valueType = explicitValueType
+      ?: SerializerKey.fromSuperclassTypeArgument(StructuredObjectSerializer::class, this::class)
 
   /**
    * Override in subclasses to provide a list of properties to be
@@ -87,23 +95,23 @@ abstract class StructuredObjectSerializer<T: Any>(
       try {
         PropertyWithSerializer(property, factory.getSerializer(property.valueType))
       } catch (e: Throwable) {
-        throw SerializationException("Error finding serializer for property $name of object ${objectClass.qualifiedName}", e)
+        throw SerializationException("Error finding serializer for property $name of object $valueType", e)
       }
     }
   }
 
-  override val schema: JsonObject by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
-    JsonHome.createObjectBuilder()
+  override fun generateSchema(generator: JsonSchemaGenerator): JsonObject {
+    return JsonHome.createObjectBuilder()
         .add("type", "object")
         .add("properties", JsonHome.createObjectBuilder().also { b ->
           structure.forEach { (name, prop) ->
-            b.add(name, JsonHome.createObjectBuilder(prop.serializer.schema).also {
+            b.add(name, generator.generateSchema(prop.serializer.valueType)).also {
               if (!prop.serialize) {
                 it.add("writeOnly", true)
               } else if (!prop.deserialize) {
                 it.add("readOnly", true)
               }
-            })
+            }
           }
         }.build())
         .add("required", structure.filterValues { it.isMandatory }.keys.asJsonArray())
@@ -112,7 +120,7 @@ abstract class StructuredObjectSerializer<T: Any>(
 
   override fun fromJson(value: JsonValue): T {
     if (!deserialize) {
-      throw UnsupportedOperationException("Cannot deserialize ${objectClass.qualifiedName} from JSON")
+      throw UnsupportedOperationException("Cannot deserialize $valueType from JSON")
     }
 
     if (value.valueType != JsonValue.ValueType.OBJECT) {
@@ -131,7 +139,7 @@ abstract class StructuredObjectSerializer<T: Any>(
           if (propValue == null || propValue.valueType == JsonValue.ValueType.NULL) {
             if (prop.isMandatory) {
               throw SerializationException("Received null value for mandatory property $propertyName " +
-                  "of type ${objectClass.qualifiedName}")
+                  "of type $valueType")
             }
           }
 
@@ -143,13 +151,13 @@ abstract class StructuredObjectSerializer<T: Any>(
   }
 
   open fun initializeInstance(values: Map<String, Any?>): T {
-    throw AssertionError("JSON Serialization is allowed for class ${objectClass.qualifiedName}, " +
+    throw AssertionError("JSON Serialization is allowed for class $valueType, " +
         "  initializeInstance() method is not implemented")
   }
 
   override fun toJson(obj: T, generator: JsonGenerator) {
     if (!serialize) {
-      throw UnsupportedOperationException("Cannot serialize ${objectClass.qualifiedName} to JSON")
+      throw UnsupportedOperationException("Cannot serialize $valueType to JSON")
     }
 
     generator.writeStartObject()
@@ -157,7 +165,7 @@ abstract class StructuredObjectSerializer<T: Any>(
 
       val accessor = prop.accessor
           ?: throw AssertionError("No accessor for serializable property $propertyName " +
-              "of class ${objectClass.qualifiedName}")
+              "of class $valueType")
 
       val v = try {
         accessor.invoke(obj)
@@ -228,11 +236,17 @@ internal val LocalTypeInformation.Composable.objectClass: KClass<*>
   }
 
 /**
+ * Serializer for an abstract class with a known set of concrete subclasses.
+ * This serializer is expected to be subclassed to create custom serializers.
  *
+ * FIXME implement logic for automatically generating correct subclass mapping from annotations
  */
 abstract class AbstractClassSerializer<T: Any>(
-    private val baseClass: KClass<T>,
-    factory: SerializationFactory) : JsonSerializer<T> {
+    factory: SerializationFactory,
+
+    /** If null, it will be inferred from the type parameter passed in by the superclass */
+    explicitValueType: SerializerKey? = null
+) : JsonSerializer<T> {
 
   abstract val subclassesMap: Map<String, SerializerKey>
   abstract val serialize: Boolean
@@ -244,9 +258,12 @@ abstract class AbstractClassSerializer<T: Any>(
     }
   }
 
+  override val valueType = explicitValueType
+      ?: SerializerKey.fromSuperclassTypeArgument(AbstractClassSerializer::class, this::class)
+
   override fun fromJson(value: JsonValue): T {
     if (!deserialize) {
-      throw UnsupportedOperationException("Cannot deserialize ${baseClass.qualifiedName} from JSON")
+      throw UnsupportedOperationException("Cannot deserialize $valueType from JSON")
     }
 
     if (value.valueType != JsonValue.ValueType.OBJECT) {
@@ -266,13 +283,13 @@ abstract class AbstractClassSerializer<T: Any>(
 
   override fun toJson(obj: T, generator: JsonGenerator) {
     if (!serialize) {
-      throw UnsupportedOperationException("Cannot serialize ${baseClass.qualifiedName} to JSON")
+      throw UnsupportedOperationException("Cannot serialize $valueType to JSON")
     }
 
     val entry = subclassesMap.entries.find { (_, key) ->
       key.rawType.isAssignableFrom(obj.javaClass) }
         ?: throw SerializationException("No matching entry for class ${obj.javaClass.canonicalName} " +
-            "which is supposed subclass of ${baseClass.qualifiedName} -- missing entry in subclasses map?")
+            "which is supposed subclass of $valueType -- missing entry in subclasses map?")
 
     val serializer = subclassSerializers[entry.key]
         ?: throw AssertionError("No initialized serializer for known subclass mapping $entry")
@@ -282,12 +299,12 @@ abstract class AbstractClassSerializer<T: Any>(
     generator.writeEnd()
   }
 
-  override val schema: JsonObject by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
-    JsonHome.createObjectBuilder()
+  override fun generateSchema(generator: JsonSchemaGenerator): JsonObject {
+    return JsonHome.createObjectBuilder()
         .add("type", "object")
         .add("properties", JsonHome.createObjectBuilder().also { builder ->
           for ((discriminatorKey, serializer) in subclassSerializers) {
-            builder.add(discriminatorKey, serializer.schema)
+            builder.add(discriminatorKey, generator.generateSchema(serializer.valueType))
           }
         })
         .build()

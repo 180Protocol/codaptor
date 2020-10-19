@@ -25,7 +25,7 @@ import kotlin.test.*
 
 class SerializationTest {
 
-  val localTypeModel: LocalTypeModel
+  private val localTypeModel: LocalTypeModel
 
   init {
     val customSerializerRegistry = CachingCustomSerializerRegistry(DefaultDescriptorBasedSerializerRegistry())
@@ -212,14 +212,15 @@ class SerializationTest {
 
     assertEquals("""{
       |"type": "string",
-      |"enum": ["VAL1","VAL2"]}""".trimMargin().asJsonObject(), serializer.schema)
+      |"enum": ["VAL1","VAL2"]}""".trimMargin().asJsonObject(), serializer.generateRecursiveSchema(f))
   }
 
   @Test
   fun `test atomic types schema`() {
-    assertEquals("""{"type": "string"}""".asJsonObject(), SerializationFactory.StringSerializer.schema)
-    assertEquals("""{"type": "boolean"}""".asJsonObject(), SerializationFactory.BooleanSerializer.schema)
-    assertEquals("""{"type": "number", "format": "int32"}""".asJsonObject(), SerializationFactory.IntSerializer.schema)
+    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() })
+    assertEquals("""{"type": "string"}""".asJsonObject(), SerializationFactory.StringSerializer.generateRecursiveSchema(f))
+    assertEquals("""{"type": "boolean"}""".asJsonObject(), SerializationFactory.BooleanSerializer.generateRecursiveSchema(f))
+    assertEquals("""{"type": "number", "format": "int32"}""".asJsonObject(), SerializationFactory.IntSerializer.generateRecursiveSchema(f))
   }
 
   @Test
@@ -247,7 +248,7 @@ class SerializationTest {
       | "one",
       | "two"
       |]
-      |}""".trimMargin().asJsonObject(), publicPropertiesSerializer.schema)
+      |}""".trimMargin().asJsonObject(), publicPropertiesSerializer.generateRecursiveSchema(f))
   }
 
   @Test
@@ -262,17 +263,17 @@ class SerializationTest {
     assertEquals("""{
       |"type":"array",
       |"items":{"type":"string"}
-      |}""".trimMargin().asJsonObject(), arraySerializer.schema)
+      |}""".trimMargin().asJsonObject(), arraySerializer.generateRecursiveSchema(f))
 
     assertEquals("""{
       |"type":"array",
       |"items":{"type":"string"}
-      |}""".trimMargin().asJsonObject(), listSerializer.schema)
+      |}""".trimMargin().asJsonObject(), listSerializer.generateRecursiveSchema(f))
 
     assertEquals("""{
       |"type":"array",
       |"additionalProperties":{"type":"number","format":"int32"}
-      |}""".trimMargin().asJsonObject(), mapSerializer.schema)
+      |}""".trimMargin().asJsonObject(), mapSerializer.generateRecursiveSchema(f))
   }
 
   @Test
@@ -300,7 +301,7 @@ class SerializationTest {
   fun `test abstract class serialization`() {
     val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() })
 
-    val serializer = object : CustomAbstractClassSerializer<BaseObject>(BaseObject::class, f) {
+    val serializer = object : CustomAbstractClassSerializer<BaseObject>(f) {
       override val subclassesMap = mapOf(
           "one" to SerializerKey.forType(DerivedObjectOne::class.java),
           "two" to SerializerKey.forType(DerivedObjectTwo::class.java)
@@ -318,6 +319,14 @@ class SerializationTest {
         serializer.fromJson("""{"two":{"intValue":123}}""".asJsonObject()))
   }
 }
+
+/** Simple implementation for tests that just embeds nested schemas recursively into the resulting JSON Schema */
+class RecursiveJsonSchemaGenerator(private val factory: SerializationFactory) : JsonSchemaGenerator {
+  override fun generateSchema(key: SerializerKey) = factory.getSerializer(key).generateSchema(this)
+}
+
+fun <T: Any> JsonSerializer<T>.generateRecursiveSchema(factory: SerializationFactory) =
+  generateSchema(RecursiveJsonSchemaGenerator(factory))
 
 fun generateJson(block: JsonGenerator.() -> Unit): String {
   val w = StringWriter()

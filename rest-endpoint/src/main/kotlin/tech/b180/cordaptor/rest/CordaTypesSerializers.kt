@@ -18,7 +18,6 @@ import java.time.Instant
 import java.time.format.DateTimeFormatter
 import java.util.*
 import javax.json.JsonObject
-import kotlin.reflect.KClass
 
 /**
  * Serializer for [CordaX500Name] converting to/from a string value.
@@ -28,9 +27,7 @@ class CordaX500NameSerializer : CustomSerializer<CordaX500Name>,
     delegate = SerializationFactory.StringSerializer,
     delegate2my = { CordaX500Name.parse(it) },
     my2delegate = CordaX500Name::toString
-) {
-  override val appliedTo = CordaX500Name::class
-}
+)
 
 /**
  * Serializer for [SecureHash] converting to/from a string value.
@@ -41,14 +38,14 @@ class CordaSecureHashSerializer : CustomSerializer<SecureHash>,
     delegate2my = { SecureHash.parse(it) },
     my2delegate = SecureHash::toString
 ) {
-  override val schema: JsonObject = mapOf(
-      "type" to "string",
-      "minLength" to 64,
-      "maxLength" to 64,
-      "pattern" to "^[A-Z0-9]{64}"
-  ).asJsonObject()
-
-  override val appliedTo = SecureHash::class
+  override fun generateSchema(generator: JsonSchemaGenerator): JsonObject {
+    return mapOf(
+        "type" to "string",
+        "minLength" to 64,
+        "maxLength" to 64,
+        "pattern" to "^[A-Z0-9]{64}"
+    ).asJsonObject()
+  }
 }
 
 /**
@@ -62,12 +59,12 @@ class CordaUUIDSerializer : CustomSerializer<UUID>,
     my2delegate = UUID::toString,
     delegate2my = UUID::fromString
 ) {
-  override val schema: JsonObject = mapOf(
-      "type" to "string",
-      "format" to "uuid"
-  ).asJsonObject()
-
-  override val appliedTo = UUID::class
+  override fun generateSchema(generator: JsonSchemaGenerator): JsonObject {
+    return mapOf(
+        "type" to "string",
+        "format" to "uuid"
+    ).asJsonObject()
+  }
 }
 
 /**
@@ -82,12 +79,12 @@ class JavaInstantSerializer : CustomSerializer<Instant>,
         delegate2my = { Instant.parse(it) }
     ) {
 
-  override val schema: JsonObject = mapOf(
-      "type" to "string",
-      "format" to "date-time"
-  ).asJsonObject()
-
-  override val appliedTo: KClass<*> = Instant::class
+  override fun generateSchema(generator: JsonSchemaGenerator): JsonObject {
+    return mapOf(
+        "type" to "string",
+        "format" to "date-time"
+    ).asJsonObject()
+  }
 }
 
 /**
@@ -99,7 +96,7 @@ class JavaInstantSerializer : CustomSerializer<Instant>,
 class CordaPartySerializer(
     factory: SerializationFactory,
     private val nodeState: CordaNodeState
-) : CustomStructuredObjectSerializer<Party>(Party::class, factory) {
+) : CustomStructuredObjectSerializer<Party>(factory) {
 
   override val properties: Map<String, ObjectProperty> = mapOf(
       "name" to KotlinObjectProperty(Party::name, isMandatory = true)
@@ -122,7 +119,7 @@ class CordaPartySerializer(
  */
 class CordaSignedTransactionSerializer(
     factory: SerializationFactory
-) : CustomStructuredObjectSerializer<SignedTransaction>(SignedTransaction::class, factory, deserialize = false) {
+) : CustomStructuredObjectSerializer<SignedTransaction>(factory, deserialize = false) {
 
   override val properties: Map<String, ObjectProperty> = mapOf(
       "id" to KotlinObjectProperty(SignedTransaction::id),
@@ -138,7 +135,7 @@ class CordaSignedTransactionSerializer(
  */
 class CordaTransactionSignatureSerializer(
     factory: SerializationFactory
-) : CustomStructuredObjectSerializer<TransactionSignature>(TransactionSignature::class, factory, deserialize = false) {
+) : CustomStructuredObjectSerializer<TransactionSignature>(factory, deserialize = false) {
 
   override val properties: Map<String, ObjectProperty> = mapOf(
       "by" to KotlinObjectProperty(TransactionSignature::by),
@@ -154,7 +151,7 @@ class CordaTransactionSignatureSerializer(
  * FIXME implement serialization logic for instances of [X509Certificate] abstract class
  */
 class CordaPartyAndCertificateSerializer(factory: SerializationFactory)
-  : CustomStructuredObjectSerializer<PartyAndCertificate>(PartyAndCertificate::class, factory, deserialize = false) {
+  : CustomStructuredObjectSerializer<PartyAndCertificate>(factory, deserialize = false) {
 
   override val properties = mapOf(
       "party" to KotlinObjectProperty(PartyAndCertificate::party)
@@ -166,8 +163,8 @@ class CordaPartyAndCertificateSerializer(factory: SerializationFactory)
  * This object is most commonly serialized as part of a [SignedTransaction].
  * There is no support for restoring instances of [CoreTransaction] from JSON structures.
  */
-class CordaCoreTransactionSerializer(factory: SerializationFactory) : CustomAbstractClassSerializer<CoreTransaction>(
-    CoreTransaction::class, factory, deserialize = false) {
+class CordaCoreTransactionSerializer(factory: SerializationFactory)
+  : CustomAbstractClassSerializer<CoreTransaction>(factory, deserialize = false) {
 
   // FIXME add support for notary change and contract upgrade transactions
   override val subclassesMap: Map<String, SerializerKey> = mapOf(
@@ -181,7 +178,7 @@ class CordaCoreTransactionSerializer(factory: SerializationFactory) : CustomAbst
  * There is no support for restoring instances of [WireTransaction] from JSON structures.
  */
 class CordaWireTransactionSerializer(factory: SerializationFactory)
-  : CustomStructuredObjectSerializer<WireTransaction>(WireTransaction::class, factory, deserialize = false) {
+  : CustomStructuredObjectSerializer<WireTransaction>(factory, deserialize = false) {
 
   override val properties = mapOf(
       "inputs" to KotlinObjectProperty(WireTransaction::inputs),
@@ -199,7 +196,7 @@ class CordaWireTransactionSerializer(factory: SerializationFactory)
 class CordaPublicKeySerializer(
     factory: SerializationFactory,
     nodeState: CordaNodeState
-) : CustomStructuredObjectSerializer<PublicKey>(PublicKey::class, factory, deserialize = false) {
+) : CustomStructuredObjectSerializer<PublicKey>(factory, deserialize = false) {
 
   override val properties = mapOf(
       "fingerprint" to SyntheticObjectProperty(valueType = String::class.java,
@@ -222,7 +219,7 @@ class CordaPublicKeySerializer(
  */
 class CordaTransactionStateSerializer(
     factory: SerializationFactory
-) : CustomStructuredObjectSerializer<TransactionState<*>>(TransactionState::class, factory, deserialize = false) {
+) : CustomStructuredObjectSerializer<TransactionState<*>>(factory, deserialize = false) {
 
   override val properties = mapOf(
       "contract" to KotlinObjectProperty(TransactionState<*>::contract),

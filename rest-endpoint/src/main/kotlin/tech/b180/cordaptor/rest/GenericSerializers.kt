@@ -1,15 +1,13 @@
 package tech.b180.cordaptor.rest
 
-import com.google.common.collect.ImmutableList
 import net.corda.serialization.internal.model.LocalPropertyInformation
 import net.corda.serialization.internal.model.LocalTypeInformation
+import tech.b180.cordaptor.kernel.loggerFor
 import java.lang.reflect.ParameterizedType
 import javax.json.JsonArray
 import javax.json.JsonObject
-import javax.json.JsonString
 import javax.json.JsonValue
 import javax.json.stream.JsonGenerator
-import kotlin.reflect.KClass
 
 
 /**
@@ -20,7 +18,7 @@ import kotlin.reflect.KClass
 class ComposableTypeJsonSerializer<T: Any>(
     private val typeInfo: LocalTypeInformation.Composable,
     factory: SerializationFactory
-) : StructuredObjectSerializer<T>(factory = factory, objectClass = typeInfo.objectClass) {
+) : StructuredObjectSerializer<T>(factory = factory, explicitValueType = SerializerKey.forType(typeInfo.observedType)) {
 
   data class IntrospectedProperty(
       override val accessor: ObjectPropertyValueAccessor?,
@@ -137,7 +135,6 @@ class ListSerializer private constructor(
         when (parameterizedType.rawType) {
           Collection::class.java -> ::newArrayList
           List::class.java -> ::newArrayList
-          ImmutableList::class.java -> ::newImmutableList
           else -> throw AssertionError("Don't know how to make instances of ${parameterizedType.rawType}")
         }
       } else {
@@ -152,9 +149,10 @@ class ListSerializer private constructor(
       instantiationFunction = ::newArray
   )
 
+  override val valueType = SerializerKey(List::class.java, elementSerializer.valueType.asType())
+
   companion object {
     fun newArrayList(items: List<*>) = ArrayList(items)
-    fun newImmutableList(items: List<*>): ImmutableList<*> = ImmutableList.of(items)
     // FIXME instantiate an array of a certain type via Java reflection
     fun newArray(items: List<*>): Array<Any> = TODO("Deserialization of arrays is not supported yet")
 
@@ -164,10 +162,12 @@ class ListSerializer private constructor(
         ?: throw AssertionError("Null instead of a collection - unsafe code in the parent serializer")
   }
 
-  override val schema: JsonObject = JsonHome.createObjectBuilder()
-      .add("type", "array")
-      .add("items", elementSerializer.schema)
-      .build()
+  override fun generateSchema(generator: JsonSchemaGenerator): JsonObject {
+    return JsonHome.createObjectBuilder()
+        .add("type", "array")
+        .add("items", generator.generateSchema(elementSerializer.valueType))
+        .build()
+  }
 
   override fun fromJson(value: JsonValue): Any {
     if (value.valueType != JsonValue.ValueType.ARRAY) {
@@ -211,10 +211,14 @@ class MapSerializer(
     }
   }
 
-  override val schema: JsonObject = JsonHome.createObjectBuilder()
-      .add("type", "array")
-      .add("additionalProperties", valueSerializer.schema)
-      .build()
+  override val valueType = SerializerKey(Map::class.java, mapType.valueType.observedType)
+
+  override fun generateSchema(generator: JsonSchemaGenerator): JsonObject {
+    return JsonHome.createObjectBuilder()
+        .add("type", "array")
+        .add("additionalProperties", generator.generateSchema(valueSerializer.valueType))
+        .build()
+  }
 
   override fun fromJson(value: JsonValue): Map<Any?, Any?> {
     if (value.valueType != JsonValue.ValueType.OBJECT) {
@@ -253,38 +257,40 @@ class MapSerializer(
  * FIXME add enum evolution logic
  */
 class EnumSerializer(
-    private val enumType: LocalTypeInformation.AnEnum) : JsonSerializer<Enum<*>> {
+    private val enumType: LocalTypeInformation.AnEnum) : SerializationFactory.DelegatingSerializer<Enum<*>, String>(
+    delegate = SerializationFactory.StringSerializer,
+    my2delegate = Enum<*>::name,
+    delegate2my = string2value(enumType)
+) {
 
-  @Suppress("UNCHECKED_CAST")
-  private val enumClass = enumType.observedType as Class<Enum<*>>
-
-  override val schema: JsonObject = mapOf(
+  private val schema: JsonObject = mapOf(
       "type" to "string",
-      "enum" to enumClass.enumConstants.map { it.name }
+      "enum" to enumType.members
   ).asJsonObject()
 
-  override fun fromJson(value: JsonValue): Enum<*> {
-    if (value.valueType != JsonValue.ValueType.STRING) {
-      throw SerializationException("Expected a string, got ${value.valueType}")
+  override fun generateSchema(generator: JsonSchemaGenerator): JsonObject = schema
+
+  companion object {
+    fun string2value(enumType: LocalTypeInformation.AnEnum): (String) -> Enum<*> {
+      return { stringValue: String ->
+        if (!enumType.members.contains(stringValue)) {
+          throw SerializationException("No such enum value $stringValue among ${enumType.members}")
+        }
+
+        @Suppress("UNCHECKED_CAST")
+        val enumClass = enumType.observedType as Class<Enum<*>>
+
+        // string value was among the introspected options, so something must be wrong with introspection if not found
+        enumClass.enumConstants.find { it.name == stringValue }
+            ?: throw AssertionError("Could not find enum constant $stringValue " +
+                "in class ${enumClass.canonicalName}")
+      }
     }
-
-    val stringValue = (value as JsonString).string
-    if (!enumType.members.contains(stringValue)) {
-      throw SerializationException("No such enum value $stringValue among ${enumType.members}")
-    }
-
-    // string value was among the introspected options, so something must be wrong with introspection if not found
-    return enumClass.enumConstants.find { it.name == stringValue }
-        ?: throw AssertionError("Could not find enum constant $stringValue in class $enumClass")
-  }
-
-  override fun toJson(obj: Enum<*>, generator: JsonGenerator) {
-    generator.write(obj.name)
   }
 }
 
 class ThrowableSerializer(factory: SerializationFactory) : CustomStructuredObjectSerializer<Throwable>(
-    appliedTo = Throwable::class,
+    explicitValueType = SerializerKey(Throwable::class),
     deserialize = false,
     factory = factory
 ) {
@@ -306,10 +312,23 @@ class ThrowableSerializer(factory: SerializationFactory) : CustomStructuredObjec
  * Serializer that determines the type of the object in runtime and
  * attempts to serialize it using [SerializationFactory].
  * This serializer is unable to restore objects from JSON.
+ *
+ * FIXME consider alternative solution for ContractState and CommandData implementations
+ * Perhaps discovering all implementations as part of CorDapp scanning and registering in a map
  */
 class DynamicObjectSerializer(
-    override val appliedTo: KClass<*>,
+    override val valueType: SerializerKey,
     private val factory: SerializationFactory) : CustomSerializer<Any> {
+
+  companion object {
+    val logger = loggerFor<DynamicObjectSerializer>()
+  }
+
+  init {
+    // FIXME mention subclass annotations when AbstractClassSerializer supports them
+    logger.info("Subclasses of $valueType will be serialized dynamically without a JSON Schema. " +
+        "Consider creating a custom abstract class serializer for it")
+  }
 
   override fun fromJson(value: JsonValue): Any {
     throw UnsupportedOperationException("Don't know not to restore an untyped object from JSON")
@@ -325,5 +344,10 @@ class DynamicObjectSerializer(
     serializer.toJson(obj, generator)
   }
 
-  override val schema: JsonObject = mapOf("type" to "object", "additionalProperties" to "true").asJsonObject()
+  private val schema: JsonObject = mapOf(
+      "type" to "object",
+      "description" to "Dynamic container for subclasses of ${valueType.rawType.canonicalName}",
+      "additionalProperties" to "true").asJsonObject()
+
+  override fun generateSchema(generator: JsonSchemaGenerator): JsonObject = schema
 }

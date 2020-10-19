@@ -2,7 +2,6 @@ package tech.b180.cordaptor.rest
 
 import io.mockk.every
 import io.mockk.mockkClass
-import net.corda.core.contracts.ContractState
 import net.corda.core.flows.FlowLogic
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.identity.Party
@@ -12,7 +11,6 @@ import net.corda.testing.core.TestIdentity
 import org.junit.AfterClass
 import org.koin.core.context.KoinContextHandler
 import org.koin.core.context.startKoin
-import org.koin.core.qualifier.TypeQualifier
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import tech.b180.cordaptor.corda.CordaFlowProgress
@@ -50,8 +48,6 @@ class CordaTypesTest {
         single { CordaWireTransactionSerializer(get()) } bind CustomSerializer::class
         single { CordaTransactionStateSerializer(get()) } bind CustomSerializer::class
         single { CordaPublicKeySerializer(get(), mockNodeState) } bind CustomSerializer::class
-        single(qualifier = TypeQualifier(Any::class)) { DynamicObjectSerializer(Any::class, get()) } bind CustomSerializer::class
-        single(qualifier = TypeQualifier(ContractState::class)) { DynamicObjectSerializer(ContractState::class, get()) } bind CustomSerializer::class
 
         // factory for requesting specific serializers into the non-generic serialization code
         factory<JsonSerializer<*>> { (key: SerializerKey) -> get<SerializationFactory>().getSerializer(key) }
@@ -72,7 +68,7 @@ class CordaTypesTest {
     assertEquals<Class<*>>(CordaX500NameSerializer::class.java, serializer.javaClass,
         "Parametrised resolution should yield custom serializer")
 
-    assertEquals("""{"type":"string"}""".asJsonObject(), serializer.schema)
+    assertEquals("""{"type":"string"}""".asJsonObject(), serializer.generateRecursiveSchema(koin.get()))
 
     assertEquals(""""O=Bank, L=London, C=GB"""",
         serializer.toJsonString(CordaX500Name.parse("O=Bank,L=London,C=GB")))
@@ -88,7 +84,7 @@ class CordaTypesTest {
     assertEquals(CordaPartySerializer::class.java, serializer.javaClass as Class<*>)
 
     assertEquals("""{"type":"object","properties":{"name":{"type":"string"}},"required":["name"]}""".asJsonObject(),
-        serializer.schema)
+        serializer.generateRecursiveSchema(koin.get()))
 
     val party = TestIdentity(CordaX500Name("Bank", "London", "GB")).party
     assertEquals("""{"name":"O=Bank, L=London, C=GB"}""", serializer.toJsonString(party))
@@ -117,7 +113,7 @@ class CordaTypesTest {
       |   "properties":{"name":{"type":"string"}},
       |   "required":["name"]}},
       |"required":[]}""".trimMargin().asJsonObject(),
-        serializer.schema)
+        serializer.generateRecursiveSchema(koin.get()))
 
     val id = TestIdentity(CordaX500Name("Bank", "London", "GB")).identity
 
@@ -146,7 +142,7 @@ class CordaTypesTest {
       |   "type":"string"
       | }
       |},
-      |"required":["stringParam"]}""".trimMargin().asJsonObject(), serializer.schema)
+      |"required":["stringParam"]}""".trimMargin().asJsonObject(), serializer.generateRecursiveSchema(koin.get()))
 
     assertEquals(TestFlow("ABC", null),
         serializer.fromJson("""{"stringParam":"ABC"}""".asJsonObject()))
