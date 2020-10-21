@@ -37,6 +37,16 @@ class SerializationFactory(
 ) {
   companion object {
     private val logger = loggerFor<SerializationFactory>()
+
+    /**
+     * Additional opaque types for serializers defined and registered
+     * as part of [objectSerializers] initialization
+     */
+    private val staticOpaqueTypes = listOf(
+        KClass::class.java,
+        Class::class.java,
+        URL::class.java,
+        JsonObject::class.java)
   }
 
   private var lazyInitialization = false
@@ -49,7 +59,8 @@ class SerializationFactory(
         delegate = WhitelistBasedTypeModelConfiguration(AllWhitelist, customSerializerRegistry),
         // add all types with custom serializers to the opaque list, so that
         // Corda does not flag any transitive introspection problems
-        additionalOpaqueTypes = customSerializers.map { it.valueType.asType() }.toSet()
+        additionalOpaqueTypes = customSerializers.map { it.valueType.asType() }.toSet() + staticOpaqueTypes
+
     )
     ConfigurableLocalTypeModel(typeModelConfiguration)
   }
@@ -72,6 +83,8 @@ class SerializationFactory(
     map[SerializerKey(java.lang.Long::class.java)] = JavaLongSerializer as JsonSerializer<Any>
     map[SerializerKey(java.lang.Boolean::class.java)] = JavaBooleanSerializer as JsonSerializer<Any>
     map[SerializerKey(Class::class.java)] = JavaClassSerializer as JsonSerializer<Any>
+
+    map[SerializerKey(URL::class.java)] = URLSerializer as JsonSerializer<Any>
 
     for (serializer in lazySerializers.value) {
       map[serializer.valueType] = serializer
@@ -188,6 +201,10 @@ class SerializationFactory(
     }
   }
 
+  // FIXME use url format for the schema
+  object URLSerializer : DelegatingSerializer<URL, String>(
+      StringSerializer, URL::toString, { URL(it) })
+
   // Delegate serialization logic for Java wrapper types to Kotlin handlers
   @Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN", "RemoveRedundantQualifierName")
   object JavaIntegerSerializer : DelegatingSerializer<java.lang.Integer, Int>(
@@ -270,10 +287,20 @@ class SerializationFactory(
       is LocalTypeInformation.ACollection -> ListSerializer(type, this)
       is LocalTypeInformation.AnEnum -> EnumSerializer(type) as JsonSerializer<Any>
       is LocalTypeInformation.AMap -> MapSerializer(type, this) as JsonSerializer<Any>
+      is LocalTypeInformation.Top -> DynamicObjectSerializer(SerializerKey.forType(type.observedType), this)
+      is LocalTypeInformation.Atomic -> getSerializerForAtomicType(type.observedType)
       else -> throw AssertionError("Don't know how to create a serializer for " +
           "${type.observedType} (introspected as ${type.javaClass.canonicalName})")
     }
   }
+
+  private fun getSerializerForAtomicType(observedType: Class<*>): JsonSerializer<Any> =
+      getSerializer(
+          when(observedType.simpleName) {
+            "boolean" -> SerializerKey(Boolean::class)
+            else -> throw AssertionError("Unsupported atomic type ${observedType.simpleName}")
+          }
+      )
 }
 
 /**
