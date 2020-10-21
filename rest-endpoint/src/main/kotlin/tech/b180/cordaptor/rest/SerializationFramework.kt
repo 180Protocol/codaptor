@@ -1,14 +1,19 @@
 package tech.b180.cordaptor.rest
 
-import net.corda.serialization.internal.model.LocalTypeInformation
-import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
 import javax.json.JsonObject
 import javax.json.JsonValue
 import javax.json.stream.JsonGenerator
-import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
 import kotlin.reflect.jvm.javaMethod
+
+/**
+ * Used by JSON Schema generator to determine if serialized type needs to be extracted
+ * into a shared components section and what type name to use for it.
+ */
+interface StandaloneTypeSerializer {
+  val schemaTypeName: String
+}
 
 /**
  * Base class for creating serializers of structured JSON object,
@@ -72,7 +77,7 @@ abstract class StructuredObjectSerializer<T: Any>(
 
     /** If null, it will be inferred from the type parameter passed in by the superclass */
     explicitValueType: SerializerKey? = null
-) : JsonSerializer<T> {
+) : JsonSerializer<T>, StandaloneTypeSerializer {
 
   data class PropertyWithSerializer(
       private val property: ObjectProperty,
@@ -100,20 +105,35 @@ abstract class StructuredObjectSerializer<T: Any>(
     }
   }
 
+  override val schemaTypeName: String
+    get() {
+      val baseName = if (!valueType.rawType.canonicalName.startsWith("net.corda")) {
+        valueType.rawType.simpleName
+      } else {
+        // prefix Corda API types to disambiguate from CorDapp objects
+        "Corda${valueType.rawType.simpleName}"
+      }
+      return if (valueType.typeParameters.isEmpty()) {
+        baseName
+      } else {
+        "${baseName}_${valueType.typeParameters.map { it.rawType.simpleName }.joinToString("_")}"
+      }
+    }
+
   override fun generateSchema(generator: JsonSchemaGenerator): JsonObject {
     return JsonHome.createObjectBuilder()
         .add("type", "object")
-        .add("properties", JsonHome.createObjectBuilder().also { b ->
+        .addObject("properties") {
           structure.forEach { (name, prop) ->
-            b.add(name, generator.generateSchema(prop.serializer.valueType)).also {
+            addModifiedObject(name, generator.generateSchema(prop.serializer.valueType)) {
               if (!prop.serialize) {
-                it.add("writeOnly", true)
+                add("writeOnly", true)
               } else if (!prop.deserialize) {
-                it.add("readOnly", true)
+                add("readOnly", true)
               }
             }
           }
-        }.build())
+        }
         .add("required", structure.filterValues { it.isMandatory }.keys.asJsonArray())
         .build()
   }
@@ -227,13 +247,6 @@ data class KotlinObjectProperty<T: Any?>(
 private fun <R> KProperty<R>.isMandatory(): Boolean {
   return this.returnType.isMarkedNullable
 }
-
-internal val LocalTypeInformation.Composable.objectClass: KClass<*>
-  get() = when (this.observedType) {
-    is ParameterizedType -> ((this.observedType as ParameterizedType).rawType as Class<*>).kotlin
-    is Class<*> -> (this.observedType as Class<*>).kotlin
-    else -> throw AssertionError("Unexpected kind of observedType for composable ${this.prettyPrint()}")
-  }
 
 /**
  * Serializer for an abstract class with a known set of concrete subclasses.

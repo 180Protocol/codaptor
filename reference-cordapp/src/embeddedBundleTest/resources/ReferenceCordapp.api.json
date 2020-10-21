@@ -1,0 +1,667 @@
+{
+  "components": {
+    "schemas": {
+      "CordaTransactionHash": {
+        "type": "string",
+        "minLength": 64,
+        "maxLength": 64,
+        "pattern": "^[A-Z0-9]{64}"
+      },
+      "CordaUniqueIdentifier": {
+        "type": "object",
+        "properties": {
+          "externalId": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "CordaX500Name": {
+        "type": "string"
+      },
+      "CordaParty": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "$ref": "#/components/schemas/CordaX500Name"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "SimpleLinearState": {
+        "type": "object",
+        "properties": {
+          "linearId": {
+            "$ref": "#/components/schemas/CordaUniqueIdentifier"
+          },
+          "participant": {
+            "$ref": "#/components/schemas/CordaParty"
+          }
+        },
+        "required": [
+          "linearId",
+          "participant"
+        ]
+      },
+      "PublicKey": {
+        "type": "object",
+        "properties": {
+          "fingerprint": {
+            "type": "string",
+            "readOnly": true
+          },
+          "knownParty": {
+            "$ref": "#/components/schemas/CordaParty",
+            "readOnly": true
+          }
+        },
+        "required": []
+      },
+      "CordaCommand": {
+        "type": "object",
+        "properties": {
+          "signers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicKey"
+            }
+          },
+          "value": {
+            "type": "object",
+            "description": "Dynamic container for subclasses of net.corda.core.contracts.CommandData",
+            "additionalProperties": "true"
+          }
+        },
+        "required": [
+          "signers",
+          "value"
+        ]
+      },
+      "CordaTransactionState": {
+        "type": "object",
+        "properties": {
+          "contract": {
+            "type": "string"
+          },
+          "encumbrance": {
+            "type": "number",
+            "format": "int32"
+          },
+          "notary": {
+            "$ref": "#/components/schemas/CordaParty"
+          },
+          "data": {
+            "type": "object",
+            "description": "Dynamic container for subclasses of net.corda.core.contracts.ContractState",
+            "additionalProperties": "true"
+          }
+        },
+        "required": [
+          "data"
+        ]
+      },
+      "CordaStateRef": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "number",
+            "format": "int32"
+          },
+          "txhash": {
+            "$ref": "#/components/schemas/CordaTransactionHash"
+          }
+        },
+        "required": [
+          "index",
+          "txhash"
+        ]
+      },
+      "CordaWireTransaction": {
+        "type": "object",
+        "properties": {
+          "inputs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CordaCommand"
+            }
+          },
+          "outputs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CordaTransactionState"
+            }
+          },
+          "references": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CordaStateRef"
+            }
+          }
+        },
+        "required": []
+      },
+      "CordaSignatureMetadata": {
+        "type": "object",
+        "properties": {
+          "platformVersion": {
+            "type": "number",
+            "format": "int32"
+          },
+          "schemeNumberID": {
+            "type": "number",
+            "format": "int32"
+          }
+        },
+        "required": [
+          "platformVersion",
+          "schemeNumberID"
+        ]
+      },
+      "CordaTransactionSignature": {
+        "type": "object",
+        "properties": {
+          "by": {
+            "$ref": "#/components/schemas/PublicKey"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/CordaSignatureMetadata",
+            "readOnly": true
+          }
+        },
+        "required": []
+      },
+      "CordaSignedTransaction": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/CordaTransactionHash"
+          },
+          "content": {
+            "type": "object",
+            "properties": {
+              "wireTransaction": {
+                "$ref": "#/components/schemas/CordaWireTransaction"
+              }
+            }
+          },
+          "sigs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CordaTransactionSignature"
+            }
+          }
+        },
+        "required": []
+      },
+      "CordaNodeVersionInfo": {
+        "type": "object",
+        "properties": {
+          "platformVersion": {
+            "type": "number",
+            "format": "int32"
+          },
+          "releaseVersion": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "string"
+          },
+          "vendor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "platformVersion",
+          "releaseVersion",
+          "revision",
+          "vendor"
+        ]
+      },
+      "CordaNetworkHostAndPort": {
+        "type": "object",
+        "properties": {
+          "host": {
+            "type": "string"
+          },
+          "port": {
+            "type": "number",
+            "format": "int32"
+          }
+        },
+        "required": [
+          "host",
+          "port"
+        ]
+      },
+      "CordaPartyAndCertificate": {
+        "type": "object",
+        "properties": {
+          "party": {
+            "$ref": "#/components/schemas/CordaParty"
+          }
+        },
+        "required": []
+      },
+      "CordaNodeInfo": {
+        "type": "object",
+        "properties": {
+          "addresses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CordaNetworkHostAndPort"
+            }
+          },
+          "legalIdentitiesAndCerts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CordaPartyAndCertificate"
+            }
+          },
+          "platformVersion": {
+            "type": "number",
+            "format": "int32"
+          },
+          "serial": {
+            "type": "number",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "addresses",
+          "legalIdentitiesAndCerts",
+          "platformVersion",
+          "serial"
+        ]
+      },
+      "DelayedProgressFlow": {
+        "type": "object",
+        "properties": {
+          "delay": {
+            "type": "number",
+            "format": "int64"
+          },
+          "externalId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "delay",
+          "externalId"
+        ]
+      },
+      "CordaFlowProgress": {
+        "type": "object",
+        "properties": {
+          "currentStepName": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "currentStepName",
+          "timestamp"
+        ]
+      },
+      "Throwable": {
+        "type": "object",
+        "properties": {
+          "class": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "cause": {
+            "type": "object",
+            "description": "Dynamic container for subclasses of java.lang.Object",
+            "additionalProperties": "true"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "CordaStateAndRef_SimpleLinearState": {
+        "type": "object",
+        "properties": {
+          "ref": {
+            "$ref": "#/components/schemas/CordaStateRef"
+          },
+          "state": {
+            "$ref": "#/components/schemas/CordaTransactionState"
+          }
+        },
+        "required": [
+          "ref",
+          "state"
+        ]
+      },
+      "SimpleFlowResult": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "$ref": "#/components/schemas/CordaStateAndRef_SimpleLinearState"
+          }
+        },
+        "required": [
+          "output"
+        ]
+      },
+      "CordaFlowResult_SimpleFlowResult": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/Throwable"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "value": {
+            "$ref": "#/components/schemas/SimpleFlowResult"
+          }
+        },
+        "required": [
+          "timestamp"
+        ]
+      },
+      "CordaFlowSnapshot_SimpleFlowResult": {
+        "type": "object",
+        "properties": {
+          "currentProgress": {
+            "$ref": "#/components/schemas/CordaFlowProgress"
+          },
+          "flowClass": {
+            "type": "string"
+          },
+          "flowRunId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "result": {
+            "$ref": "#/components/schemas/CordaFlowResult_SimpleFlowResult"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "flowClass",
+          "flowRunId",
+          "startedAt"
+        ]
+      },
+      "SimpleFlow": {
+        "type": "object",
+        "properties": {
+          "externalId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "externalId"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Cordaptor API",
+    "version": "autogenerated"
+  },
+  "paths": {
+    "/node/reference/SimpleLinearState/{hash}({index})": {
+      "get": {
+        "operationId": "findContractState",
+        "parameters": [
+          {
+            "description": "Transaction output index",
+            "in": "path",
+            "name": "index",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "format": "int32"
+            }
+          },
+          {
+            "description": "Transaction hash value",
+            "in": "path",
+            "name": "hash",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/CordaTransactionHash"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimpleLinearState"
+                }
+              }
+            },
+            "description": "Successfully retrieved contract state"
+          },
+          "404": {
+            "description": "Contract state with given hash and index was not found"
+          }
+        },
+        "summary": "Finds contract state recorded to the ledger with a given hash and index "
+      }
+    },
+    "/node/tx/{hash}": {
+      "get": {
+        "operationId": "findTransactionByHash",
+        "parameters": [
+          {
+            "description": "Transaction hash value",
+            "in": "path",
+            "name": "hash",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/CordaTransactionHash"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CordaSignedTransaction"
+                }
+              }
+            },
+            "description": "Successfully retrieved transaction"
+          },
+          "404": {
+            "description": "Transaction with given hash value was not found"
+          }
+        },
+        "summary": "Finds a transaction recorded to the ledger with a given hash value"
+      }
+    },
+    "/node/version": {
+      "get": {
+        "operationId": "getNodeVersion",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CordaNodeVersionInfo"
+                }
+              }
+            },
+            "description": "Successful operation"
+          }
+        },
+        "summary": "Returns software version information for the underlying Corda node"
+      }
+    },
+    "/node/info": {
+      "get": {
+        "operationId": "getNodeInfo",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CordaNodeInfo"
+                }
+              }
+            },
+            "description": "Successful operation"
+          }
+        },
+        "summary": "Returns network map entry for the underlying Corda node"
+      }
+    },
+    "/node/states": {
+      "get": {
+        "operationId": "queryVault",
+        "responses": {},
+        "summary": "Performs a query of the vault of the underlying Corda node"
+      }
+    },
+    "/node/reference/DelayedProgressFlow": {
+      "post": {
+        "operationId": "initiateDelayedProgressFlow",
+        "parameters": [
+          {
+            "description": "Timeout for synchronous flow execution, 0 for immediate return",
+            "in": "query",
+            "name": "wait",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DelayedProgressFlow"
+              }
+            }
+          },
+          "required": {}
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CordaFlowSnapshot_SimpleFlowResult"
+                }
+              }
+            },
+            "description": "Flow execution completed successfully and its result is available"
+          },
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CordaFlowSnapshot_SimpleFlowResult"
+                }
+              }
+            },
+            "description": "Flow execution stared and its outcome is not yet available"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CordaFlowSnapshot_SimpleFlowResult"
+                }
+              }
+            },
+            "description": "Flow execution failed and error information is available"
+          }
+        },
+        "summary": "Initiates and tracks execution of Corda flow DelayedProgressFlow with given parameters"
+      }
+    },
+    "/node/reference/SimpleFlow": {
+      "post": {
+        "operationId": "initiateSimpleFlow",
+        "parameters": [
+          {
+            "description": "Timeout for synchronous flow execution, 0 for immediate return",
+            "in": "query",
+            "name": "wait",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimpleFlow"
+              }
+            }
+          },
+          "required": {}
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CordaFlowSnapshot_SimpleFlowResult"
+                }
+              }
+            },
+            "description": "Flow execution completed successfully and its result is available"
+          },
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CordaFlowSnapshot_SimpleFlowResult"
+                }
+              }
+            },
+            "description": "Flow execution stared and its outcome is not yet available"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CordaFlowSnapshot_SimpleFlowResult"
+                }
+              }
+            },
+            "description": "Flow execution failed and error information is available"
+          }
+        },
+        "summary": "Initiates and tracks execution of Corda flow SimpleFlow with given parameters"
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8500"
+    }
+  ]
+}

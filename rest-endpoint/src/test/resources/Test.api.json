@@ -1,0 +1,85 @@
+{
+  "components": {
+    "schemas": {
+      "TestPayload": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "value"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "title",
+    "version": "version"
+  },
+  "paths": {
+    "/query": {
+      "post": {
+        "operationId": "query",
+        "parameters": [
+          {
+            "description": "test parameter",
+            "in": "query",
+            "name": "param",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TestPayload"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestPayload"
+                }
+              }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "test query"
+      }
+    },
+    "/operation": {
+      "post": {
+        "operationId": "operation",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestPayload"
+              }
+            }
+          },
+          "required": {}
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestPayload"
+                }
+              }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "test operation"
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost"
+    }
+  ]
+}

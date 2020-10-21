@@ -602,3 +602,17 @@ fun JsonObjectBuilder.addObject(key: String, block: JsonObjectBuilder.() -> Unit
 
 fun JsonObjectBuilder.addModifiedObject(key: String, obj: JsonObject, block: JsonObjectBuilder.() -> Unit): JsonObjectBuilder
     = add(key, JsonHome.createObjectBuilder(obj).apply(block).build())
+
+
+fun Type.isAssignableTo(clazz: Class<*>): Boolean = when(this) {
+  is Class<*> -> clazz.isAssignableFrom(this)
+  is ParameterizedType -> {
+    val rawType = this.rawType
+    // this cannot be done recursively because compiler cannot check this for correctness
+    when (rawType) {
+      is Class<*> -> clazz.isAssignableFrom(rawType)
+      else -> throw AssertionError("Don't know how to check if ${rawType.typeName} is assignable to ${clazz.canonicalName}")
+    }
+  }
+  else -> throw AssertionError("Don't know how to check if ${this.typeName} is assignable to ${clazz.canonicalName}")
+}

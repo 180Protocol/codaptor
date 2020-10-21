@@ -1,5 +1,10 @@
 apply plugin: 'org.jetbrains.kotlin.jvm'
 
+configurations {
+    testRuntime.exclude module: 'geronimo-json_1.0_spec'
+    testRuntime.exclude module: 'johnzon-core'
+}
+
 dependencies {
     implementation project(":kernel")
     implementation project(":corda-common")

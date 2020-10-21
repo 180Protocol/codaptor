@@ -7,7 +7,6 @@ import org.koin.dsl.module
 import tech.b180.cordaptor.kernel.*
 import java.lang.reflect.Type
 import kotlin.reflect.KClass
-import kotlin.reflect.KType
 
 /**
  * Implementation of the microkernel module provider that makes the components
@@ -35,7 +34,7 @@ class RestEndpointModuleProvider : ModuleProvider {
     single { TransactionQueryEndpoint("/node/tx") } bind QueryEndpoint::class
     single { VaultQueryEndpoint("/node/states") } bind QueryEndpoint::class
 
-    single { ApiDefinitionHandler("/api.json") } bind ContextMappedHandler::class
+    single { APISpecificationEndpointHandler("/api.json") } bind ContextMappedHandler::class
     single { SwaggerUIHandler("/swagger-ui.html") } bind ContextMappedHandler::class
 
     // parameterized accessor for obtaining handler instances allowing them to have dependencies managed by Koin
@@ -43,7 +42,7 @@ class RestEndpointModuleProvider : ModuleProvider {
     factory<OperationEndpointHandler<*, *>> { (endpoint: OperationEndpoint<*, *>) -> OperationEndpointHandler(endpoint) }
 
     // contributes handlers for specific flow and state endpoints
-    single { NodeStateAPIProvider("/node") } bind ContextMappedHandlerFactory::class
+    single { NodeStateAPIProvider("/node") } bind EndpointProvider::class
 
     // JSON serialization enablement
     single { SerializationFactory(lazyGetAll()) }

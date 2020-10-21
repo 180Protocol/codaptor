@@ -22,17 +22,20 @@ import javax.json.JsonObject
 /**
  * Serializer for [CordaX500Name] converting to/from a string value.
  */
-class CordaX500NameSerializer : CustomSerializer<CordaX500Name>,
+class CordaX500NameSerializer : CustomSerializer<CordaX500Name>, StandaloneTypeSerializer,
     SerializationFactory.DelegatingSerializer<CordaX500Name, String>(
     delegate = SerializationFactory.StringSerializer,
     delegate2my = { CordaX500Name.parse(it) },
     my2delegate = CordaX500Name::toString
-)
+) {
+  override val schemaTypeName: String
+    get() = "CordaX500Name"
+}
 
 /**
  * Serializer for [SecureHash] converting to/from a string value.
  */
-class CordaSecureHashSerializer : CustomSerializer<SecureHash>,
+class CordaSecureHashSerializer : CustomSerializer<SecureHash>, StandaloneTypeSerializer,
     SerializationFactory.DelegatingSerializer<SecureHash, String>(
     delegate = SerializationFactory.StringSerializer,
     delegate2my = { SecureHash.parse(it) },
@@ -46,6 +49,9 @@ class CordaSecureHashSerializer : CustomSerializer<SecureHash>,
         "pattern" to "^[A-Z0-9]{64}"
     ).asJsonObject()
   }
+
+  override val schemaTypeName: String
+    get() = "CordaTransactionHash"
 }
 
 /**

@@ -19,15 +19,6 @@ interface JettyConfigurator {
   fun configure(server: Server)
 }
 
-/**
- * Describes a factory that configures a number of context handlers
- * to be wrapped in Jetty's [ContextHandler] and included into a
- * [ContextHandlerCollection] for routing requests to respective endpoints.
- */
-interface ContextMappedHandlerFactory {
-  val handlers: List<ContextMappedHandler>
-}
-
 data class ContextMappingParameters(
     val contextPath: String,
     val allowNullPathInfo: Boolean
@@ -61,7 +52,14 @@ class JettyServer : LifecycleAware, CordaptorComponent {
     }
 
     val mappedHandlers : List<ContextMappedHandler> = getAll<ContextMappedHandler>() +
-        getAll<ContextMappedHandlerFactory>().flatMap { it.handlers } +
+        getAll<EndpointProvider>().flatMap { provider ->
+          provider.operationEndpoints.map {
+            get<OperationEndpointHandler<*, *>> { parametersOf(it) }
+          } +
+          provider.queryEndpoints.map {
+            get<QueryEndpointHandler<*>> { parametersOf(it) }
+          }
+        } +
         getAll<QueryEndpoint<*>>().map { get<QueryEndpointHandler<*>> { parametersOf(it) } } +
         getAll<OperationEndpoint<*, *>>().map { get<OperationEndpointHandler<*, *>> { parametersOf(it) } }
 

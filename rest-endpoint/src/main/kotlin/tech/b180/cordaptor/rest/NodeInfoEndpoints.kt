@@ -5,12 +5,12 @@ import net.corda.core.node.services.diagnostics.NodeVersionInfo
 import org.koin.core.inject
 import tech.b180.cordaptor.corda.CordaNodeState
 import tech.b180.cordaptor.kernel.CordaptorComponent
-import java.lang.reflect.Type
 
 /**
  * Responds to HTTP GET requests providing an instance of [NodeInfo] for the underlying Corda node.
  */
-class NodeInfoEndpoint(contextPath: String) : QueryEndpoint<NodeInfo>, CordaptorComponent {
+class NodeInfoEndpoint(contextPath: String)
+  : ContextMappedQueryEndpoint<NodeInfo>(contextPath, allowNullPathInfo = true), CordaptorComponent {
 
   private val cordaNodeState: CordaNodeState by inject()
 
@@ -18,14 +18,25 @@ class NodeInfoEndpoint(contextPath: String) : QueryEndpoint<NodeInfo>, Cordaptor
     return Response(cordaNodeState.nodeInfo)
   }
 
-  override val responseType: Type = NodeInfo::class.java
-  override val contextMappingParameters = ContextMappingParameters(contextPath, true)
+  override fun generatePathInfoSpecification(schemaGenerator: JsonSchemaGenerator): OpenAPI.PathItem =
+      OpenAPI.PathItem(
+          get = OpenAPI.Operation(
+              summary = "Returns network map entry for the underlying Corda node",
+              operationId = "getNodeInfo"
+          )
+              .withResponse(OpenAPI.HttpStatusCode.OK, OpenAPI.Response.createJsonResponse(
+                  description = "Successful operation",
+                  schema = schemaGenerator.generateSchema(SerializerKey(NodeInfo::class))
+              )
+          )
+      )
 }
 
 /**
  * Responds to HTTP GET requests providing an instance of [NodeVersionInfo] for the underlying Corda node.
  */
-class NodeVersionEndpoint(contextPath: String) : QueryEndpoint<NodeVersionInfo>, CordaptorComponent {
+class NodeVersionEndpoint(contextPath: String)
+  : ContextMappedQueryEndpoint<NodeVersionInfo>(contextPath, allowNullPathInfo = true), CordaptorComponent {
 
   private val cordaNodeState: CordaNodeState by inject()
 
@@ -33,6 +44,16 @@ class NodeVersionEndpoint(contextPath: String) : QueryEndpoint<NodeVersionInfo>,
     return Response(cordaNodeState.nodeVersionInfo)
   }
 
-  override val responseType: Type = NodeVersionInfo::class.java
-  override val contextMappingParameters = ContextMappingParameters(contextPath, true)
+  override fun generatePathInfoSpecification(schemaGenerator: JsonSchemaGenerator): OpenAPI.PathItem =
+      OpenAPI.PathItem(
+          get = OpenAPI.Operation(
+              summary = "Returns software version information for the underlying Corda node",
+              operationId = "getNodeVersion"
+          )
+              .withResponse(OpenAPI.HttpStatusCode.OK, OpenAPI.Response.createJsonResponse(
+                  description = "Successful operation",
+                  schema = schemaGenerator.generateSchema(SerializerKey(NodeVersionInfo::class))
+              )
+          )
+      )
 }

@@ -88,8 +88,13 @@ interface RequestWithPayload<PayloadType: Any> : Request {
  */
 data class Response<PayloadType: Any>(
     val payload: PayloadType,
-    val statusCode: Int = HttpServletResponse.SC_OK
-)
+    val statusCode: Int = DEFAULT_STATUS_CODE
+) {
+  companion object {
+    /** Assumed by default unless overridden in the constructor */
+    const val DEFAULT_STATUS_CODE = HttpServletResponse.SC_OK
+  }
+}
 
 /**
  * Provides basic information about an API endpoint mapped to a URL and generating a JSON response.
@@ -107,6 +112,78 @@ interface GenericEndpoint {
    * Parameters used to construct an HTTP query handler.
    */
   val contextMappingParameters: ContextMappingParameters
+
+  /**
+   * Specification for the resource within OpenAPI specification corresponding to this endpoint.
+   */
+  val resourceSpecification: OpenAPIResource
+}
+
+/**
+ * Entry point for creating a section of OpenAPI specification document corresponding
+ * to a particular endpoint.
+ */
+interface OpenAPIResource {
+
+  /** Key for the entry representing an OpenAPI resource endpoint.
+   * May contain path templates using curly brackets, e.g. `/users/{id}` */
+  val resourcePath: String
+
+  /**
+   * Creates a JSON object representing a resource endpoint entry in 'paths' section of OpenAPI specification.
+   * See [https://swagger.io/docs/specification/paths-and-operations/]
+   *
+   * @param schemaGenerator allows JSON schema definitions for operation payloads to be generated
+   */
+  fun generatePathInfoSpecification(schemaGenerator: JsonSchemaGenerator): OpenAPI.PathItem
+}
+
+/**
+ * Base class applicable for most endpoints that are exposed at a fixed context path
+ * optionally accepting non-path parameters.
+ */
+abstract class ContextMappedResourceEndpoint(
+    private val contextPath: String,
+    allowNullPathInfo: Boolean
+) : GenericEndpoint, OpenAPIResource {
+
+  override val resourcePath: String
+    get() = contextPath
+  override val contextMappingParameters = ContextMappingParameters(contextPath, allowNullPathInfo)
+
+  override val resourceSpecification: OpenAPIResource
+    get() = this
+}
+
+/**
+ * Extension of a basic [ContextMappedResourceEndpoint] for a [QueryEndpoint] removing some boilerplate code.
+ * Note that extending this class only makes sense if subclass is giving a meaningful value for [ResponseType],
+ * otherwise this base class adds no value.
+ */
+abstract class ContextMappedQueryEndpoint<ResponseType: Any>(
+    contextPath: String,
+    allowNullPathInfo: Boolean
+) : ContextMappedResourceEndpoint(contextPath, allowNullPathInfo), QueryEndpoint<ResponseType> {
+
+  override val responseType: Type =
+      SerializerKey.fromSuperclassTypeArgument(QueryEndpoint::class, this::class).asType()
+}
+
+/**
+ * Extension of a basic [ContextMappedResourceEndpoint] for an [OperationEndpoint] removing some boilerplate code.
+ * Note that extending this class only makes sense if subclass is giving meaningful values for
+ * [RequestType] and [ResponseType], otherwise this base class adds no value.
+ */
+abstract class ContextMappedOperationEndpoint<RequestType: Any, ResponseType: Any>(
+    contextPath: String,
+    allowNullPathInfo: Boolean
+) : ContextMappedResourceEndpoint(contextPath, allowNullPathInfo), OperationEndpoint<RequestType, ResponseType> {
+
+  override val requestType: Type =
+      SerializerKey.fromSuperclassTypeArgument(OperationEndpoint::class, this::class, 0).asType()
+
+  override val responseType: Type =
+      SerializerKey.fromSuperclassTypeArgument(OperationEndpoint::class, this::class, 1).asType()
 }
 
 /**
@@ -172,6 +249,23 @@ interface InteractionEndpoint<RequestType: Any, ResponseType: Any> : GenericEndp
 }
 
 /**
+ * Denotes a component that initializes a number of endpoints of various types.
+ * The expectation for the implementation is to initialize the endpoints upon construction or first use,
+ * and then return the same set of endpoints, because it might be called repeatedly
+ */
+interface EndpointProvider {
+
+  val queryEndpoints: List<QueryEndpoint<*>>
+    get() = emptyList()
+
+  val operationEndpoints: List<OperationEndpoint<*, *>>
+    get() = emptyList()
+
+  val interactionEndpoints: List<InteractionEndpoint<*, *>>
+    get() = emptyList()
+}
+
+/**
  * Base implementation of Jetty request handler that wraps a particular Cordaptor API endpoint.
  */
 abstract class AbstractEndpointHandler<ResponseType: Any>(
@@ -179,8 +273,8 @@ abstract class AbstractEndpointHandler<ResponseType: Any>(
     override val mappingParameters: ContextMappingParameters
 ) : ContextMappedHandler, AbstractHandler(), CordaptorComponent {
 
-  private val responseSerializer by injectSerializer<ResponseType>(responseType)
-  private val errorSerializer by injectSerializer(EndpointOperationException::class)
+  val responseSerializer by injectSerializer<ResponseType>(responseType)
+  val errorSerializer by injectSerializer(EndpointOperationException::class)
 
   override fun handle(target: String?, baseRequest: JettyRequest?,
                       request: HttpServletRequest?, response: HttpServletResponse?) {

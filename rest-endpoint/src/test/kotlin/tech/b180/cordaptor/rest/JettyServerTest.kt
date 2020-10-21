@@ -187,7 +187,7 @@ class EchoHandler(contextPath: String) : ContextMappedHandler, AbstractHandler()
         .writeStartObject()
         .write("target", target ?: "")
         .write("contextPath", request!!.contextPath)
-        .write("pathInfo", request.pathInfo)
+        .write("pathInfo", request.pathInfo ?: "")
         .write("queryString", request.queryString ?: "")
         .writeEnd()
         .flush()
@@ -207,6 +207,9 @@ class EchoQueryEndpoint(contextPath: String) : QueryEndpoint<EchoPayload> {
   override fun executeQuery(request: tech.b180.cordaptor.rest.Request): Response<EchoPayload> {
     return Response(EchoPayload(request.pathInfo!!, request.method), statusCode = HttpServletResponse.SC_ACCEPTED)
   }
+
+  override val resourceSpecification: OpenAPIResource
+    get() = TODO("Not yet implemented")
 }
 
 class MisconfiguredEchoQueryEndpoint(contextPath: String) : QueryEndpoint<EchoPayload> {
@@ -218,6 +221,9 @@ class MisconfiguredEchoQueryEndpoint(contextPath: String) : QueryEndpoint<EchoPa
   override fun executeQuery(request: tech.b180.cordaptor.rest.Request): Response<EchoPayload> {
     return Response(EchoPayload(request.pathInfo!!, request.method), statusCode = HttpServletResponse.SC_ACCEPTED)
   }
+
+  override val resourceSpecification: OpenAPIResource
+    get() = TODO("Not yet implemented")
 }
 
 class SyncEchoOperationEndpoint(contextPath: String) : OperationEndpoint<SimplePayload, EchoPayload> {
@@ -231,6 +237,9 @@ class SyncEchoOperationEndpoint(contextPath: String) : OperationEndpoint<SimpleP
         payload = EchoPayload(request.pathInfo ?: "", request.method, message = "sync"),
         statusCode = HttpServletResponse.SC_ACCEPTED))
   }
+
+  override val resourceSpecification: OpenAPIResource
+    get() = TODO("Not yet implemented")
 }
 
 class AsyncEchoOperationEndpoint(contextPath: String) : OperationEndpoint<SimplePayload, EchoPayload> {
@@ -245,4 +254,7 @@ class AsyncEchoOperationEndpoint(contextPath: String) : OperationEndpoint<Simple
         payload = EchoPayload(request.pathInfo ?: "", request.method, message = "async"),
         statusCode = HttpServletResponse.SC_ACCEPTED)).delay(1, TimeUnit.SECONDS)
   }
+
+  override val resourceSpecification: OpenAPIResource
+    get() = TODO("Not yet implemented")
 }

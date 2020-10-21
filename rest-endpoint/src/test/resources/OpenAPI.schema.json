@@ -1,0 +1,2033 @@
+{
+  "type": "object",
+  "properties": {
+    "components": {
+      "type": "object",
+      "properties": {
+        "headers": {
+          "type": "array",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "description": {
+                "type": "string"
+              },
+              "schema": {
+                "type": "object",
+                "description": "JSON object generated dynamically by the application",
+                "additionalProperties": "true"
+              }
+            },
+            "required": [
+              "schema"
+            ]
+          }
+        },
+        "parameters": {
+          "type": "array",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "allowEmptyValue": {
+                "type": "object",
+                "properties": {},
+                "required": []
+              },
+              "deprecated": {
+                "type": "object",
+                "properties": {},
+                "required": []
+              },
+              "description": {
+                "type": "string"
+              },
+              "explode": {
+                "type": "object",
+                "properties": {},
+                "required": []
+              },
+              "in": {
+                "type": "string",
+                "enum": [
+                  "query",
+                  "header",
+                  "path",
+                  "cookie"
+                ]
+              },
+              "name": {
+                "type": "string"
+              },
+              "required": {
+                "type": "object",
+                "properties": {},
+                "required": []
+              },
+              "schema": {
+                "type": "object",
+                "description": "JSON object generated dynamically by the application",
+                "additionalProperties": "true"
+              }
+            },
+            "required": [
+              "in",
+              "name",
+              "schema"
+            ]
+          }
+        },
+        "responses": {
+          "type": "array",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "content": {
+                "type": "array",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "schema": {
+                      "type": "object",
+                      "description": "JSON object generated dynamically by the application",
+                      "additionalProperties": "true"
+                    }
+                  },
+                  "required": [
+                    "schema"
+                  ]
+                }
+              },
+              "description": {
+                "type": "string"
+              },
+              "headers": {
+                "type": "array",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "description": {
+                      "type": "string"
+                    },
+                    "schema": {
+                      "type": "object",
+                      "description": "JSON object generated dynamically by the application",
+                      "additionalProperties": "true"
+                    }
+                  },
+                  "required": [
+                    "schema"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "description"
+            ]
+          }
+        },
+        "schemas": {
+          "type": "array",
+          "additionalProperties": {
+            "type": "object",
+            "description": "JSON object generated dynamically by the application",
+            "additionalProperties": "true"
+          }
+        },
+        "securitySchemes": {
+          "type": "array",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "bearerFormat": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "in": {
+                "type": "string",
+                "enum": [
+                  "query",
+                  "header",
+                  "path",
+                  "cookie"
+                ]
+              },
+              "name": {
+                "type": "string"
+              },
+              "openIdConnectUrl": {
+                "type": "string"
+              },
+              "scheme": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "apiKey",
+                  "http",
+                  "oauth2",
+                  "openIdConnect"
+                ]
+              }
+            },
+            "required": [
+              "name",
+              "type"
+            ]
+          }
+        }
+      },
+      "required": []
+    },
+    "info": {
+      "type": "object",
+      "properties": {
+        "contact": {
+          "type": "object",
+          "properties": {
+            "email": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "email",
+            "name",
+            "url"
+          ]
+        },
+        "description": {
+          "type": "string"
+        },
+        "license": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "name",
+            "url"
+          ]
+        },
+        "termsOfService": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "version"
+      ]
+    },
+    "paths": {
+      "type": "array",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "delete": {
+            "type": "object",
+            "properties": {
+              "deprecated": {
+                "type": "object",
+                "properties": {},
+                "required": []
+              },
+              "description": {
+                "type": "string"
+              },
+              "operationId": {
+                "type": "string"
+              },
+              "parameters": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "allowEmptyValue": {
+                      "type": "object",
+                      "properties": {},
+                      "required": []
+                    },
+                    "deprecated": {
+                      "type": "object",
+                      "properties": {},
+                      "required": []
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "explode": {
+                      "type": "object",
+                      "properties": {},
+                      "required": []
+                    },
+                    "in": {
+                      "type": "string",
+                      "enum": [
+                        "query",
+                        "header",
+                        "path",
+                        "cookie"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "required": {
+                      "type": "object",
+                      "properties": {},
+                      "required": []
+                    },
+                    "schema": {
+                      "type": "object",
+                      "description": "JSON object generated dynamically by the application",
+                      "additionalProperties": "true"
+                    }
+                  },
+                  "required": [
+                    "in",
+                    "name",
+                    "schema"
+                  ]
+                }
+              },
+              "requestBody": {
+                "type": "object",
+                "properties": {
+                  "content": {
+                    "type": "array",
+                    "additionalProperties": {
+                      "type": "object",
+                      "properties": {
+                        "schema": {
+                          "type": "object",
+                          "description": "JSON object generated dynamically by the application",
+                          "additionalProperties": "true"
+                        }
+                      },
+                      "required": [
+                        "schema"
+                      ]
+                    }
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "required": {
+                    "type": "object",
+                    "properties": {},
+                    "required": []
+                  }
+                },
+                "required": [
+                  "content",
+                  "required"
+                ]
+              },
+              "responses": {
+                "type": "array",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "content": {
+                      "type": "array",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "schema": {
+                            "type": "object",
+                            "description": "JSON object generated dynamically by the application",
+                            "additionalProperties": "true"
+                          }
+                        },
+                        "required": [
+                          "schema"
+                        ]
+                      }
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "headers": {
+                      "type": "array",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "description": {
+                            "type": "string"
+                          },
+                          "schema": {
+                            "type": "object",
+                            "description": "JSON object generated dynamically by the application",
+                            "additionalProperties": "true"
+                          }
+                        },
+                        "required": [
+                          "schema"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "description"
+                  ]
+                }
+              },
+              "servers": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "description": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string"
+                    },
+                    "variables": {
+                      "type": "array",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "default": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "enum": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": [
+                          "default"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "url"
+                  ]
+                }
+              },
+              "summary": {
+                "type": "string"
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "operationId",
+              "responses",
+              "summary"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "get": {
+            "type": "object",
+            "properties": {
+              "deprecated": {
+                "type": "object",
+                "properties": {},
+                "required": []
+              },
+              "description": {
+                "type": "string"
+              },
+              "operationId": {
+                "type": "string"
+              },
+              "parameters": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "allowEmptyValue": {
+                      "type": "object",
+                      "properties": {},
+                      "required": []
+                    },
+                    "deprecated": {
+                      "type": "object",
+                      "properties": {},
+                      "required": []
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "explode": {
+                      "type": "object",
+                      "properties": {},
+                      "required": []
+                    },
+                    "in": {
+                      "type": "string",
+                      "enum": [
+                        "query",
+                        "header",
+                        "path",
+                        "cookie"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "required": {
+                      "type": "object",
+                      "properties": {},
+                      "required": []
+                    },
+                    "schema": {
+                      "type": "object",
+                      "description": "JSON object generated dynamically by the application",
+                      "additionalProperties": "true"
+                    }
+                  },
+                  "required": [
+                    "in",
+                    "name",
+                    "schema"
+                  ]
+                }
+              },
+              "requestBody": {
+                "type": "object",
+                "properties": {
+                  "content": {
+                    "type": "array",
+                    "additionalProperties": {
+                      "type": "object",
+                      "properties": {
+                        "schema": {
+                          "type": "object",
+                          "description": "JSON object generated dynamically by the application",
+                          "additionalProperties": "true"
+                        }
+                      },
+                      "required": [
+                        "schema"
+                      ]
+                    }
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "required": {
+                    "type": "object",
+                    "properties": {},
+                    "required": []
+                  }
+                },
+                "required": [
+                  "content",
+                  "required"
+                ]
+              },
+              "responses": {
+                "type": "array",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "content": {
+                      "type": "array",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "schema": {
+                            "type": "object",
+                            "description": "JSON object generated dynamically by the application",
+                            "additionalProperties": "true"
+                          }
+                        },
+                        "required": [
+                          "schema"
+                        ]
+                      }
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "headers": {
+                      "type": "array",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "description": {
+                            "type": "string"
+                          },
+                          "schema": {
+                            "type": "object",
+                            "description": "JSON object generated dynamically by the application",
+                            "additionalProperties": "true"
+                          }
+                        },
+                        "required": [
+                          "schema"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "description"
+                  ]
+                }
+              },
+              "servers": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "description": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string"
+                    },
+                    "variables": {
+                      "type": "array",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "default": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "enum": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": [
+                          "default"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "url"
+                  ]
+                }
+              },
+              "summary": {
+                "type": "string"
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "operationId",
+              "responses",
+              "summary"
+            ]
+          },
+          "head": {
+            "type": "object",
+            "properties": {
+              "deprecated": {
+                "type": "object",
+                "properties": {},
+                "required": []
+              },
+              "description": {
+                "type": "string"
+              },
+              "operationId": {
+                "type": "string"
+              },
+              "parameters": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "allowEmptyValue": {
+                      "type": "object",
+                      "properties": {},
+                      "required": []
+                    },
+                    "deprecated": {
+                      "type": "object",
+                      "properties": {},
+                      "required": []
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "explode": {
+                      "type": "object",
+                      "properties": {},
+                      "required": []
+                    },
+                    "in": {
+                      "type": "string",
+                      "enum": [
+                        "query",
+                        "header",
+                        "path",
+                        "cookie"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "required": {
+                      "type": "object",
+                      "properties": {},
+                      "required": []
+                    },
+                    "schema": {
+                      "type": "object",
+                      "description": "JSON object generated dynamically by the application",
+                      "additionalProperties": "true"
+                    }
+                  },
+                  "required": [
+                    "in",
+                    "name",
+                    "schema"
+                  ]
+                }
+              },
+              "requestBody": {
+                "type": "object",
+                "properties": {
+                  "content": {
+                    "type": "array",
+                    "additionalProperties": {
+                      "type": "object",
+                      "properties": {
+                        "schema": {
+                          "type": "object",
+                          "description": "JSON object generated dynamically by the application",
+                          "additionalProperties": "true"
+                        }
+                      },
+                      "required": [
+                        "schema"
+                      ]
+                    }
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "required": {
+                    "type": "object",
+                    "properties": {},
+                    "required": []
+                  }
+                },
+                "required": [
+                  "content",
+                  "required"
+                ]
+              },
+              "responses": {
+                "type": "array",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "content": {
+                      "type": "array",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "schema": {
+                            "type": "object",
+                            "description": "JSON object generated dynamically by the application",
+                            "additionalProperties": "true"
+                          }
+                        },
+                        "required": [
+                          "schema"
+                        ]
+                      }
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "headers": {
+                      "type": "array",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "description": {
+                            "type": "string"
+                          },
+                          "schema": {
+                            "type": "object",
+                            "description": "JSON object generated dynamically by the application",
+                            "additionalProperties": "true"
+                          }
+                        },
+                        "required": [
+                          "schema"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "description"
+                  ]
+                }
+              },
+              "servers": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "description": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string"
+                    },
+                    "variables": {
+                      "type": "array",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "default": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "enum": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": [
+                          "default"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "url"
+                  ]
+                }
+              },
+              "summary": {
+                "type": "string"
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "operationId",
+              "responses",
+              "summary"
+            ]
+          },
+          "options": {
+            "type": "object",
+            "properties": {
+              "deprecated": {
+                "type": "object",
+                "properties": {},
+                "required": []
+              },
+              "description": {
+                "type": "string"
+              },
+              "operationId": {
+                "type": "string"
+              },
+              "parameters": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "allowEmptyValue": {
+                      "type": "object",
+                      "properties": {},
+                      "required": []
+                    },
+                    "deprecated": {
+                      "type": "object",
+                      "properties": {},
+                      "required": []
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "explode": {
+                      "type": "object",
+                      "properties": {},
+                      "required": []
+                    },
+                    "in": {
+                      "type": "string",
+                      "enum": [
+                        "query",
+                        "header",
+                        "path",
+                        "cookie"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "required": {
+                      "type": "object",
+                      "properties": {},
+                      "required": []
+                    },
+                    "schema": {
+                      "type": "object",
+                      "description": "JSON object generated dynamically by the application",
+                      "additionalProperties": "true"
+                    }
+                  },
+                  "required": [
+                    "in",
+                    "name",
+                    "schema"
+                  ]
+                }
+              },
+              "requestBody": {
+                "type": "object",
+                "properties": {
+                  "content": {
+                    "type": "array",
+                    "additionalProperties": {
+                      "type": "object",
+                      "properties": {
+                        "schema": {
+                          "type": "object",
+                          "description": "JSON object generated dynamically by the application",
+                          "additionalProperties": "true"
+                        }
+                      },
+                      "required": [
+                        "schema"
+                      ]
+                    }
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "required": {
+                    "type": "object",
+                    "properties": {},
+                    "required": []
+                  }
+                },
+                "required": [
+                  "content",
+                  "required"
+                ]
+              },
+              "responses": {
+                "type": "array",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "content": {
+                      "type": "array",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "schema": {
+                            "type": "object",
+                            "description": "JSON object generated dynamically by the application",
+                            "additionalProperties": "true"
+                          }
+                        },
+                        "required": [
+                          "schema"
+                        ]
+                      }
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "headers": {
+                      "type": "array",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "description": {
+                            "type": "string"
+                          },
+                          "schema": {
+                            "type": "object",
+                            "description": "JSON object generated dynamically by the application",
+                            "additionalProperties": "true"
+                          }
+                        },
+                        "required": [
+                          "schema"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "description"
+                  ]
+                }
+              },
+              "servers": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "description": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string"
+                    },
+                    "variables": {
+                      "type": "array",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "default": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "enum": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": [
+                          "default"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "url"
+                  ]
+                }
+              },
+              "summary": {
+                "type": "string"
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "operationId",
+              "responses",
+              "summary"
+            ]
+          },
+          "parameters": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "allowEmptyValue": {
+                  "type": "object",
+                  "properties": {},
+                  "required": []
+                },
+                "deprecated": {
+                  "type": "object",
+                  "properties": {},
+                  "required": []
+                },
+                "description": {
+                  "type": "string"
+                },
+                "explode": {
+                  "type": "object",
+                  "properties": {},
+                  "required": []
+                },
+                "in": {
+                  "type": "string",
+                  "enum": [
+                    "query",
+                    "header",
+                    "path",
+                    "cookie"
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "required": {
+                  "type": "object",
+                  "properties": {},
+                  "required": []
+                },
+                "schema": {
+                  "type": "object",
+                  "description": "JSON object generated dynamically by the application",
+                  "additionalProperties": "true"
+                }
+              },
+              "required": [
+                "in",
+                "name",
+                "schema"
+              ]
+            }
+          },
+          "patch": {
+            "type": "object",
+            "properties": {
+              "deprecated": {
+                "type": "object",
+                "properties": {},
+                "required": []
+              },
+              "description": {
+                "type": "string"
+              },
+              "operationId": {
+                "type": "string"
+              },
+              "parameters": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "allowEmptyValue": {
+                      "type": "object",
+                      "properties": {},
+                      "required": []
+                    },
+                    "deprecated": {
+                      "type": "object",
+                      "properties": {},
+                      "required": []
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "explode": {
+                      "type": "object",
+                      "properties": {},
+                      "required": []
+                    },
+                    "in": {
+                      "type": "string",
+                      "enum": [
+                        "query",
+                        "header",
+                        "path",
+                        "cookie"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "required": {
+                      "type": "object",
+                      "properties": {},
+                      "required": []
+                    },
+                    "schema": {
+                      "type": "object",
+                      "description": "JSON object generated dynamically by the application",
+                      "additionalProperties": "true"
+                    }
+                  },
+                  "required": [
+                    "in",
+                    "name",
+                    "schema"
+                  ]
+                }
+              },
+              "requestBody": {
+                "type": "object",
+                "properties": {
+                  "content": {
+                    "type": "array",
+                    "additionalProperties": {
+                      "type": "object",
+                      "properties": {
+                        "schema": {
+                          "type": "object",
+                          "description": "JSON object generated dynamically by the application",
+                          "additionalProperties": "true"
+                        }
+                      },
+                      "required": [
+                        "schema"
+                      ]
+                    }
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "required": {
+                    "type": "object",
+                    "properties": {},
+                    "required": []
+                  }
+                },
+                "required": [
+                  "content",
+                  "required"
+                ]
+              },
+              "responses": {
+                "type": "array",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "content": {
+                      "type": "array",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "schema": {
+                            "type": "object",
+                            "description": "JSON object generated dynamically by the application",
+                            "additionalProperties": "true"
+                          }
+                        },
+                        "required": [
+                          "schema"
+                        ]
+                      }
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "headers": {
+                      "type": "array",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "description": {
+                            "type": "string"
+                          },
+                          "schema": {
+                            "type": "object",
+                            "description": "JSON object generated dynamically by the application",
+                            "additionalProperties": "true"
+                          }
+                        },
+                        "required": [
+                          "schema"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "description"
+                  ]
+                }
+              },
+              "servers": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "description": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string"
+                    },
+                    "variables": {
+                      "type": "array",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "default": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "enum": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": [
+                          "default"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "url"
+                  ]
+                }
+              },
+              "summary": {
+                "type": "string"
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "operationId",
+              "responses",
+              "summary"
+            ]
+          },
+          "post": {
+            "type": "object",
+            "properties": {
+              "deprecated": {
+                "type": "object",
+                "properties": {},
+                "required": []
+              },
+              "description": {
+                "type": "string"
+              },
+              "operationId": {
+                "type": "string"
+              },
+              "parameters": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "allowEmptyValue": {
+                      "type": "object",
+                      "properties": {},
+                      "required": []
+                    },
+                    "deprecated": {
+                      "type": "object",
+                      "properties": {},
+                      "required": []
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "explode": {
+                      "type": "object",
+                      "properties": {},
+                      "required": []
+                    },
+                    "in": {
+                      "type": "string",
+                      "enum": [
+                        "query",
+                        "header",
+                        "path",
+                        "cookie"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "required": {
+                      "type": "object",
+                      "properties": {},
+                      "required": []
+                    },
+                    "schema": {
+                      "type": "object",
+                      "description": "JSON object generated dynamically by the application",
+                      "additionalProperties": "true"
+                    }
+                  },
+                  "required": [
+                    "in",
+                    "name",
+                    "schema"
+                  ]
+                }
+              },
+              "requestBody": {
+                "type": "object",
+                "properties": {
+                  "content": {
+                    "type": "array",
+                    "additionalProperties": {
+                      "type": "object",
+                      "properties": {
+                        "schema": {
+                          "type": "object",
+                          "description": "JSON object generated dynamically by the application",
+                          "additionalProperties": "true"
+                        }
+                      },
+                      "required": [
+                        "schema"
+                      ]
+                    }
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "required": {
+                    "type": "object",
+                    "properties": {},
+                    "required": []
+                  }
+                },
+                "required": [
+                  "content",
+                  "required"
+                ]
+              },
+              "responses": {
+                "type": "array",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "content": {
+                      "type": "array",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "schema": {
+                            "type": "object",
+                            "description": "JSON object generated dynamically by the application",
+                            "additionalProperties": "true"
+                          }
+                        },
+                        "required": [
+                          "schema"
+                        ]
+                      }
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "headers": {
+                      "type": "array",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "description": {
+                            "type": "string"
+                          },
+                          "schema": {
+                            "type": "object",
+                            "description": "JSON object generated dynamically by the application",
+                            "additionalProperties": "true"
+                          }
+                        },
+                        "required": [
+                          "schema"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "description"
+                  ]
+                }
+              },
+              "servers": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "description": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string"
+                    },
+                    "variables": {
+                      "type": "array",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "default": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "enum": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": [
+                          "default"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "url"
+                  ]
+                }
+              },
+              "summary": {
+                "type": "string"
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "operationId",
+              "responses",
+              "summary"
+            ]
+          },
+          "put": {
+            "type": "object",
+            "properties": {
+              "deprecated": {
+                "type": "object",
+                "properties": {},
+                "required": []
+              },
+              "description": {
+                "type": "string"
+              },
+              "operationId": {
+                "type": "string"
+              },
+              "parameters": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "allowEmptyValue": {
+                      "type": "object",
+                      "properties": {},
+                      "required": []
+                    },
+                    "deprecated": {
+                      "type": "object",
+                      "properties": {},
+                      "required": []
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "explode": {
+                      "type": "object",
+                      "properties": {},
+                      "required": []
+                    },
+                    "in": {
+                      "type": "string",
+                      "enum": [
+                        "query",
+                        "header",
+                        "path",
+                        "cookie"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "required": {
+                      "type": "object",
+                      "properties": {},
+                      "required": []
+                    },
+                    "schema": {
+                      "type": "object",
+                      "description": "JSON object generated dynamically by the application",
+                      "additionalProperties": "true"
+                    }
+                  },
+                  "required": [
+                    "in",
+                    "name",
+                    "schema"
+                  ]
+                }
+              },
+              "requestBody": {
+                "type": "object",
+                "properties": {
+                  "content": {
+                    "type": "array",
+                    "additionalProperties": {
+                      "type": "object",
+                      "properties": {
+                        "schema": {
+                          "type": "object",
+                          "description": "JSON object generated dynamically by the application",
+                          "additionalProperties": "true"
+                        }
+                      },
+                      "required": [
+                        "schema"
+                      ]
+                    }
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "required": {
+                    "type": "object",
+                    "properties": {},
+                    "required": []
+                  }
+                },
+                "required": [
+                  "content",
+                  "required"
+                ]
+              },
+              "responses": {
+                "type": "array",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "content": {
+                      "type": "array",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "schema": {
+                            "type": "object",
+                            "description": "JSON object generated dynamically by the application",
+                            "additionalProperties": "true"
+                          }
+                        },
+                        "required": [
+                          "schema"
+                        ]
+                      }
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "headers": {
+                      "type": "array",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "description": {
+                            "type": "string"
+                          },
+                          "schema": {
+                            "type": "object",
+                            "description": "JSON object generated dynamically by the application",
+                            "additionalProperties": "true"
+                          }
+                        },
+                        "required": [
+                          "schema"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "description"
+                  ]
+                }
+              },
+              "servers": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "description": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string"
+                    },
+                    "variables": {
+                      "type": "array",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "default": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "enum": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": [
+                          "default"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "url"
+                  ]
+                }
+              },
+              "summary": {
+                "type": "string"
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "operationId",
+              "responses",
+              "summary"
+            ]
+          },
+          "servers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "description": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                },
+                "variables": {
+                  "type": "array",
+                  "additionalProperties": {
+                    "type": "object",
+                    "properties": {
+                      "default": {
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "enum": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": [
+                      "default"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "url"
+              ]
+            }
+          },
+          "summary": {
+            "type": "string"
+          },
+          "trace": {
+            "type": "object",
+            "properties": {
+              "deprecated": {
+                "type": "object",
+                "properties": {},
+                "required": []
+              },
+              "description": {
+                "type": "string"
+              },
+              "operationId": {
+                "type": "string"
+              },
+              "parameters": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "allowEmptyValue": {
+                      "type": "object",
+                      "properties": {},
+                      "required": []
+                    },
+                    "deprecated": {
+                      "type": "object",
+                      "properties": {},
+                      "required": []
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "explode": {
+                      "type": "object",
+                      "properties": {},
+                      "required": []
+                    },
+                    "in": {
+                      "type": "string",
+                      "enum": [
+                        "query",
+                        "header",
+                        "path",
+                        "cookie"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "required": {
+                      "type": "object",
+                      "properties": {},
+                      "required": []
+                    },
+                    "schema": {
+                      "type": "object",
+                      "description": "JSON object generated dynamically by the application",
+                      "additionalProperties": "true"
+                    }
+                  },
+                  "required": [
+                    "in",
+                    "name",
+                    "schema"
+                  ]
+                }
+              },
+              "requestBody": {
+                "type": "object",
+                "properties": {
+                  "content": {
+                    "type": "array",
+                    "additionalProperties": {
+                      "type": "object",
+                      "properties": {
+                        "schema": {
+                          "type": "object",
+                          "description": "JSON object generated dynamically by the application",
+                          "additionalProperties": "true"
+                        }
+                      },
+                      "required": [
+                        "schema"
+                      ]
+                    }
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "required": {
+                    "type": "object",
+                    "properties": {},
+                    "required": []
+                  }
+                },
+                "required": [
+                  "content",
+                  "required"
+                ]
+              },
+              "responses": {
+                "type": "array",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "content": {
+                      "type": "array",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "schema": {
+                            "type": "object",
+                            "description": "JSON object generated dynamically by the application",
+                            "additionalProperties": "true"
+                          }
+                        },
+                        "required": [
+                          "schema"
+                        ]
+                      }
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "headers": {
+                      "type": "array",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "description": {
+                            "type": "string"
+                          },
+                          "schema": {
+                            "type": "object",
+                            "description": "JSON object generated dynamically by the application",
+                            "additionalProperties": "true"
+                          }
+                        },
+                        "required": [
+                          "schema"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "description"
+                  ]
+                }
+              },
+              "servers": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "description": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string"
+                    },
+                    "variables": {
+                      "type": "array",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "default": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "enum": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": [
+                          "default"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "url"
+                  ]
+                }
+              },
+              "summary": {
+                "type": "string"
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "operationId",
+              "responses",
+              "summary"
+            ]
+          }
+        },
+        "required": []
+      }
+    },
+    "servers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "variables": {
+            "type": "array",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "default": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "enum": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "default"
+              ]
+            }
+          }
+        },
+        "required": [
+          "url"
+        ]
+      }
+    }
+  },
+  "required": [
+    "info",
+    "paths",
+    "servers"
+  ]
+}

@@ -387,6 +387,9 @@ fun String.asJsonValue(): JsonValue {
   return r.readValue()
 }
 
+fun JsonValue.asString(): String = (this as JsonString).string
+fun JsonValue.asInt(): Int = (this as JsonNumber).intValue()
+
 data class TestDataObject(
     val one: String,
     val two: Int,
