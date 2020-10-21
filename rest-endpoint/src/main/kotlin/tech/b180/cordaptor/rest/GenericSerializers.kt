@@ -20,6 +20,10 @@ class ComposableTypeJsonSerializer<T: Any>(
     factory: SerializationFactory
 ) : StructuredObjectSerializer<T>(factory = factory, explicitValueType = SerializerKey.forType(typeInfo.observedType)) {
 
+  companion object {
+    val logger = loggerFor<ComposableTypeJsonSerializer<*>>()
+  }
+
   data class IntrospectedProperty(
       override val accessor: ObjectPropertyValueAccessor?,
       val propInfo: LocalPropertyInformation
@@ -48,7 +52,17 @@ class ComposableTypeJsonSerializer<T: Any>(
               else -> true
             }
           }
-          .mapValues { (_, prop) ->
+          .mapValues { (name, prop) ->
+            // if there is a custom serializer for this type, it will be an instance of Opaque
+            if (prop.type is LocalTypeInformation.Top
+                || prop.type is LocalTypeInformation.AnInterface
+                || prop.type is LocalTypeInformation.Abstract) {
+
+              // FIXME mention annotations when abstract class serializer supports them
+              logger.info("Values for property $name in type $valueType will be serialized dynamically " +
+                  "without a JSON Schema. Consider creating a custom abstract class serializer for it")
+            }
+
             val accessor: ObjectPropertyValueAccessor? = when (prop) {
               is LocalPropertyInformation.ConstructorPairedProperty -> { obj: Any -> prop.observedGetter.invoke(obj) }
               is LocalPropertyInformation.PrivateConstructorPairedProperty -> {
@@ -322,12 +336,6 @@ class DynamicObjectSerializer(
 
   companion object {
     val logger = loggerFor<DynamicObjectSerializer>()
-  }
-
-  init {
-    // FIXME mention subclass annotations when AbstractClassSerializer supports them
-    logger.info("Subclasses of $valueType will be serialized dynamically without a JSON Schema. " +
-        "Consider creating a custom abstract class serializer for it")
   }
 
   override fun fromJson(value: JsonValue): Any {
