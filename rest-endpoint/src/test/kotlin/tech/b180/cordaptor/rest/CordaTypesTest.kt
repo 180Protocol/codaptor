@@ -150,15 +150,13 @@ class CordaTypesTest {
 
   @Test
   fun `test flow snapshot serialization`() {
-    val serializer = koin.getSerializer(CordaFlowSnapshot::class, String::class)
+    val serializer = getKoin().getSerializer(CordaFlowSnapshot::class, String::class)
 
     val uuid = UUID.randomUUID()
     val now = Instant.now()
     assertEquals("""{
-      |"currentProgress":null,
       |"flowClass":"tech.b180.cordaptor.rest.TestFlow",
       |"flowRunId":"$uuid",
-      |"result":null,
       |"startedAt":"$now"}""".trimMargin().asJsonValue(), serializer.toJsonString(
         CordaFlowSnapshot(flowClass = TestFlow::class,
             result = null, flowRunId = uuid, startedAt = now,
@@ -168,7 +166,6 @@ class CordaTypesTest {
       |"currentProgress":{"currentStepName":"Step 1","timestamp":"$now"},
       |"flowClass":"tech.b180.cordaptor.rest.TestFlow",
       |"flowRunId":"$uuid",
-      |"result":null,
       |"startedAt":"$now"}""".trimMargin().asJsonValue(), serializer.toJsonString(
         CordaFlowSnapshot(flowClass = TestFlow::class,
             result = null, flowRunId = uuid, startedAt = now,

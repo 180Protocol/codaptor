@@ -178,7 +178,7 @@ abstract class StructuredObjectSerializer<T: Any>(
           // Kotlin should not allow this, but there could be bugs in the introspection logic and/or non-Kotlin classes
           throw SerializationException("Null value in non-nullable property $propertyName in object $obj")
         }
-        generator.writeNull(propertyName)
+        // not writing null value
       } else {
         generator.writeKey(propertyName)
         prop.serializer.toJson(v, generator)

@@ -159,7 +159,7 @@ class SerializationTest {
     val privatePropertiesSerializer = f.getSerializer(NonPublicPropertiesObject::class)
     val pojoSerializer = f.getSerializer(TestPojo::class)
 
-    assertEquals("""{"one":"123","three":null,"two":123}""",
+    assertEquals("""{"one":"123","two":123}""",
         publicPropertiesSerializer.toJsonString(TestDataObject("123", 123, null)))
     assertEquals("""{"one":"123","two":123}""",
         privatePropertiesSerializer.toJsonString(NonPublicPropertiesObject("123", 123)))
