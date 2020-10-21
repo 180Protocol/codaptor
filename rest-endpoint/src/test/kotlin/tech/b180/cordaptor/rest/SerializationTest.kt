@@ -14,7 +14,9 @@ import java.beans.Transient
 import java.io.StringReader
 import java.io.StringWriter
 import java.util.*
+import javax.json.JsonNumber
 import javax.json.JsonObject
+import javax.json.JsonString
 import javax.json.JsonValue
 import javax.json.stream.JsonGenerator
 import kotlin.reflect.KClass
@@ -181,8 +183,16 @@ class SerializationTest {
 
     // roundabout way to make sure type comes with generic
     val arraySerializer = ListSerializer(localTypeModel.inspectProperty(ObjectWithParametrizedProperties::array), f)
+    assertEquals(SerializerKey(List::class.java, String::class.java), arraySerializer.valueType)
+
     val listSerializer = ListSerializer(localTypeModel.inspectProperty(ObjectWithParametrizedProperties::list), f)
+    assertEquals(SerializerKey(List::class.java, String::class.java), listSerializer.valueType)
+
     val mapSerializer = MapSerializer(localTypeModel.inspectProperty(ObjectWithParametrizedProperties::map), f)
+    assertEquals(SerializerKey(Map::class.java, String::class.java, java.lang.Integer::class.java), mapSerializer.valueType)
+
+    val enumMapSerializer = MapSerializer(localTypeModel.inspectProperty(ObjectWithParametrizedProperties::enumMap), f)
+    assertEquals(SerializerKey(Map::class.java, TestEnum::class.java, String::class.java), enumMapSerializer.valueType)
 
     assertEquals("""["A","B","C"]""", arraySerializer.toJsonString(arrayOf("A", "B", "C")))
     assertEquals("""["A","B","C"]""", listSerializer.toJsonString(listOf("A", "B", "C")))
@@ -191,6 +201,11 @@ class SerializationTest {
       @Suppress("UNCHECKED_CAST")
       writeSerializedObject(mapSerializer, mapOf("A" to 1, "B" to 2, "C" to 3) as Map<Any?, Any?>)
     })
+    assertEquals("""{"VAL1":"A","VAL2":"B"}""", generateJson {
+
+      @Suppress("UNCHECKED_CAST")
+      writeSerializedObject(enumMapSerializer, mapOf(TestEnum.VAL1 to "A", TestEnum.VAL2 to "B") as Map<Any?, Any?>)
+    })
 
     // arrays cannot be deserialized currently, so no test
 
@@ -198,6 +213,10 @@ class SerializationTest {
         listSerializer.fromJson("""["A","B","C"]""".asJsonValue()))
     assertEquals(mapOf("A" to 1, "B" to 2, "C" to 3),
         mapSerializer.fromJson("""{"A":1,"B":2,"C":3}""".asJsonValue()) as Any)
+
+    val map = enumMapSerializer.fromJson("""{"VAL1":"A","VAL2":"B"}""".asJsonValue())
+    assertEquals("A", map[TestEnum.VAL1])
+    assertEquals("B", map[TestEnum.VAL2])
   }
 
   @Test
@@ -381,7 +400,8 @@ data class TestDataObject(
 data class ObjectWithParametrizedProperties(
     val array: Array<String>,
     val list: List<String>,
-    val map: Map<String, Int>
+    val map: Map<String, Int>,
+    val enumMap: Map<TestEnum, String>
 )
 
 /**

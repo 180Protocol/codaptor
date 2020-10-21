@@ -18,10 +18,13 @@ import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
 import java.lang.reflect.TypeVariable
 import java.lang.reflect.WildcardType
+import java.net.URL
 import java.util.concurrent.ConcurrentHashMap
 import javax.json.*
 import javax.json.stream.JsonGenerator
 import kotlin.reflect.KClass
+import kotlin.reflect.KType
+import kotlin.reflect.KTypeParameter
 import kotlin.reflect.full.allSupertypes
 
 class SerializationException(

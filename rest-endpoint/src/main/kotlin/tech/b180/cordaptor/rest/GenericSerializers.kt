@@ -6,6 +6,7 @@ import tech.b180.cordaptor.kernel.loggerFor
 import java.lang.reflect.ParameterizedType
 import javax.json.JsonArray
 import javax.json.JsonObject
+import javax.json.JsonString
 import javax.json.JsonValue
 import javax.json.stream.JsonGenerator
 
@@ -218,14 +219,22 @@ class MapSerializer(
 ) : JsonSerializer<Map<Any?, Any?>> {
 
   private val valueSerializer = serializationFactory.getSerializer(mapType.valueType)
+  private val keySerializer: JsonSerializer<Any>
 
   init {
-    if (mapType.observedType == String::class) {
-      throw SerializationException("Non-string keys are not supported")
+    val keyType = mapType.keyType.observedType
+    keySerializer = if (keyType == String::class.java) {
+      serializationFactory.getSerializer(SerializerKey(String::class))
+    } else {
+      if (mapType.keyType is LocalTypeInformation.AnEnum) {
+        serializationFactory.getSerializer(mapType.keyType.observedType)
+      } else {
+        throw SerializationException("Only string and enum keys are supported, got $keyType")
+      }
     }
   }
 
-  override val valueType = SerializerKey(Map::class.java, mapType.valueType.observedType)
+  override val valueType = SerializerKey(Map::class.java, mapType.keyType.observedType, mapType.valueType.observedType)
 
   override fun generateSchema(generator: JsonSchemaGenerator): JsonObject {
     return JsonHome.createObjectBuilder()
@@ -240,7 +249,10 @@ class MapSerializer(
     }
 
     return value.asJsonObject().map { (key, jsonValue) ->
-      key to valueSerializer.fromJson(jsonValue)
+      // key serializer is passed an outright string value wrapped into JsonValue
+      // in order to not duplicate the logic for dealing with serializable enums
+      keySerializer.fromJson(JsonHome.createValue(key)) to
+          valueSerializer.fromJson(jsonValue)
     }.toMap()
   }
 
@@ -251,11 +263,11 @@ class MapSerializer(
         throw SerializationException("Null keys are not supported")
       }
 
-      if (key !is String) {
-        throw AssertionError("Map local type has a string key, but actual value is't a string: $key")
-      }
+      // cannot use keySerializer here, as generator API cannot write key value in a generic way
+      val keyValue = (key as? String) ?: (key as? SerializableEnum)?.jsonValue ?: (key as? Enum<*>)?.name
+          ?: throw AssertionError("Unable to convert key value [$key] to string")
 
-      generator.writeKey(key)
+      generator.writeKey(keyValue)
       if (value == null) {
         generator.writeNull()
       } else {
