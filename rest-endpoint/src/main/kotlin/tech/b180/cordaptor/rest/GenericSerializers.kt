@@ -338,7 +338,7 @@ class ThrowableSerializer(factory: SerializationFactory) : CustomStructuredObjec
   override val properties: Map<String, ObjectProperty> = mapOf(
       "class" to SyntheticObjectProperty(valueType = Class::class.java, accessor = throwableClassAccessor),
       "message" to KotlinObjectProperty(property = Throwable::message),
-      "cause" to SyntheticObjectProperty(valueType = String::class.java, accessor = throwableCauseAccessor)
+      "cause" to SyntheticObjectProperty(valueType = Any::class.java, accessor = throwableCauseAccessor)
   ).toMap()
 
   @Suppress("UNCHECKED_CAST")
