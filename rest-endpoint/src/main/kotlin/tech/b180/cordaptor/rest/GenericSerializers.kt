@@ -385,3 +385,30 @@ class DynamicObjectSerializer(
 
   override fun generateSchema(generator: JsonSchemaGenerator): JsonObject = schema
 }
+
+/**
+ * Pass-through serializer for [JsonObject]
+ * This is intended to be used as part of OpenAPI specification generation.
+ */
+class JsonObjectSerializer : CustomSerializer<JsonObject> {
+
+  override val valueType = SerializerKey(JsonObject::class.java)
+
+  override fun fromJson(value: JsonValue): JsonObject {
+    if (value.valueType != JsonValue.ValueType.OBJECT) {
+      throw SerializationException("Expected an object, got ${value.valueType}")
+    }
+    return value as JsonObject
+  }
+
+  override fun toJson(obj: JsonObject, generator: JsonGenerator) {
+    generator.write(obj)
+  }
+
+  private val schema: JsonObject = mapOf(
+      "type" to "object",
+      "description" to "JSON object generated dynamically by the application",
+      "additionalProperties" to "true").asJsonObject()
+
+  override fun generateSchema(generator: JsonSchemaGenerator): JsonObject = schema
+}
