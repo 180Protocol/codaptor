@@ -296,6 +296,16 @@ data class SerializerKey(
   constructor(klazz: KClass<*>, vararg typeParameters: KClass<*>)
       : this(klazz.java, typeParameters.map { forType(it.java) })
 
+  init {
+    if (rawType.typeParameters.isNotEmpty()
+        && typeParameters.isNotEmpty()
+        && typeParameters.size != rawType.typeParameters.size) {
+
+      throw AssertionError("Serializer key for parameterized type ${rawType.canonicalName} " +
+          "has insufficient number of type parameters: ${rawType.typeParameters.size} instead ${typeParameters.size}")
+    }
+  }
+
   fun asRaw() = this.copy(typeParameters = emptyList())
 
   // e.g. java.util.List<java.lang.String>
@@ -334,7 +344,7 @@ data class SerializerKey(
           throw AssertionError("Cannot differentiate between type bounds in $type")
         is ParameterizedType -> forParameterizedType(type)
         is Class<*> -> SerializerKey(type)
-        else -> throw SerializationException("Don't know how to deconstruct type ${type::class.simpleName}")
+        else -> throw SerializationException("Don't know how to deconstruct type ${type::class.qualifiedName}")
       }
     }
 
@@ -358,19 +368,36 @@ data class SerializerKey(
      * Determines value type for this serializer by analysing actual type parameter passed to a subclass.
      * Only the first type argument of the given base class classifier is analysed.
      */
-    fun <B: Any, S: Any> fromSuperclassTypeArgument(baseClass: KClass<B>, subclass: KClass<S>): SerializerKey {
-      val baseType = subclass.allSupertypes.find { it.classifier == baseClass }
-          ?: throw AssertionError("Cannot find ${baseClass.simpleName} among supertypes of $subclass")
+    fun <B: Any, S: Any> fromSuperclassTypeArgument(
+        baseClass: KClass<B>, subclass: KClass<S>, argumentIndex: Int = 0): SerializerKey {
 
-      if (baseType.arguments.isEmpty()) {
-        throw AssertionError("Base type ${baseClass.simpleName} is not parameterized")
+      val baseType = subclass.allSupertypes.find { it.classifier == baseClass }
+          ?: throw SerializationException("Cannot find ${baseClass.simpleName} among supertypes of $subclass")
+
+      if (baseType.arguments.size <= argumentIndex) {
+        throw SerializationException("Base type ${baseClass.simpleName} " +
+            "does not have necessary number of arguments: ${argumentIndex + 1}")
       }
 
-      val argumentType = baseType.arguments[0].type
-          ?: throw AssertionError("First type argument of $baseType is not a valid type")
+      val argumentType = baseType.arguments[argumentIndex].type
+          ?: throw SerializationException("First type argument of $baseType is not a valid type")
 
-      val argumentRawClass = argumentType.classifier as? KClass<*>
-          ?: throw AssertionError("Type $argumentType does not correspond to a valid classifier")
+      val argumentClassifier = argumentType.classifier
+          ?: throw SerializationException("Argument $argumentType does not have a classifier")
+
+      val argumentRawClass = when (argumentClassifier) {
+        is KClass<*> -> argumentClassifier
+        is KTypeParameter -> {
+          if (argumentClassifier.upperBounds.size != 1) {
+            throw SerializationException(
+                "Type parameter $argumentType has ambiguous upper bound: ${argumentClassifier.upperBounds}")
+          }
+          argumentClassifier.upperBounds[0].classifier as? KClass<*>
+              ?: throw SerializationException("Type parameter $argumentType does not have a valid classifier")
+        }
+        else -> throw SerializationException(
+            "Classifier type for argument $argumentType is not recognized: $argumentClassifier")
+      }
 
       // Kotlin's supertypes don't make Java equivalent available, so we cannot simply pass it to forType(Class)
       val args = argumentType.arguments.mapNotNull {
