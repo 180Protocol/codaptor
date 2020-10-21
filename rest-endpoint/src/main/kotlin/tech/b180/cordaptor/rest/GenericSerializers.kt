@@ -266,41 +266,55 @@ class MapSerializer(
   }
 }
 
+/** Use to override string values for enum constants serialized by [EnumSerializer] */
+interface SerializableEnum {
+  val jsonValue: String
+}
+
 /**
  * Generic serialization handler for all enum types
  * FIXME add enum evolution logic
+ * FIXME consider support for enums serialized as non-string JSON values
  */
 class EnumSerializer(
-    private val enumType: LocalTypeInformation.AnEnum) : SerializationFactory.DelegatingSerializer<Enum<*>, String>(
-    delegate = SerializationFactory.StringSerializer,
-    my2delegate = Enum<*>::name,
-    delegate2my = string2value(enumType)
-) {
+    private val enumClass: Class<Enum<*>>,
+    override val valueType: SerializerKey
+) : JsonSerializer<Enum<*>> {
+
+  @Suppress("UNCHECKED_CAST")
+  constructor(introspectedType: LocalTypeInformation.AnEnum) : this(
+      enumClass = introspectedType.observedType as Class<Enum<*>>,
+      valueType = SerializerKey.forType(introspectedType.observedType))
+
+  private val members: Map<Enum<*>, /* value in JSON */ String> = enumClass.enumConstants.map {
+    // use JsonValue provided by serializable enum if available, otherwise just constant's code name
+    it to ((it as? SerializableEnum)?.jsonValue ?: it.name)
+  }.toMap()
 
   private val schema: JsonObject = mapOf(
       "type" to "string",
-      "enum" to enumType.members
+      "enum" to members.values
   ).asJsonObject()
 
-  override fun generateSchema(generator: JsonSchemaGenerator): JsonObject = schema
-
-  companion object {
-    fun string2value(enumType: LocalTypeInformation.AnEnum): (String) -> Enum<*> {
-      return { stringValue: String ->
-        if (!enumType.members.contains(stringValue)) {
-          throw SerializationException("No such enum value $stringValue among ${enumType.members}")
-        }
-
-        @Suppress("UNCHECKED_CAST")
-        val enumClass = enumType.observedType as Class<Enum<*>>
-
-        // string value was among the introspected options, so something must be wrong with introspection if not found
-        enumClass.enumConstants.find { it.name == stringValue }
-            ?: throw AssertionError("Could not find enum constant $stringValue " +
-                "in class ${enumClass.canonicalName}")
-      }
+  override fun fromJson(value: JsonValue): Enum<*> {
+    if (value.valueType != JsonValue.ValueType.STRING) {
+      throw SerializationException("Expected a string, got ${value.valueType}")
     }
+
+    val stringValue = (value as JsonString).string
+    val entry = members.entries.find { (_, value) -> stringValue == value }
+        ?: throw SerializationException("No such value $stringValue among enum constants ${members.values}")
+
+    return entry.key
   }
+
+  override fun toJson(obj: Enum<*>, generator: JsonGenerator) {
+    val jsonValue = members[obj] ?: throw AssertionError(
+        "Unknown member $obj for enum ${enumClass.canonicalName}")
+    generator.write(jsonValue)
+  }
+
+  override fun generateSchema(generator: JsonSchemaGenerator): JsonObject = schema
 }
 
 class ThrowableSerializer(factory: SerializationFactory) : CustomStructuredObjectSerializer<Throwable>(
