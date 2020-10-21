@@ -539,3 +539,12 @@ object JsonHome {
 
   fun createValue(value: String) = provider.createValue(value)
 }
+
+fun <T: Any> JsonObjectBuilder.addObject(key: String, obj: T, block: JsonObjectBuilder.(T) -> Unit): JsonObjectBuilder
+    = add(key, JsonHome.createObjectBuilder().also { it.block(obj) }.build())
+
+fun JsonObjectBuilder.addObject(key: String, block: JsonObjectBuilder.() -> Unit): JsonObjectBuilder
+    = add(key, JsonHome.createObjectBuilder().apply(block).build())
+
+fun JsonObjectBuilder.addModifiedObject(key: String, obj: JsonObject, block: JsonObjectBuilder.() -> Unit): JsonObjectBuilder
+    = add(key, JsonHome.createObjectBuilder(obj).apply(block).build())
