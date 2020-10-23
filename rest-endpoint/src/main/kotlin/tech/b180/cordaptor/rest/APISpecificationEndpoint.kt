@@ -71,7 +71,7 @@ data class OpenAPISpecificationBuilder(
   fun buildSpec(): OpenAPI {
     require(info != null)
 
-    val generator = CollectingJsonSchemaGenerator("#/components/schemas/", serializationFactory)
+    val generator = CollectingJsonSchemaGenerator(OpenAPI.COMPONENTS_SCHEMA_PREFIX, serializationFactory)
     val paths = (queryEndpoints + operationEndpoint).map { it.resourceSpecification }
         .map { it.resourcePath to it.generatePathInfoSpecification(generator) }
         .groupBy(keySelector = { it.first }, valueTransform = { it.second })

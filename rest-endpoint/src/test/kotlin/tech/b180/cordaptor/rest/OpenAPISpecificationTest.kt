@@ -7,6 +7,7 @@ import org.koin.test.KoinTestRule
 import org.koin.test.get
 import tech.b180.cordaptor.corda.CordaFlowSnapshot
 import java.net.URL
+import javax.json.JsonObject
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -52,13 +53,20 @@ class OpenAPISpecificationTest : KoinTest {
     // this test ensures that unintended consequences for changes
     // do not affect our ability to serialize OpenAPI constructs
     val f = get<SerializationFactory>()
-    val serializer = f.getSerializer(OpenAPI::class.java)
-    val schema = serializer.generateSchema(RecursiveJsonSchemaGenerator(f))
+    val gen = CollectingJsonSchemaGenerator(OpenAPI.COMPONENTS_SCHEMA_PREFIX, f)
+    val schema = gen.generateSchema(SerializerKey.forType(OpenAPI::class.java))
+
+    assertEquals("""{"${'$'}ref":"#/components/schemas/OpenAPI"}"""".asJsonObject(), schema)
+
+    val componentsSerializer = f.getSerializer(
+        SerializerKey(Map::class.java, String::class.java, JsonObject::class.java))
+
+    val components = generateJson { componentsSerializer.toJson(gen.collectedSchemas, this) }.asJsonObject()
 
     val expectedSchema = javaClass.getResource("/OpenAPI.schema.json")
         .openStream().reader().readText().asJsonObject()
 
-    assertEquals(expectedSchema, schema)
+    assertEquals(expectedSchema, components)
   }
 
   @Test
