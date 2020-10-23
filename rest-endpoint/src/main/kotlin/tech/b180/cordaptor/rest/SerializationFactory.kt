@@ -76,6 +76,7 @@ class SerializationFactory(
     map[SerializerKey(String::class.java)] = StringSerializer as JsonSerializer<Any>
     map[SerializerKey(Int::class.java)] = IntSerializer as JsonSerializer<Any>
     map[SerializerKey(Long::class.java)] = LongSerializer as JsonSerializer<Any>
+    map[SerializerKey(Boolean::class.java)] = BooleanSerializer as JsonSerializer<Any>
     map[SerializerKey(KClass::class.java)] = KotlinClassSerializer as JsonSerializer<Any>
 
     // nullable values use Java versions of the primitive type wrappers
@@ -288,19 +289,10 @@ class SerializationFactory(
       is LocalTypeInformation.AnEnum -> EnumSerializer(type) as JsonSerializer<Any>
       is LocalTypeInformation.AMap -> MapSerializer(type, this) as JsonSerializer<Any>
       is LocalTypeInformation.Top -> DynamicObjectSerializer(SerializerKey.forType(type.observedType), this)
-      is LocalTypeInformation.Atomic -> getSerializerForAtomicType(type.observedType)
       else -> throw AssertionError("Don't know how to create a serializer for " +
           "${type.observedType} (introspected as ${type.javaClass.canonicalName})")
     }
   }
-
-  private fun getSerializerForAtomicType(observedType: Class<*>): JsonSerializer<Any> =
-      getSerializer(
-          when(observedType.simpleName) {
-            "boolean" -> SerializerKey(Boolean::class)
-            else -> throw AssertionError("Unsupported atomic type ${observedType.simpleName}")
-          }
-      )
 }
 
 /**
