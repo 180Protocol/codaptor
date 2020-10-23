@@ -1,5 +1,6 @@
 package tech.b180.cordaptor.rest
 
+import net.corda.core.serialization.SerializableCalculatedProperty
 import java.net.URL
 import javax.json.JsonObject
 import javax.servlet.http.HttpServletResponse
@@ -24,12 +25,15 @@ data class OpenAPI(
 ) {
 
   @Suppress("unused", "SpellCheckingInspection")
+  @get:SerializableCalculatedProperty // FIXME hack to make it read-only, to replace with JSON serialization annotations
   val openapi = VERSION
 
   companion object {
     const val VERSION = "3.0.3"
 
     const val JSON_CONTENT_TYPE: ContentType = "application/json"
+
+    const val COMPONENTS_SCHEMA_PREFIX = "#/components/schemas/"
   }
 
   /** [https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.3.md#infoObject] */
