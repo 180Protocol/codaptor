@@ -2,6 +2,7 @@ package tech.b180.cordaptor.rest
 
 import net.corda.core.contracts.Amount
 import net.corda.core.flows.FlowLogic
+import net.corda.core.serialization.SerializableCalculatedProperty
 import net.corda.serialization.internal.AllWhitelist
 import net.corda.serialization.internal.amqp.CachingCustomSerializerRegistry
 import net.corda.serialization.internal.amqp.DefaultDescriptorBasedSerializerRegistry
@@ -317,6 +318,16 @@ class SerializationTest {
   }
 
   @Test
+  fun `test calculated property annotation`() {
+    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() })
+
+    val serializer = f.getSerializer(ObjectWithCalculatedProperties::class.java)
+
+    assertEquals("""{"one":"123","two":123}""", serializer.toJsonString(
+        ObjectWithCalculatedProperties("123")))
+  }
+
+  @Test
   fun `test abstract class serialization`() {
     val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() })
 
@@ -432,6 +443,13 @@ data class ObjectWithTransientProperties(
     val two: Int,
     @get:Transient val three: Int
 )
+
+data class ObjectWithCalculatedProperties(
+    val one: String
+) {
+  @get:SerializableCalculatedProperty val two
+      get() = one.toInt()
+}
 
 abstract class BaseObject
 

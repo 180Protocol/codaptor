@@ -78,6 +78,7 @@ class ComposableTypeJsonSerializer<T: Any>(
                 };
                 { obj: Any -> prop.observedField.get(obj) }
               }
+              is LocalPropertyInformation.CalculatedProperty -> { obj: Any -> prop.observedGetter.invoke(obj) }
               is LocalPropertyInformation.GetterSetterProperty -> { obj: Any -> prop.observedGetter.invoke(obj) }
               is LocalPropertyInformation.ReadOnlyProperty -> { obj: Any -> prop.observedGetter.invoke(obj) }
               else -> null
