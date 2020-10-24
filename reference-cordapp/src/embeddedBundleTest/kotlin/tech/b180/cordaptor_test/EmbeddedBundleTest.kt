@@ -61,7 +61,7 @@ class EmbeddedBundleTest {
     assertEquals(HttpServletResponse.SC_OK, response.status)
     assertEquals("application/json", response.mediaType)
 
-    val spec = Json.createReader(StringReader(response.contentAsString)).readObject()
+    val spec = response.contentAsString.asJsonObject()
 
     val expectedSpec = javaClass.getResource("/ReferenceCordapp.api.json")
         .openStream().reader().readText().asJsonObject()
@@ -74,7 +74,7 @@ class EmbeddedBundleTest {
     assertEquals(HttpServletResponse.SC_OK, response.status)
     assertEquals("application/json", response.mediaType)
 
-    val nodeInfo = Json.createReader(StringReader(response.contentAsString)).readObject()
+    val nodeInfo = response.contentAsString.asJsonObject()
     assertEquals("localhost".asJsonValue(), nodeInfo.getValue("/addresses/0/host"))
     assertEquals(NODE_NAME.asJsonValue(), nodeInfo.getValue("/legalIdentitiesAndCerts/0/party/name"))
     assertEquals(7.asJsonValue(), nodeInfo.getValue("/platformVersion"))
@@ -92,7 +92,7 @@ class EmbeddedBundleTest {
     assertEquals(HttpServletResponse.SC_ACCEPTED, response.status)
     assertEquals("application/json", response.mediaType)
 
-    val handle = Json.createReader(StringReader(response.contentAsString)).readObject()
+    val handle = response.contentAsString.asJsonObject()
     assertEquals(SimpleFlow::class.qualifiedName!!.asJsonValue(), handle.getValue("/flowClass"))
     assertEquals(JsonValue.ValueType.STRING, handle.getValue("/flowRunId").valueType)
     assertFalse(handle.containsKey("result"))
@@ -114,7 +114,7 @@ class EmbeddedBundleTest {
     assertEquals(HttpServletResponse.SC_ACCEPTED, response.status)
     assertEquals("application/json", response.mediaType)
 
-    val handle = Json.createReader(StringReader(response.contentAsString)).readObject()
+    val handle = response.contentAsString.asJsonObject()
     assertEquals(DelayedProgressFlow::class.qualifiedName, handle.getValue("/flowClass").asString())
     assertFalse(handle.containsKey("result"))
     assertEquals(JsonValue.ValueType.OBJECT, handle.getValue("/currentProgress").valueType)
@@ -139,7 +139,7 @@ class EmbeddedBundleTest {
     assertEquals("application/json", response.mediaType)
     assertTrue(Instant.now() < requestTimestamp + maxRequestTime)
 
-    val handle = Json.createReader(StringReader(response.contentAsString)).readObject()
+    val handle = response.contentAsString.asJsonObject()
     assertEquals(SimpleFlow::class.qualifiedName!!.asJsonValue(), handle.getValue("/flowClass"))
     assertEquals(JsonValue.ValueType.STRING, handle.getValue("/flowRunId").valueType)
     assertEquals(JsonValue.ValueType.OBJECT, handle.getValue("/result").valueType)
@@ -156,7 +156,7 @@ class EmbeddedBundleTest {
   private fun testTransactionQuery(client: HttpClient, txid: SecureHash) {
     val response = client.GET("http://localhost:8500/node/tx/${txid}")
 
-    val tx = Json.createReader(StringReader(response.contentAsString)).readObject()
+    val tx = response.contentAsString.asJsonObject()
     assertEquals(txid.toString(), tx.getString("id"))
     assertEquals("TEST-111",
         tx.getValue("/content/wireTransaction/outputs/0/data/linearId/externalId").asString())
