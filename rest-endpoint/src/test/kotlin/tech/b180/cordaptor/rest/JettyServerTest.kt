@@ -42,7 +42,7 @@ class JettyServerTest : KoinTest {
       // initialize a server with plain HTTP connection
       single { JettyServer() }
       single<JettyConfigurator> { ConnectorFactory(JettyConnectorConfiguration(
-          HostAndPort("localhost", 9000))) }
+          HostAndPort("localhost", 9000), false)) }
 
       single<ContextMappedHandler> { EchoHandler("/test") }
 

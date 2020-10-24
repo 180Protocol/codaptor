@@ -21,7 +21,8 @@ class RestEndpointModuleProvider : ModuleProvider {
   override fun provideModule(settings: BootstrapSettings) = module {
     single {
       JettyConnectorConfiguration(
-        bindAddress = getHostAndPortProperty("listen.address")
+          bindAddress = getHostAndPortProperty("listenAddress"),
+          secure = getBooleanProperty("secureEndpoint")
       )
     }
     single { JettyServer() } bind LifecycleAware::class
@@ -34,7 +35,7 @@ class RestEndpointModuleProvider : ModuleProvider {
     single { TransactionQueryEndpoint("/node/tx") } bind QueryEndpoint::class
     single { VaultQueryEndpoint("/node/states") } bind QueryEndpoint::class
 
-    single { APISpecificationEndpointHandler("/api.json") } bind ContextMappedHandler::class
+    single { APISpecificationEndpointHandler("/api.json", get()) } bind ContextMappedHandler::class
     single { SwaggerUIHandler("/swagger-ui.html") } bind ContextMappedHandler::class
 
     // parameterized accessor for obtaining handler instances allowing them to have dependencies managed by Koin
