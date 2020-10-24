@@ -1,5 +1,6 @@
 apply plugin: 'org.jetbrains.kotlin.jvm'
 apply plugin: 'net.corda.plugins.cordapp'
+apply plugin: 'net.corda.plugins.cordformation'
 
 cordapp {
     targetPlatformVersion 7
@@ -85,6 +86,11 @@ dependencies {
     compileOnly name: 'quasar'
     runtimeOnly name: 'quasar'
 
+    // required for cordformation plugin to be able to deploy nodes
+    cordaRuntime "net.corda:corda:$corda_release_version"
+    cordaRuntime "net.corda:corda-node-api:$corda_release_version"
+    cordapp project(':bundle-rest-embedded')
+
     compileOnly "net.corda:corda-core:$corda_core_release_version"
     compileOnly "net.corda:corda-node-api:$corda_core_release_version"
     compileOnly "net.corda:corda-node:$corda_core_release_version"
@@ -117,4 +123,35 @@ dependencies {
     standaloneBundleTestImplementation "net.corda:corda-node-driver:$corda_core_release_version"
 }
 
+// Use this task to deploy local Corda network with embedded Cordaptor bundle
+task deployNodes(type: net.corda.plugins.Cordform, dependsOn: ['jar']) {
+    nodeDefaults {
+        projectCordapp {
+            deploy = true
+        }
+    }
+    node {
+        name "O=Notary,L=London,C=GB"
+        notary = [validating : false]
+        p2pAddress "localhost:10200"
+        rpcSettings {
+            address("0.0.0.0:10201")
+            adminAddress("0.0.0.0:10202")
+            useSsl(false)
+        }
+    }
+    node {
+        name "O=Bank,L=London,C=GB"
+        p2pAddress "localhost:10300"
+        rpcSettings {
+            address("0.0.0.0:10301")
+            adminAddress("0.0.0.0:10302")
+            useSsl(false)
+        }
+        cordapp(project(':bundle-rest-embedded')) {
+            config '''\
+                useLocalCache=false
+            '''.stripIndent()
+        }
+    }
 }

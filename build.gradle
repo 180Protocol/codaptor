@@ -1,6 +1,30 @@
+buildscript {
+    ext {
+        corda_release_group = "net.corda"
+        corda_core_release_group = "net.corda"
+        corda_release_version = getProperty("corda_release_version")
+        corda_core_release_version = getProperty("corda_core_release_version")
+        corda_gradle_plugins_version = getProperty("corda_gradle_plugins_version")
+    }
+
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        jcenter()
+        maven { url 'https://ci-artifactory.corda.r3cev.com/artifactory/corda-releases' }
+    }
+
+    dependencies {
+        classpath "net.corda.plugins:cordapp:$corda_gradle_plugins_version"
+        classpath "net.corda.plugins:cordformation:$corda_gradle_plugins_version"
+        classpath 'com.github.jengelman.gradle.plugins:shadow:6.1.0'
+    }
+}
+
 plugins {
     id 'org.jetbrains.kotlin.jvm' version '1.2.71'
-    id 'net.corda.plugins.cordapp' version '5.0.4'
+    id 'net.corda.plugins.cordapp' version '5.0.12'
+    id 'net.corda.plugins.cordformation' version '5.0.12'
 }
 
 allprojects {
