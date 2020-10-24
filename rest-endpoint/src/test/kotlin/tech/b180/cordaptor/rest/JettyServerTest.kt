@@ -226,7 +226,7 @@ class EchoQueryEndpoint(contextPath: String) : QueryEndpoint<EchoPayload> {
   }
 
   override val resourceSpecification: OpenAPIResource
-    get() = TODO("Not yet implemented")
+    get() = throw NotImplementedError("Not meant to be called")
 }
 
 class MisconfiguredEchoQueryEndpoint(contextPath: String) : QueryEndpoint<EchoPayload> {
@@ -240,7 +240,7 @@ class MisconfiguredEchoQueryEndpoint(contextPath: String) : QueryEndpoint<EchoPa
   }
 
   override val resourceSpecification: OpenAPIResource
-    get() = TODO("Not yet implemented")
+    get() = throw NotImplementedError("Not meant to be called")
 }
 
 class SyncEchoOperationEndpoint(contextPath: String) : OperationEndpoint<SimplePayload, EchoPayload> {
@@ -256,7 +256,7 @@ class SyncEchoOperationEndpoint(contextPath: String) : OperationEndpoint<SimpleP
   }
 
   override val resourceSpecification: OpenAPIResource
-    get() = TODO("Not yet implemented")
+    get() = throw NotImplementedError("Not meant to be called")
 }
 
 class AsyncEchoOperationEndpoint(contextPath: String) : OperationEndpoint<SimplePayload, EchoPayload> {
@@ -273,5 +273,5 @@ class AsyncEchoOperationEndpoint(contextPath: String) : OperationEndpoint<Simple
   }
 
   override val resourceSpecification: OpenAPIResource
-    get() = TODO("Not yet implemented")
+    get() = throw NotImplementedError("Not meant to be called")
 }
