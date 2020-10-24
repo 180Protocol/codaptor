@@ -1,0 +1,31 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:6.1.0'
+    }
+}
+
+plugins {
+    id 'com.github.johnrengelman.shadow' version '6.1.0'
+    id 'java'
+}
+
+apply plugin: 'com.github.johnrengelman.shadow'
+apply plugin: 'java'
+
+repositories {
+    jcenter()
+}
+
+shadowJar {
+    archiveVersion = ""
+
+    relocate 'javax.json', 'tech.b180.cordaptor.shaded.javax.json'
+    relocate 'org.glassfish.json', 'tech.b180.cordaptor.shaded.org.glassfish.json'
+}
+
+dependencies {
+    implementation "org.glassfish:javax.json:1.1"
+}

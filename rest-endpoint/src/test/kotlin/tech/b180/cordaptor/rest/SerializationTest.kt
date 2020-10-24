@@ -11,15 +11,12 @@ import net.corda.serialization.internal.model.ConfigurableLocalTypeModel
 import net.corda.serialization.internal.model.LocalPropertyInformation
 import net.corda.serialization.internal.model.LocalTypeInformation
 import net.corda.serialization.internal.model.LocalTypeModel
+import tech.b180.cordaptor.shaded.javax.json.*
+import tech.b180.cordaptor.shaded.javax.json.stream.JsonGenerator
 import java.beans.Transient
 import java.io.StringReader
 import java.io.StringWriter
 import java.util.*
-import javax.json.JsonNumber
-import javax.json.JsonObject
-import javax.json.JsonString
-import javax.json.JsonValue
-import javax.json.stream.JsonGenerator
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
 import kotlin.reflect.full.instanceParameter
@@ -360,7 +357,7 @@ fun <T: Any> JsonSerializer<T>.generateRecursiveSchema(factory: SerializationFac
 
 fun generateJson(block: JsonGenerator.() -> Unit): String {
   val w = StringWriter()
-  val gen = JsonHome.createGenerator(w)
+  val gen = Json.createGenerator(w)
   gen.apply(block)
   gen.flush()
   return w.toString()
@@ -389,12 +386,12 @@ fun <K, V> LocalTypeModel.inspectProperty(prop: KProperty<Map<K, V>>): LocalType
 }
 
 fun String.asJsonObject(): JsonObject {
-  val r = JsonHome.createReader(StringReader(this))
+  val r = Json.createReader(StringReader(this))
   return r.readObject()
 }
 
 fun String.asJsonValue(): JsonValue {
-  val r = JsonHome.createReader(StringReader(this))
+  val r = Json.createReader(StringReader(this))
   return r.readValue()
 }
 

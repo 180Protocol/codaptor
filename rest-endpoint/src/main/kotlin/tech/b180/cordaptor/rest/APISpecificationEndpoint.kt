@@ -4,8 +4,8 @@ import org.koin.core.inject
 import tech.b180.cordaptor.kernel.CordaptorComponent
 import tech.b180.cordaptor.kernel.getAll
 import tech.b180.cordaptor.kernel.loggerFor
+import tech.b180.cordaptor.shaded.javax.json.JsonObject
 import java.net.URL
-import javax.json.JsonObject
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 

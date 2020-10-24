@@ -1,9 +1,9 @@
 package tech.b180.cordaptor.rest
 
+import tech.b180.cordaptor.shaded.javax.json.JsonObject
+import tech.b180.cordaptor.shaded.javax.json.JsonValue
+import tech.b180.cordaptor.shaded.javax.json.stream.JsonGenerator
 import java.lang.reflect.Type
-import javax.json.JsonObject
-import javax.json.JsonValue
-import javax.json.stream.JsonGenerator
 import kotlin.reflect.KProperty
 import kotlin.reflect.jvm.javaMethod
 

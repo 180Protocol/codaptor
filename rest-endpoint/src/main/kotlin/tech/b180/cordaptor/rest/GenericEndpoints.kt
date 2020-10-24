@@ -7,10 +7,10 @@ import io.reactivex.rxjava3.observers.DisposableSingleObserver
 import org.eclipse.jetty.server.handler.AbstractHandler
 import tech.b180.cordaptor.kernel.CordaptorComponent
 import tech.b180.cordaptor.kernel.loggerFor
+import tech.b180.cordaptor.shaded.javax.json.stream.JsonParsingException
 import java.beans.Transient
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
-import javax.json.stream.JsonParsingException
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 import org.eclipse.jetty.server.Request as JettyRequest

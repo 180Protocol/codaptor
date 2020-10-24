@@ -9,21 +9,19 @@ import net.corda.serialization.internal.model.BaseLocalTypes
 import net.corda.serialization.internal.model.ConfigurableLocalTypeModel
 import net.corda.serialization.internal.model.LocalTypeInformation
 import net.corda.serialization.internal.model.LocalTypeModelConfiguration
-import org.glassfish.json.JsonProviderImpl
 import tech.b180.cordaptor.kernel.loggerFor
-import java.io.PrintWriter
-import java.io.Reader
-import java.io.StringWriter
+import tech.b180.cordaptor.shaded.javax.json.JsonNumber
+import tech.b180.cordaptor.shaded.javax.json.JsonObject
+import tech.b180.cordaptor.shaded.javax.json.JsonString
+import tech.b180.cordaptor.shaded.javax.json.JsonValue
+import tech.b180.cordaptor.shaded.javax.json.stream.JsonGenerator
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
 import java.lang.reflect.TypeVariable
 import java.lang.reflect.WildcardType
 import java.net.URL
 import java.util.concurrent.ConcurrentHashMap
-import javax.json.*
-import javax.json.stream.JsonGenerator
 import kotlin.reflect.KClass
-import kotlin.reflect.KType
 import kotlin.reflect.KTypeParameter
 import kotlin.reflect.full.allSupertypes
 
@@ -435,68 +433,6 @@ data class SerializerKey(
 }
 
 /**
- * Note this only supports map of primitive types
- *
- * @throws IllegalArgumentException non-primitive type was encountered
- */
-fun Map<String, Any>.asJsonObject(): JsonObject {
-  return JsonHome.createObjectBuilder(this).build()
-}
-
-/**
- * Note this only supports collections of primitive types.
- *
- * @throws IllegalArgumentException non-primitive type was encountered
- */
-fun Collection<Any>.asJsonArray(): JsonArray {
-  return JsonHome.createArrayBuilder(this).build()
-}
-
-/**
- * Helper method allowing [JsonSerializer] to be used in a fluent way.
- * Use to generate a field called [name] in the object context.
- */
-fun <T: Any> JsonGenerator.writeSerializedArray(
-    name: String,
-    serializer: JsonSerializer<T>,
-    items: Collection<T>,
-    omitIfEmpty: Boolean = false): JsonGenerator {
-
-  if (omitIfEmpty && items.isEmpty()) {
-    return this;
-  }
-  this.writeStartArray(name)
-  items.forEach { serializer.toJson(it, this) }
-  this.writeEnd()
-  return this
-}
-
-/**
- * Helper method allowing [JsonSerializer] to be used in a fluent way.
- * Use to generate just an array in the current context.
- */
-fun <T: Any> JsonGenerator.writeSerializedArray(
-    serializer: JsonSerializer<T>,
-    items: List<T>): JsonGenerator {
-
-  this.writeStartArray()
-  items.forEach { serializer.toJson(it, this) }
-  this.writeEnd()
-  return this
-}
-
-/**
- * Helper method allowing [JsonSerializer] to be used in a fluent way
- */
-fun <T: Any> JsonGenerator.writeSerializedObject(
-    serializer: JsonSerializer<T>,
-    obj: T): JsonGenerator {
-
-  serializer.toJson(obj, this)
-  return this
-}
-
-/**
  * Base interface for all serializers allowing JVM objects to be read from JSON structures
  * and written to JSON stream. Serializers also can describe the schema of JSON value
  * that it can read and write using a subset of JSON Schema allowed for OpenAPI specifications.
@@ -566,35 +502,6 @@ interface JsonSchemaGenerator {
  */
 interface CustomSerializer<T> : JsonSerializer<T> {
 }
-
-object JsonHome {
-  /** Explicitly bind to a built-in provider to avoid a gamble with ServiceLoader */
-  private val provider = JsonProviderImpl()
-
-  fun createObjectBuilder(): JsonObjectBuilder = provider.createObjectBuilder()
-  fun createObjectBuilder(map: Map<String, Any?>): JsonObjectBuilder = provider.createObjectBuilder(map)
-  fun createObjectBuilder(jsonObject: JsonObject): JsonObjectBuilder = provider.createObjectBuilder(jsonObject)
-
-  fun createArrayBuilder(): JsonArrayBuilder = provider.createArrayBuilder()
-  fun createArrayBuilder(collection: Collection<Any?>): JsonArrayBuilder = provider.createArrayBuilder(collection)
-
-  fun createGenerator(writer: StringWriter): JsonGenerator = provider.createGenerator(writer)
-  fun createGenerator(writer: PrintWriter): JsonGenerator = provider.createGenerator(writer)
-
-  fun createReader(reader: Reader): JsonReader = provider.createReader(reader)
-
-  fun createValue(value: String) = provider.createValue(value)
-}
-
-fun <T: Any> JsonObjectBuilder.addObject(key: String, obj: T, block: JsonObjectBuilder.(T) -> Unit): JsonObjectBuilder
-    = add(key, JsonHome.createObjectBuilder().also { it.block(obj) }.build())
-
-fun JsonObjectBuilder.addObject(key: String, block: JsonObjectBuilder.() -> Unit): JsonObjectBuilder
-    = add(key, JsonHome.createObjectBuilder().apply(block).build())
-
-fun JsonObjectBuilder.addModifiedObject(key: String, obj: JsonObject, block: JsonObjectBuilder.() -> Unit): JsonObjectBuilder
-    = add(key, JsonHome.createObjectBuilder(obj).apply(block).build())
-
 
 fun Type.isAssignableTo(clazz: Class<*>): Boolean = when(this) {
   is Class<*> -> clazz.isAssignableFrom(this)

@@ -6,8 +6,8 @@ import org.koin.test.KoinTest
 import org.koin.test.KoinTestRule
 import org.koin.test.get
 import tech.b180.cordaptor.corda.CordaFlowSnapshot
+import tech.b180.cordaptor.shaded.javax.json.JsonObject
 import java.net.URL
-import javax.json.JsonObject
 import kotlin.test.Test
 import kotlin.test.assertEquals
 

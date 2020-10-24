@@ -3,12 +3,12 @@ package tech.b180.cordaptor.rest
 import net.corda.serialization.internal.model.LocalPropertyInformation
 import net.corda.serialization.internal.model.LocalTypeInformation
 import tech.b180.cordaptor.kernel.loggerFor
+import tech.b180.cordaptor.shaded.javax.json.JsonArray
+import tech.b180.cordaptor.shaded.javax.json.JsonObject
+import tech.b180.cordaptor.shaded.javax.json.JsonString
+import tech.b180.cordaptor.shaded.javax.json.JsonValue
+import tech.b180.cordaptor.shaded.javax.json.stream.JsonGenerator
 import java.lang.reflect.ParameterizedType
-import javax.json.JsonArray
-import javax.json.JsonObject
-import javax.json.JsonString
-import javax.json.JsonValue
-import javax.json.stream.JsonGenerator
 
 
 /**

@@ -1,8 +1,8 @@
 package tech.b180.cordaptor.rest
 
 import net.corda.core.serialization.SerializableCalculatedProperty
+import tech.b180.cordaptor.shaded.javax.json.JsonObject
 import java.net.URL
-import javax.json.JsonObject
 import javax.servlet.http.HttpServletResponse
 
 typealias SemanticVersion = String

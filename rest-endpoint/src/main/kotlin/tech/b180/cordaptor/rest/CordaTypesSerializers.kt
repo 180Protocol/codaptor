@@ -12,12 +12,12 @@ import net.corda.core.transactions.CoreTransaction
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.WireTransaction
 import tech.b180.cordaptor.corda.CordaNodeState
+import tech.b180.cordaptor.shaded.javax.json.JsonObject
 import java.security.PublicKey
 import java.security.cert.X509Certificate
 import java.time.Instant
 import java.time.format.DateTimeFormatter
 import java.util.*
-import javax.json.JsonObject
 
 /**
  * Serializer for [CordaX500Name] converting to/from a string value.

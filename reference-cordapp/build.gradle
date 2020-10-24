@@ -115,6 +115,6 @@ dependencies {
     standaloneBundleTestImplementation 'org.jetbrains.kotlin:kotlin-test'
     standaloneBundleTestImplementation 'org.jetbrains.kotlin:kotlin-test-junit'
     standaloneBundleTestImplementation "net.corda:corda-node-driver:$corda_core_release_version"
-    standaloneBundleTestImplementation "org.eclipse.jetty:jetty-client:$jetty_version"
-    standaloneBundleTestImplementation "org.glassfish:javax.json:$glassfish_json_version"
+}
+
 }

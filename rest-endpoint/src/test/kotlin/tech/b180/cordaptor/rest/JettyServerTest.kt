@@ -14,9 +14,9 @@ import org.koin.test.KoinTest
 import org.koin.test.KoinTestRule
 import org.koin.test.get
 import tech.b180.cordaptor.kernel.HostAndPort
+import tech.b180.cordaptor.shaded.javax.json.Json
 import java.lang.reflect.Type
 import java.util.concurrent.TimeUnit
-import javax.json.Json
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 import kotlin.test.Test

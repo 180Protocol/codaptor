@@ -9,9 +9,10 @@ dependencies {
     implementation project(":kernel")
     implementation project(":corda-common")
 
+    implementation name: "glassfish-javax-json-$glassfish_json_version-shaded"
+
     implementation "org.koin:koin-core:$koin_version"
     implementation "org.eclipse.jetty:jetty-server:$jetty_version"
-    implementation "org.glassfish:javax.json:$glassfish_json_version"
     implementation "io.reactivex.rxjava3:rxjava:$rxjava3_version"
 
     compileOnly "net.corda:corda-core:$corda_core_release_version"
