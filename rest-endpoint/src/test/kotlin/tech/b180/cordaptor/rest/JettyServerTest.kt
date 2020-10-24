@@ -51,6 +51,8 @@ class JettyServerTest : KoinTest {
       single { SyncEchoOperationEndpoint("/echo-op-sync") } bind OperationEndpoint::class
       single { AsyncEchoOperationEndpoint("/echo-op-async") } bind OperationEndpoint::class
 
+      single { SwaggerUIHandler("/swagger") } bind ContextMappedHandler::class
+
       // parameterized accessor for obtaining handler instances allowing them to have dependencies managed by Koin
       factory<QueryEndpointHandler<*>> { (endpoint: QueryEndpoint<*>) -> QueryEndpointHandler(endpoint) }
       factory<OperationEndpointHandler<*, *>> { (endpoint: OperationEndpoint<*, *>) -> OperationEndpointHandler(endpoint) }
@@ -171,6 +173,21 @@ class JettyServerTest : KoinTest {
 
       assertEquals("""{"pathInfo":"","method":"POST","message":"async"}""".asJsonObject(),
           it.contentAsString.asJsonObject())
+    }
+  }
+
+  @Test
+  fun `test swagger UI resources handling`() {
+    val httpClient = get<HttpClient>()
+
+    httpClient.GET("http://localhost:9000/swagger").let { response ->
+      assertEquals(HttpServletResponse.SC_OK, response.status)
+      assertEquals("text/html", response.mediaType)
+    }
+
+    httpClient.GET("http://localhost:9000/swagger/cordaptor.bundle.js").let { response ->
+      assertEquals(HttpServletResponse.SC_OK, response.status)
+      assertEquals("application/javascript", response.mediaType)
     }
   }
 }

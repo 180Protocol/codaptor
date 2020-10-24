@@ -1,9 +1,18 @@
 apply plugin: 'org.jetbrains.kotlin.jvm'
 
-configurations {
-    testRuntime.exclude module: 'geronimo-json_1.0_spec'
-    testRuntime.exclude module: 'johnzon-core'
+ext.swaggerOutputDir = file("$buildDir/swagger-resources")
+
+task copySwaggerResources(type: Copy) {
+    def output = project.ext.swaggerOutputDir
+    doFirst {
+        println "Copying swagger resources to $output"
+        output.mkdirs()
+    }
+    from project.file("swagger-ui/dist")
+    into "$output/swagger"
 }
+
+sourceSets.main.output.dir project.ext.swaggerOutputDir, builtBy: copySwaggerResources
 
 dependencies {
     implementation project(":kernel")

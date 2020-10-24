@@ -1,17 +1,20 @@
 package tech.b180.cordaptor.rest
 
-import org.eclipse.jetty.server.Request
-import org.eclipse.jetty.server.handler.AbstractHandler
-import tech.b180.cordaptor.rest.ContextMappedHandler
-import javax.servlet.http.HttpServletRequest
-import javax.servlet.http.HttpServletResponse
+import org.eclipse.jetty.server.handler.ResourceHandler
+import org.eclipse.jetty.util.resource.Resource
 
-class SwaggerUIHandler(contextPath: String) : ContextMappedHandler, AbstractHandler() {
+/**
+ * Simple handler serving static resources required for Swagger UI.
+ */
+class SwaggerUIHandler(contextPath: String) : ContextMappedHandler, ResourceHandler() {
 
-  override val mappingParameters = ContextMappingParameters(contextPath, true)
-
-  override fun handle(target: String?, baseRequest: Request?, request: HttpServletRequest?, response: HttpServletResponse?) {
-    TODO("Not yet implemented")
+  init {
+    isDirectoriesListed = false
+    isRedirectWelcome = true
+    welcomeFiles = arrayOf("index.html")
+    baseResource = Resource.newClassPathResource("/swagger")
   }
+
+  override val mappingParameters = ContextMappingParameters(contextPath, false)
 
 }

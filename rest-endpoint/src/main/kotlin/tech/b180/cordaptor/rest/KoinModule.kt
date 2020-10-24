@@ -36,7 +36,7 @@ class RestEndpointModuleProvider : ModuleProvider {
     single { VaultQueryEndpoint("/node/states") } bind QueryEndpoint::class
 
     single { APISpecificationEndpointHandler("/api.json", get()) } bind ContextMappedHandler::class
-    single { SwaggerUIHandler("/swagger-ui.html") } bind ContextMappedHandler::class
+    single { SwaggerUIHandler("/swagger") } bind ContextMappedHandler::class
 
     // parameterized accessor for obtaining handler instances allowing them to have dependencies managed by Koin
     factory<QueryEndpointHandler<*>> { (endpoint: QueryEndpoint<*>) -> QueryEndpointHandler(endpoint) }
