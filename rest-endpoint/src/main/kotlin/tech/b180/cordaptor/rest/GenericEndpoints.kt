@@ -7,6 +7,7 @@ import io.reactivex.rxjava3.observers.DisposableSingleObserver
 import org.eclipse.jetty.server.handler.AbstractHandler
 import tech.b180.cordaptor.kernel.CordaptorComponent
 import tech.b180.cordaptor.kernel.loggerFor
+import tech.b180.cordaptor.shaded.javax.json.Json
 import tech.b180.cordaptor.shaded.javax.json.stream.JsonParsingException
 import java.beans.Transient
 import java.lang.reflect.ParameterizedType
@@ -319,7 +320,7 @@ abstract class AbstractEndpointHandler<ResponseType: Any>(
     servletResponse.status = error.statusCode
     servletResponse.contentType = JSON_CONTENT_TYPE
 
-    JsonHome.createGenerator(servletResponse.writer)
+    Json.createGenerator(servletResponse.writer)
         .writeSerializedObject(errorSerializer, error)
         .flush()
   }
@@ -337,7 +338,7 @@ abstract class AbstractEndpointHandler<ResponseType: Any>(
     servletResponse.status = endpointResponse.statusCode
     servletResponse.contentType = JSON_CONTENT_TYPE
 
-    JsonHome.createGenerator(servletResponse.writer)
+    Json.createGenerator(servletResponse.writer)
         .writeSerializedObject(responseSerializer, endpointResponse.payload)
         .flush()
   }
@@ -418,7 +419,7 @@ class OperationEndpointHandler<RequestType: Any, ResponseType: Any>(
       throw BadOperationRequestException("Empty request payload")
     }
     val requestPayload = try {
-      val requestJsonPayload = JsonHome.createReader(request.reader).readObject()
+      val requestJsonPayload = Json.createReader(request.reader).readObject()
       requestSerializer.fromJson(requestJsonPayload)
     } catch (e: JsonParsingException) {
       logger.debug("JSON parsing exception, which will be returned to the client", e)

@@ -10,10 +10,7 @@ import net.corda.serialization.internal.model.ConfigurableLocalTypeModel
 import net.corda.serialization.internal.model.LocalTypeInformation
 import net.corda.serialization.internal.model.LocalTypeModelConfiguration
 import tech.b180.cordaptor.kernel.loggerFor
-import tech.b180.cordaptor.shaded.javax.json.JsonNumber
-import tech.b180.cordaptor.shaded.javax.json.JsonObject
-import tech.b180.cordaptor.shaded.javax.json.JsonString
-import tech.b180.cordaptor.shaded.javax.json.JsonValue
+import tech.b180.cordaptor.shaded.javax.json.*
 import tech.b180.cordaptor.shaded.javax.json.stream.JsonGenerator
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
@@ -122,7 +119,7 @@ class SerializationFactory(
     private val schema: JsonObject
 
     init {
-      val b = JsonHome.createObjectBuilder().add("type", jsonType)
+      val b = Json.createObjectBuilder().add("type", jsonType)
       if (jsonFormat != null) {
         b.add("format", jsonFormat)
       }

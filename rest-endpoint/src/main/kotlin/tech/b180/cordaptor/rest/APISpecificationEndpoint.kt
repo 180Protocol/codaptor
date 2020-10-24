@@ -4,6 +4,7 @@ import org.koin.core.inject
 import tech.b180.cordaptor.kernel.CordaptorComponent
 import tech.b180.cordaptor.kernel.getAll
 import tech.b180.cordaptor.kernel.loggerFor
+import tech.b180.cordaptor.shaded.javax.json.Json
 import tech.b180.cordaptor.shaded.javax.json.JsonObject
 import java.net.URL
 import javax.servlet.http.HttpServletRequest
@@ -46,7 +47,7 @@ class APISpecificationEndpointHandler(
     response.status = HttpServletResponse.SC_OK
     response.contentType = JSON_CONTENT_TYPE
 
-    JsonHome.createGenerator(response.writer)
+    Json.createGenerator(response.writer)
         .writeSerializedObject(responseSerializer, apiSpecification)
         .flush()
   }
@@ -138,7 +139,7 @@ class CollectingJsonSchemaGenerator(
 
   /** [https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.3.md#referenceObject] */
   private fun createReference(schemaTypeName: String): JsonObject {
-    return JsonHome.createObjectBuilder()
+    return Json.createObjectBuilder()
         .add("\$ref", referencePathPrefix + schemaTypeName)
         .build()
   }

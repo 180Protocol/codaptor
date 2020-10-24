@@ -1,6 +1,7 @@
 package tech.b180.cordaptor.rest
 
 import net.corda.core.serialization.SerializableCalculatedProperty
+import tech.b180.cordaptor.shaded.javax.json.Json
 import tech.b180.cordaptor.shaded.javax.json.JsonObject
 import java.net.URL
 import javax.servlet.http.HttpServletResponse
@@ -240,7 +241,7 @@ data class OpenAPI(
 
   object PrimitiveTypes {
 
-    val POSITIVE_INTEGER: JsonObject = JsonHome.createObjectBuilder()
+    val POSITIVE_INTEGER: JsonObject = Json.createObjectBuilder()
         .add("type", "number")
         .add("minimum", 0)
         .build()

@@ -3,10 +3,7 @@ package tech.b180.cordaptor.rest
 import net.corda.serialization.internal.model.LocalPropertyInformation
 import net.corda.serialization.internal.model.LocalTypeInformation
 import tech.b180.cordaptor.kernel.loggerFor
-import tech.b180.cordaptor.shaded.javax.json.JsonArray
-import tech.b180.cordaptor.shaded.javax.json.JsonObject
-import tech.b180.cordaptor.shaded.javax.json.JsonString
-import tech.b180.cordaptor.shaded.javax.json.JsonValue
+import tech.b180.cordaptor.shaded.javax.json.*
 import tech.b180.cordaptor.shaded.javax.json.stream.JsonGenerator
 import java.lang.reflect.ParameterizedType
 
@@ -179,7 +176,7 @@ class ListSerializer private constructor(
   }
 
   override fun generateSchema(generator: JsonSchemaGenerator): JsonObject {
-    return JsonHome.createObjectBuilder()
+    return Json.createObjectBuilder()
         .add("type", "array")
         .add("items", generator.generateSchema(elementSerializer.valueType))
         .build()
@@ -238,7 +235,7 @@ class MapSerializer(
   override val valueType = SerializerKey(Map::class.java, mapType.keyType.observedType, mapType.valueType.observedType)
 
   override fun generateSchema(generator: JsonSchemaGenerator): JsonObject {
-    return JsonHome.createObjectBuilder()
+    return Json.createObjectBuilder()
         .add("type", "array")
         .add("additionalProperties", generator.generateSchema(valueSerializer.valueType))
         .build()
@@ -252,7 +249,7 @@ class MapSerializer(
     return value.asJsonObject().map { (key, jsonValue) ->
       // key serializer is passed an outright string value wrapped into JsonValue
       // in order to not duplicate the logic for dealing with serializable enums
-      keySerializer.fromJson(JsonHome.createValue(key)) to
+      keySerializer.fromJson(Json.createValue(key)) to
           valueSerializer.fromJson(jsonValue)
     }.toMap()
   }
