@@ -172,8 +172,8 @@ abstract class StructuredObjectSerializer<T: Any>(
   }
 
   open fun initializeInstance(values: Map<String, Any?>): T {
-    throw AssertionError("JSON Serialization is allowed for class $valueType, " +
-        "  initializeInstance() method is not implemented")
+    throw AssertionError("JSON Serialization is not allowed for class $valueType, " +
+        "  initializeInstance() method is not implemented in ${this::class}")
   }
 
   override fun toJson(obj: T, generator: JsonGenerator) {
