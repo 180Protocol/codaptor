@@ -246,7 +246,7 @@ data class KotlinObjectProperty<T: Any?>(
 }
 
 private fun <R> KProperty<R>.isMandatory(): Boolean {
-  return this.returnType.isMarkedNullable
+  return !this.returnType.isMarkedNullable
 }
 
 /**

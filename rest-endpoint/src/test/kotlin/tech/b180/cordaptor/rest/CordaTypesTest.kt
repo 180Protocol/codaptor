@@ -108,7 +108,7 @@ class CordaTypesTest : KoinTest {
       |   "type":"object",
       |   "properties":{"name":{"type":"string"}},
       |   "required":["name"]}},
-      |"required":[]}""".trimMargin().asJsonObject(),
+      |"required":["party"]}""".trimMargin().asJsonObject(),
         serializer.generateRecursiveSchema(getKoin().get()))
 
     val id = TestIdentity(CordaX500Name("Bank", "London", "GB")).identity
