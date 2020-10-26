@@ -1,5 +1,6 @@
 package tech.b180.cordaptor.rest
 
+import tech.b180.cordaptor.shaded.javax.json.Json
 import tech.b180.cordaptor.shaded.javax.json.JsonObject
 import tech.b180.cordaptor.shaded.javax.json.JsonValue
 import tech.b180.cordaptor.shaded.javax.json.stream.JsonGenerator
@@ -121,7 +122,7 @@ abstract class StructuredObjectSerializer<T: Any>(
     }
 
   override fun generateSchema(generator: JsonSchemaGenerator): JsonObject {
-    return JsonHome.createObjectBuilder()
+    return Json.createObjectBuilder()
         .add("type", "object")
         .addObject("properties") {
           structure.forEach { (name, prop) ->
@@ -313,9 +314,9 @@ abstract class AbstractClassSerializer<T: Any>(
   }
 
   override fun generateSchema(generator: JsonSchemaGenerator): JsonObject {
-    return JsonHome.createObjectBuilder()
+    return Json.createObjectBuilder()
         .add("type", "object")
-        .add("properties", JsonHome.createObjectBuilder().also { builder ->
+        .add("properties", Json.createObjectBuilder().also { builder ->
           for ((discriminatorKey, serializer) in subclassSerializers) {
             builder.add(discriminatorKey, generator.generateSchema(serializer.valueType))
           }
