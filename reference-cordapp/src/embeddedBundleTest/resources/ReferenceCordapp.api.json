@@ -1,71 +1,6 @@
 {
-  "openapi": "3.0.3",
   "components": {
     "schemas": {
-      "CordaTransactionHash": {
-        "type": "string",
-        "minLength": 64,
-        "maxLength": 64,
-        "pattern": "^[A-Z0-9]{64}"
-      },
-      "CordaUniqueIdentifier": {
-        "type": "object",
-        "properties": {
-          "externalId": {
-            "type": "string"
-          },
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          }
-        },
-        "required": [
-          "id"
-        ]
-      },
-      "CordaX500Name": {
-        "type": "string"
-      },
-      "CordaParty": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "$ref": "#/components/schemas/CordaX500Name"
-          }
-        },
-        "required": [
-          "name"
-        ]
-      },
-      "SimpleLinearState": {
-        "type": "object",
-        "properties": {
-          "linearId": {
-            "$ref": "#/components/schemas/CordaUniqueIdentifier"
-          },
-          "participant": {
-            "$ref": "#/components/schemas/CordaParty"
-          }
-        },
-        "required": [
-          "linearId",
-          "participant"
-        ]
-      },
-      "PublicKey": {
-        "type": "object",
-        "properties": {
-          "fingerprint": {
-            "type": "string",
-            "readOnly": true
-          },
-          "knownParty": {
-            "$ref": "#/components/schemas/CordaParty",
-            "readOnly": true
-          }
-        },
-        "required": []
-      },
       "CordaCommand": {
         "type": "object",
         "properties": {
@@ -86,200 +21,17 @@
           "value"
         ]
       },
-      "CordaTransactionState": {
+      "CordaConstraintInfo": {
         "type": "object",
         "properties": {
-          "contract": {
-            "type": "string"
-          },
-          "encumbrance": {
-            "type": "number",
-            "format": "int32"
-          },
-          "notary": {
-            "$ref": "#/components/schemas/CordaParty"
-          },
-          "data": {
+          "constraint": {
             "type": "object",
-            "description": "Dynamic container for subclasses of net.corda.core.contracts.ContractState",
+            "description": "Dynamic container for subclasses of net.corda.core.contracts.AttachmentConstraint",
             "additionalProperties": "true"
           }
         },
         "required": [
-          "data"
-        ]
-      },
-      "CordaStateRef": {
-        "type": "object",
-        "properties": {
-          "index": {
-            "type": "number",
-            "format": "int32"
-          },
-          "txhash": {
-            "$ref": "#/components/schemas/CordaTransactionHash"
-          }
-        },
-        "required": [
-          "index",
-          "txhash"
-        ]
-      },
-      "CordaWireTransaction": {
-        "type": "object",
-        "properties": {
-          "inputs": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CordaCommand"
-            }
-          },
-          "outputs": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CordaTransactionState"
-            }
-          },
-          "references": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CordaStateRef"
-            }
-          }
-        },
-        "required": []
-      },
-      "CordaSignatureMetadata": {
-        "type": "object",
-        "properties": {
-          "platformVersion": {
-            "type": "number",
-            "format": "int32"
-          },
-          "schemeNumberID": {
-            "type": "number",
-            "format": "int32"
-          }
-        },
-        "required": [
-          "platformVersion",
-          "schemeNumberID"
-        ]
-      },
-      "CordaTransactionSignature": {
-        "type": "object",
-        "properties": {
-          "by": {
-            "$ref": "#/components/schemas/PublicKey"
-          },
-          "metadata": {
-            "$ref": "#/components/schemas/CordaSignatureMetadata",
-            "readOnly": true
-          }
-        },
-        "required": []
-      },
-      "CordaSignedTransaction": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "$ref": "#/components/schemas/CordaTransactionHash"
-          },
-          "content": {
-            "type": "object",
-            "properties": {
-              "wireTransaction": {
-                "$ref": "#/components/schemas/CordaWireTransaction"
-              }
-            }
-          },
-          "sigs": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CordaTransactionSignature"
-            }
-          }
-        },
-        "required": []
-      },
-      "CordaNodeVersionInfo": {
-        "type": "object",
-        "properties": {
-          "platformVersion": {
-            "type": "number",
-            "format": "int32"
-          },
-          "releaseVersion": {
-            "type": "string"
-          },
-          "revision": {
-            "type": "string"
-          },
-          "vendor": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "platformVersion",
-          "releaseVersion",
-          "revision",
-          "vendor"
-        ]
-      },
-      "CordaNetworkHostAndPort": {
-        "type": "object",
-        "properties": {
-          "host": {
-            "type": "string"
-          },
-          "port": {
-            "type": "number",
-            "format": "int32"
-          }
-        },
-        "required": [
-          "host",
-          "port"
-        ]
-      },
-      "CordaPartyAndCertificate": {
-        "type": "object",
-        "properties": {
-          "party": {
-            "$ref": "#/components/schemas/CordaParty"
-          }
-        },
-        "required": []
-      },
-      "CordaNodeInfo": {
-        "type": "object",
-        "properties": {
-          "addresses": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CordaNetworkHostAndPort"
-            }
-          },
-          "legalIdentitiesAndCerts": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CordaPartyAndCertificate"
-            }
-          },
-          "platformVersion": {
-            "type": "number",
-            "format": "int32"
-          },
-          "serial": {
-            "type": "number",
-            "format": "int64"
-          }
-        },
-        "required": [
-          "addresses",
-          "legalIdentitiesAndCerts",
-          "platformVersion",
-          "serial"
+          "constraint"
         ]
       },
       "CordaFlowInstruction_DelayedProgressFlow": {
@@ -302,6 +54,21 @@
           "delay"
         ]
       },
+      "CordaFlowInstruction_SimpleFlow": {
+        "type": "object",
+        "properties": {
+          "trackProgress": {
+            "type": "boolean"
+          },
+          "externalId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "trackProgress",
+          "externalId"
+        ]
+      },
       "CordaFlowProgress": {
         "type": "object",
         "properties": {
@@ -316,51 +83,6 @@
         "required": [
           "currentStepName",
           "timestamp"
-        ]
-      },
-      "Throwable": {
-        "type": "object",
-        "properties": {
-          "class": {
-            "type": "string"
-          },
-          "message": {
-            "type": "string"
-          },
-          "cause": {
-            "type": "object",
-            "description": "Dynamic container for subclasses of java.lang.Object",
-            "additionalProperties": "true"
-          }
-        },
-        "required": [
-          "message"
-        ]
-      },
-      "CordaStateAndRef_SimpleLinearState": {
-        "type": "object",
-        "properties": {
-          "ref": {
-            "$ref": "#/components/schemas/CordaStateRef"
-          },
-          "state": {
-            "$ref": "#/components/schemas/CordaTransactionState"
-          }
-        },
-        "required": [
-          "ref",
-          "state"
-        ]
-      },
-      "SimpleFlowResult": {
-        "type": "object",
-        "properties": {
-          "output": {
-            "$ref": "#/components/schemas/CordaStateAndRef_SimpleLinearState"
-          }
-        },
-        "required": [
-          "output"
         ]
       },
       "CordaFlowResult_SimpleFlowResult": {
@@ -408,20 +130,430 @@
           "startedAt"
         ]
       },
-      "CordaFlowInstruction_SimpleFlow": {
+      "CordaNetworkHostAndPort": {
         "type": "object",
         "properties": {
-          "trackProgress": {
-            "type": "boolean"
+          "host": {
+            "type": "string"
           },
-          "externalId": {
+          "port": {
+            "type": "number",
+            "format": "int32"
+          }
+        },
+        "required": [
+          "host",
+          "port"
+        ]
+      },
+      "CordaNodeInfo": {
+        "type": "object",
+        "properties": {
+          "addresses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CordaNetworkHostAndPort"
+            }
+          },
+          "legalIdentitiesAndCerts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CordaPartyAndCertificate"
+            }
+          },
+          "platformVersion": {
+            "type": "number",
+            "format": "int32"
+          },
+          "serial": {
+            "type": "number",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "addresses",
+          "legalIdentitiesAndCerts",
+          "platformVersion",
+          "serial"
+        ]
+      },
+      "CordaNodeVersionInfo": {
+        "type": "object",
+        "properties": {
+          "platformVersion": {
+            "type": "number",
+            "format": "int32"
+          },
+          "releaseVersion": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "string"
+          },
+          "vendor": {
             "type": "string"
           }
         },
         "required": [
-          "trackProgress",
-          "externalId"
+          "platformVersion",
+          "releaseVersion",
+          "revision",
+          "vendor"
         ]
+      },
+      "CordaParty": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "$ref": "#/components/schemas/CordaX500Name"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "CordaPartyAndCertificate": {
+        "type": "object",
+        "properties": {
+          "party": {
+            "$ref": "#/components/schemas/CordaParty"
+          }
+        },
+        "required": [
+          "party"
+        ]
+      },
+      "CordaRelevancyStatus": {
+        "type": "string",
+        "enum": [
+          "RELEVANT",
+          "NOT_RELEVANT",
+          "ALL"
+        ]
+      },
+      "CordaSignatureMetadata": {
+        "type": "object",
+        "properties": {
+          "platformVersion": {
+            "type": "number",
+            "format": "int32"
+          },
+          "schemeNumberID": {
+            "type": "number",
+            "format": "int32"
+          }
+        },
+        "required": [
+          "platformVersion",
+          "schemeNumberID"
+        ]
+      },
+      "CordaSignedTransaction": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/CordaTransactionHash"
+          },
+          "content": {
+            "type": "object",
+            "properties": {
+              "wireTransaction": {
+                "$ref": "#/components/schemas/CordaWireTransaction"
+              }
+            }
+          },
+          "sigs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CordaTransactionSignature"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "content",
+          "sigs"
+        ]
+      },
+      "CordaStateAndRef": {
+        "type": "object",
+        "properties": {
+          "ref": {
+            "$ref": "#/components/schemas/CordaStateRef"
+          },
+          "state": {
+            "$ref": "#/components/schemas/CordaTransactionState"
+          }
+        },
+        "required": [
+          "ref",
+          "state"
+        ]
+      },
+      "CordaStateAndRef_SimpleLinearState": {
+        "type": "object",
+        "properties": {
+          "ref": {
+            "$ref": "#/components/schemas/CordaStateRef"
+          },
+          "state": {
+            "$ref": "#/components/schemas/CordaTransactionState"
+          }
+        },
+        "required": [
+          "ref",
+          "state"
+        ]
+      },
+      "CordaStateMetadata": {
+        "type": "object",
+        "properties": {
+          "constraintInfo": {
+            "$ref": "#/components/schemas/CordaConstraintInfo"
+          },
+          "consumedTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "contractStateClassName": {
+            "type": "string"
+          },
+          "lockId": {
+            "type": "string"
+          },
+          "lockUpdateTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "notary": {
+            "type": "object",
+            "description": "Dynamic container for subclasses of net.corda.core.identity.AbstractParty",
+            "additionalProperties": "true"
+          },
+          "recordedTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "ref": {
+            "$ref": "#/components/schemas/CordaStateRef"
+          },
+          "relevancyStatus": {
+            "$ref": "#/components/schemas/CordaRelevancyStatus"
+          },
+          "status": {
+            "$ref": "#/components/schemas/CordaStateStatus"
+          }
+        },
+        "required": [
+          "contractStateClassName",
+          "recordedTime",
+          "ref",
+          "status"
+        ]
+      },
+      "CordaStateRef": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "number",
+            "format": "int32"
+          },
+          "txhash": {
+            "$ref": "#/components/schemas/CordaTransactionHash"
+          }
+        },
+        "required": [
+          "index",
+          "txhash"
+        ]
+      },
+      "CordaStateStatus": {
+        "type": "string",
+        "enum": [
+          "UNCONSUMED",
+          "CONSUMED",
+          "ALL"
+        ]
+      },
+      "CordaTransactionHash": {
+        "type": "string",
+        "minLength": 64,
+        "maxLength": 64,
+        "pattern": "^[A-Z0-9]{64}"
+      },
+      "CordaTransactionSignature": {
+        "type": "object",
+        "properties": {
+          "by": {
+            "$ref": "#/components/schemas/PublicKey"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/CordaSignatureMetadata",
+            "readOnly": true
+          }
+        },
+        "required": [
+          "by",
+          "metadata"
+        ]
+      },
+      "CordaTransactionState": {
+        "type": "object",
+        "properties": {
+          "contract": {
+            "type": "string"
+          },
+          "encumbrance": {
+            "type": "number",
+            "format": "int32"
+          },
+          "notary": {
+            "$ref": "#/components/schemas/CordaParty"
+          },
+          "data": {
+            "type": "object",
+            "description": "Dynamic container for subclasses of net.corda.core.contracts.ContractState",
+            "additionalProperties": "true"
+          }
+        },
+        "required": [
+          "contract",
+          "notary",
+          "data"
+        ]
+      },
+      "CordaUniqueIdentifier": {
+        "type": "object",
+        "properties": {
+          "externalId": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "CordaVaultPage_SimpleLinearState": {
+        "type": "object",
+        "properties": {
+          "stateTypes": {
+            "$ref": "#/components/schemas/CordaStateStatus"
+          },
+          "states": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CordaStateAndRef"
+            }
+          },
+          "statesMetadata": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CordaStateMetadata"
+            }
+          },
+          "totalStatesAvailable": {
+            "type": "number",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "stateTypes",
+          "states",
+          "statesMetadata",
+          "totalStatesAvailable"
+        ]
+      },
+      "CordaWireTransaction": {
+        "type": "object",
+        "properties": {
+          "inputs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CordaCommand"
+            }
+          },
+          "outputs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CordaTransactionState"
+            }
+          },
+          "references": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CordaStateRef"
+            }
+          }
+        },
+        "required": [
+          "inputs",
+          "outputs",
+          "references"
+        ]
+      },
+      "CordaX500Name": {
+        "type": "string"
+      },
+      "PublicKey": {
+        "type": "object",
+        "properties": {
+          "fingerprint": {
+            "type": "string",
+            "readOnly": true
+          },
+          "knownParty": {
+            "$ref": "#/components/schemas/CordaParty",
+            "readOnly": true
+          }
+        },
+        "required": []
+      },
+      "SimpleFlowResult": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "$ref": "#/components/schemas/CordaStateAndRef_SimpleLinearState"
+          }
+        },
+        "required": [
+          "output"
+        ]
+      },
+      "SimpleLinearState": {
+        "type": "object",
+        "properties": {
+          "linearId": {
+            "$ref": "#/components/schemas/CordaUniqueIdentifier"
+          },
+          "participant": {
+            "$ref": "#/components/schemas/CordaParty"
+          }
+        },
+        "required": [
+          "linearId",
+          "participant"
+        ]
+      },
+      "Throwable": {
+        "type": "object",
+        "properties": {
+          "class": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "cause": {
+            "type": "object",
+            "description": "Dynamic container for subclasses of java.lang.Object",
+            "additionalProperties": "true"
+          }
+        },
+        "required": []
       }
     }
   },
@@ -429,10 +561,11 @@
     "title": "Cordaptor API",
     "version": "autogenerated"
   },
+  "openapi": "3.0.3",
   "paths": {
     "/node/reference/SimpleLinearState/{hash}({index})": {
       "get": {
-        "operationId": "findContractState",
+        "operationId": "getSimpleLinearStateByRef",
         "parameters": [
           {
             "description": "Transaction output index",
@@ -472,6 +605,115 @@
         "summary": "Finds contract state recorded to the ledger with a given hash and index "
       }
     },
+    "/node/reference/SimpleLinearState/query": {
+      "get": {
+        "operationId": "querySimpleLinearStateInstances",
+        "parameters": [
+          {
+            "description": "One or more of X500 names of notarizing parties for a state",
+            "explode": true,
+            "in": "query",
+            "name": "notary",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "description": "One or more of X500 names of owning parties for ownable states",
+            "explode": true,
+            "in": "query",
+            "name": "owner",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "description": "One or more of X500 names of participants in a state",
+            "explode": true,
+            "in": "query",
+            "name": "participant",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "description": "One or more UUIDs used in unique identifiers of linear states",
+            "explode": true,
+            "in": "query",
+            "name": "uuid",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "description": "One or more external keys used in unique identifiers of linear states",
+            "explode": true,
+            "in": "query",
+            "name": "externalId",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "description": "Approach to querying consumed states (ignore by default)",
+            "in": "query",
+            "name": "consumed",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ignore",
+                "include",
+                "only"
+              ]
+            }
+          },
+          {
+            "description": "Size of the page to return (200 by default)",
+            "in": "query",
+            "name": "pageSize",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          {
+            "description": "Zero-based index of the page to return (0 by default)",
+            "in": "query",
+            "name": "pageNumber",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CordaVaultPage_SimpleLinearState"
+                }
+              }
+            },
+            "description": "Query run successfully"
+          }
+        },
+        "summary": "Performs a query of the vault of the underlying Corda node"
+      }
+    },
     "/node/tx/{hash}": {
       "get": {
         "operationId": "findTransactionByHash",
@@ -504,24 +746,6 @@
         "summary": "Finds a transaction recorded to the ledger with a given hash value"
       }
     },
-    "/node/version": {
-      "get": {
-        "operationId": "getNodeVersion",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CordaNodeVersionInfo"
-                }
-              }
-            },
-            "description": "Successful operation"
-          }
-        },
-        "summary": "Returns software version information for the underlying Corda node"
-      }
-    },
     "/node/info": {
       "get": {
         "operationId": "getNodeInfo",
@@ -540,11 +764,22 @@
         "summary": "Returns network map entry for the underlying Corda node"
       }
     },
-    "/node/states": {
+    "/node/version": {
       "get": {
-        "operationId": "queryVault",
-        "responses": {},
-        "summary": "Performs a query of the vault of the underlying Corda node"
+        "operationId": "getNodeVersion",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CordaNodeVersionInfo"
+                }
+              }
+            },
+            "description": "Successful operation"
+          }
+        },
+        "summary": "Returns software version information for the underlying Corda node"
       }
     },
     "/node/reference/DelayedProgressFlow": {

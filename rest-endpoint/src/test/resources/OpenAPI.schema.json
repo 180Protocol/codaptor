@@ -1,140 +1,4 @@
 {
-  "Header": {
-    "type": "object",
-    "properties": {
-      "description": {
-        "type": "string"
-      },
-      "schema": {
-        "type": "object",
-        "description": "JSON object generated dynamically by the application",
-        "additionalProperties": "true"
-      }
-    },
-    "required": [
-      "schema"
-    ]
-  },
-  "ParameterLocation": {
-    "type": "string",
-    "enum": [
-      "query",
-      "header",
-      "path",
-      "cookie"
-    ]
-  },
-  "Parameter": {
-    "type": "object",
-    "properties": {
-      "allowEmptyValue": {
-        "type": "boolean"
-      },
-      "deprecated": {
-        "type": "boolean"
-      },
-      "description": {
-        "type": "string"
-      },
-      "explode": {
-        "type": "boolean"
-      },
-      "in": {
-        "$ref": "#/components/schemas/ParameterLocation"
-      },
-      "name": {
-        "type": "string"
-      },
-      "required": {
-        "type": "boolean"
-      },
-      "schema": {
-        "type": "object",
-        "description": "JSON object generated dynamically by the application",
-        "additionalProperties": "true"
-      }
-    },
-    "required": [
-      "in",
-      "name",
-      "schema"
-    ]
-  },
-  "MediaType": {
-    "type": "object",
-    "properties": {
-      "schema": {
-        "type": "object",
-        "description": "JSON object generated dynamically by the application",
-        "additionalProperties": "true"
-      }
-    },
-    "required": [
-      "schema"
-    ]
-  },
-  "Response": {
-    "type": "object",
-    "properties": {
-      "content": {
-        "type": "array",
-        "additionalProperties": {
-          "$ref": "#/components/schemas/MediaType"
-        }
-      },
-      "description": {
-        "type": "string"
-      },
-      "headers": {
-        "type": "array",
-        "additionalProperties": {
-          "$ref": "#/components/schemas/Header"
-        }
-      }
-    },
-    "required": [
-      "description"
-    ]
-  },
-  "SecuritySchemeType": {
-    "type": "string",
-    "enum": [
-      "apiKey",
-      "http",
-      "oauth2",
-      "openIdConnect"
-    ]
-  },
-  "SecurityScheme": {
-    "type": "object",
-    "properties": {
-      "bearerFormat": {
-        "type": "string"
-      },
-      "description": {
-        "type": "string"
-      },
-      "in": {
-        "$ref": "#/components/schemas/ParameterLocation"
-      },
-      "name": {
-        "type": "string"
-      },
-      "openIdConnectUrl": {
-        "type": "string"
-      },
-      "scheme": {
-        "type": "string"
-      },
-      "type": {
-        "$ref": "#/components/schemas/SecuritySchemeType"
-      }
-    },
-    "required": [
-      "name",
-      "type"
-    ]
-  },
   "Components": {
     "type": "object",
     "properties": {
@@ -192,19 +56,20 @@
       "url"
     ]
   },
-  "License": {
+  "Header": {
     "type": "object",
     "properties": {
-      "name": {
+      "description": {
         "type": "string"
       },
-      "url": {
-        "type": "string"
+      "schema": {
+        "type": "object",
+        "description": "JSON object generated dynamically by the application",
+        "additionalProperties": "true"
       }
     },
     "required": [
-      "name",
-      "url"
+      "schema"
     ]
   },
   "Info": {
@@ -234,65 +99,65 @@
       "version"
     ]
   },
-  "RequestBody": {
+  "License": {
     "type": "object",
     "properties": {
-      "content": {
-        "type": "array",
-        "additionalProperties": {
-          "$ref": "#/components/schemas/MediaType"
-        }
-      },
-      "description": {
-        "type": "string"
-      },
-      "required": {
-        "type": "boolean"
-      }
-    },
-    "required": [
-      "content",
-      "required"
-    ]
-  },
-  "ServerVariable": {
-    "type": "object",
-    "properties": {
-      "default": {
-        "type": "string"
-      },
-      "description": {
-        "type": "string"
-      },
-      "enum": {
-        "type": "array",
-        "items": {
-          "type": "string"
-        }
-      }
-    },
-    "required": [
-      "default"
-    ]
-  },
-  "Server": {
-    "type": "object",
-    "properties": {
-      "description": {
+      "name": {
         "type": "string"
       },
       "url": {
         "type": "string"
+      }
+    },
+    "required": [
+      "name",
+      "url"
+    ]
+  },
+  "MediaType": {
+    "type": "object",
+    "properties": {
+      "schema": {
+        "type": "object",
+        "description": "JSON object generated dynamically by the application",
+        "additionalProperties": "true"
+      }
+    },
+    "required": [
+      "schema"
+    ]
+  },
+  "OpenAPI": {
+    "type": "object",
+    "properties": {
+      "components": {
+        "$ref": "#/components/schemas/Components"
       },
-      "variables": {
+      "info": {
+        "$ref": "#/components/schemas/Info"
+      },
+      "openapi": {
+        "type": "string",
+        "readOnly": true
+      },
+      "paths": {
         "type": "array",
         "additionalProperties": {
-          "$ref": "#/components/schemas/ServerVariable"
+          "$ref": "#/components/schemas/PathItem"
+        }
+      },
+      "servers": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/Server"
         }
       }
     },
     "required": [
-      "url"
+      "info",
+      "openapi",
+      "paths",
+      "servers"
     ]
   },
   "Operation": {
@@ -344,6 +209,51 @@
       "summary"
     ]
   },
+  "Parameter": {
+    "type": "object",
+    "properties": {
+      "allowEmptyValue": {
+        "type": "boolean"
+      },
+      "deprecated": {
+        "type": "boolean"
+      },
+      "description": {
+        "type": "string"
+      },
+      "explode": {
+        "type": "boolean"
+      },
+      "in": {
+        "$ref": "#/components/schemas/ParameterLocation"
+      },
+      "name": {
+        "type": "string"
+      },
+      "required": {
+        "type": "boolean"
+      },
+      "schema": {
+        "type": "object",
+        "description": "JSON object generated dynamically by the application",
+        "additionalProperties": "true"
+      }
+    },
+    "required": [
+      "in",
+      "name",
+      "schema"
+    ]
+  },
+  "ParameterLocation": {
+    "type": "string",
+    "enum": [
+      "query",
+      "header",
+      "path",
+      "cookie"
+    ]
+  },
   "PathItem": {
     "type": "object",
     "properties": {
@@ -392,37 +302,127 @@
     },
     "required": []
   },
-  "OpenAPI": {
+  "RequestBody": {
     "type": "object",
     "properties": {
-      "components": {
-        "$ref": "#/components/schemas/Components"
-      },
-      "info": {
-        "$ref": "#/components/schemas/Info"
-      },
-      "openapi": {
-        "type": "string",
-        "readOnly": true
-      },
-      "paths": {
+      "content": {
         "type": "array",
         "additionalProperties": {
-          "$ref": "#/components/schemas/PathItem"
+          "$ref": "#/components/schemas/MediaType"
         }
       },
-      "servers": {
+      "description": {
+        "type": "string"
+      },
+      "required": {
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "content",
+      "required"
+    ]
+  },
+  "Response": {
+    "type": "object",
+    "properties": {
+      "content": {
         "type": "array",
-        "items": {
-          "$ref": "#/components/schemas/Server"
+        "additionalProperties": {
+          "$ref": "#/components/schemas/MediaType"
+        }
+      },
+      "description": {
+        "type": "string"
+      },
+      "headers": {
+        "type": "array",
+        "additionalProperties": {
+          "$ref": "#/components/schemas/Header"
         }
       }
     },
     "required": [
-      "info",
-      "openapi",
-      "paths",
-      "servers"
+      "description"
+    ]
+  },
+  "SecurityScheme": {
+    "type": "object",
+    "properties": {
+      "bearerFormat": {
+        "type": "string"
+      },
+      "description": {
+        "type": "string"
+      },
+      "in": {
+        "$ref": "#/components/schemas/ParameterLocation"
+      },
+      "name": {
+        "type": "string"
+      },
+      "openIdConnectUrl": {
+        "type": "string"
+      },
+      "scheme": {
+        "type": "string"
+      },
+      "type": {
+        "$ref": "#/components/schemas/SecuritySchemeType"
+      }
+    },
+    "required": [
+      "name",
+      "type"
+    ]
+  },
+  "SecuritySchemeType": {
+    "type": "string",
+    "enum": [
+      "apiKey",
+      "http",
+      "oauth2",
+      "openIdConnect"
+    ]
+  },
+  "Server": {
+    "type": "object",
+    "properties": {
+      "description": {
+        "type": "string"
+      },
+      "url": {
+        "type": "string"
+      },
+      "variables": {
+        "type": "array",
+        "additionalProperties": {
+          "$ref": "#/components/schemas/ServerVariable"
+        }
+      }
+    },
+    "required": [
+      "url"
+    ]
+  },
+  "ServerVariable": {
+    "type": "object",
+    "properties": {
+      "default": {
+        "type": "string"
+      },
+      "description": {
+        "type": "string"
+      },
+      "enum": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "required": [
+      "default"
     ]
   }
 }

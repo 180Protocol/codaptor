@@ -7,6 +7,7 @@ import tech.b180.cordaptor.kernel.loggerFor
 import tech.b180.cordaptor.shaded.javax.json.Json
 import tech.b180.cordaptor.shaded.javax.json.JsonObject
 import java.net.URL
+import java.util.*
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 
@@ -110,7 +111,10 @@ class CollectingJsonSchemaGenerator(
   private val inlineSchemas = mutableMapOf<SerializerKey, JsonObject>()
   private val collectedNamedSchemas = mutableMapOf<SerializerKey, NamedSchemaObject>()
 
-  val collectedSchemas: Map<String, JsonObject>
+  /**
+   * Returns list of standalone schema components sorted alphabetically by the type name.
+   */
+  val collectedSchemas: SortedMap<String, JsonObject>
     get() = collectedNamedSchemas.values
         .groupBy(NamedSchemaObject::name)
         .mapValues { (_, v) ->
@@ -118,7 +122,7 @@ class CollectingJsonSchemaGenerator(
             logger.error("Multiple schema objects are mapped to the same type name: ${v.map { it.key }}")
           }
           v.first().schema
-        }
+        }.toSortedMap()
 
   override fun generateSchema(key: SerializerKey): JsonObject {
     return inlineSchemas.getOrPut(key) {

@@ -61,7 +61,12 @@ class OpenAPISpecificationTest : KoinTest {
     val componentsSerializer = f.getSerializer(
         SerializerKey(Map::class.java, String::class.java, JsonObject::class.java))
 
-    val components = generateJson { componentsSerializer.toJson(gen.collectedSchemas, this) }.asJsonObject()
+    // the comparison is done in JSON object form, so sorting order does not matter,
+    // but the expected schema JSON file must be kept alphabetically sorted to keep
+    // meaningful VCS record of further changes to OpenAPI binding
+
+    val components = generateJson {
+      componentsSerializer.toJson(gen.collectedSchemas, this) }.asJsonObject()
 
     val expectedSchema = javaClass.getResource("/OpenAPI.schema.json")
         .openStream().reader().readText().asJsonObject()
