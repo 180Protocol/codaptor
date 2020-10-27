@@ -52,6 +52,8 @@ interface Request {
   val pathInfo: String?
   val method: String
 
+  val queryParameters: Map<String, List<String>>
+
   /**
    * Returns a query string parameter value or null.
    * If there is more than one parameter for a given name, only one of them is returned
@@ -59,9 +61,9 @@ interface Request {
   fun getParameterValue(name: String): String?
 
   /**
-   * Returns all values for a given query string parameter, which may be an empty list.
+   * Returns all values for a given query string parameter, or null if there are no values.
    */
-  fun getAllParameterValues(name: String): List<String>
+  fun getAllParameterValues(name: String): List<String>?
 }
 
 fun Request.getIntParameterValue(name: String): Int? =
@@ -363,10 +365,11 @@ abstract class AbstractEndpointHandler<ResponseType: Any>(
       get() = request.pathInfo
     override val method: String
       get() = request.method
+    override val queryParameters: Map<String, List<String>>
+      get() = request.parameterMap.mapValues { it.value.asList() }
 
     override fun getParameterValue(name: String): String? = request.getParameter(name)
-    override fun getAllParameterValues(name: String): List<String> = request.getParameterValues(name)?.asList()
-        ?: emptyList()
+    override fun getAllParameterValues(name: String): List<String>? = request.getParameterValues(name)?.asList()
   }
 
   /**

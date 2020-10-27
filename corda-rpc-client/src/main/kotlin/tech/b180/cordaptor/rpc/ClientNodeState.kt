@@ -55,11 +55,15 @@ class ClientNodeStateImpl(private val rpc: ReconnectingCordaRPCOps) : CordaNodeS
         )
     ).states.singleOrNull()
 
-  override fun <T : ContractState> countStates(query: CordaStateQuery<T>): Int {
+  override fun <T : ContractState> queryStates(query: CordaVaultQuery<T>): CordaVaultPage<T> {
     TODO("Not yet implemented")
   }
 
-  override fun <T : ContractState> trackStates(query: CordaStateQuery<T>): Observable<T> {
+  override fun <T : ContractState> countStates(query: CordaVaultQuery<T>): Int {
+    TODO("Not yet implemented")
+  }
+
+  override fun <T : ContractState> trackStates(query: CordaVaultQuery<T>): CordaDataFeed<T> {
     TODO("Not yet implemented")
   }
 

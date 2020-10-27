@@ -13,6 +13,7 @@ import net.corda.core.identity.Party
 import net.corda.core.node.NodeInfo
 import net.corda.core.node.services.Vault
 import net.corda.core.node.services.diagnostics.NodeVersionInfo
+import net.corda.core.node.services.vault.Sort
 import net.corda.core.transactions.SignedTransaction
 import java.security.PublicKey
 import java.time.Instant
@@ -62,11 +63,11 @@ interface CordaNodeState {
    */
   fun <T : ContractState> findStateByRef(stateRef: StateRef, clazz: Class<T>, vaultStateStatus: Vault.StateStatus): StateAndRef<T>?
 
-  fun <T : ContractState> countStates(query: CordaStateQuery<T>): Int
+  fun <T : ContractState> queryStates(query: CordaVaultQuery<T>): CordaVaultPage<T>
 
-  fun <T : ContractState> trackStates(query: CordaStateQuery<T>): Observable<T>
+  fun <T : ContractState> countStates(query: CordaVaultQuery<T>): Int
 
-  fun <ReturnType: Any> initiateFlow(flowInstance: FlowLogic<ReturnType>): CordaFlowHandle<ReturnType>
+  fun <T : ContractState> trackStates(query: CordaVaultQuery<T>): CordaDataFeed<T>
 
   fun <ReturnType: Any> initiateFlow(instruction: CordaFlowInstruction<FlowLogic<ReturnType>>): CordaFlowHandle<ReturnType>
 
@@ -224,7 +225,95 @@ data class CordaFlowProgress(
 /**
  * All information necessary to query vault states or
  * subscribe for updates in the vault.
+ *
+ * FIXME add support for composite queries using boolean operators and complex expressions
  */
-data class CordaStateQuery<T : ContractState>(
-    val contractStateType: Class<T>
+data class CordaVaultQuery<T: ContractState>(
+    val contractStateClass: KClass<T>,
+
+    /** Zero-based page number to return or 0 by default */
+    val pageNumber: Int?,
+
+    /** Number of states to return per results page, or Corda's default max page size */
+    val pageSize: Int?,
+
+    /** By default [Vault.StateStatus.UNCONSUMED] */
+    val stateStatus: Vault.StateStatus? = null,
+
+    /** By default [Vault.RelevancyStatus.ALL] */
+    val relevancyStatus: Vault.RelevancyStatus? = null,
+
+    val linearStateUUIDs: List<UUID>? = null,
+    val linearStateExternalIds: List<String>? = null,
+    val ownerNames: List<CordaX500Name>? = null,
+    val participantNames: List<CordaX500Name>? = null,
+    val notaryNames: List<CordaX500Name>? = null,
+
+    /** Will take precedence over [consumedTimeIsAfter] if specified */
+    val recordedTimeIsAfter: Instant? = null,
+
+    /** Will be ignored if [recordedTimeIsAfter] if specified */
+    val consumedTimeIsAfter: Instant? = null,
+
+    /** Will return states in an unspecified order by default */
+    val sortCriteria: List<SortColumn>? = null
+) {
+
+  /**
+   * Wrapper for [Sort.SortColumn] class available in Corda Vault API.
+   * It exists to simplify handling of sorting criteria in REST API.
+   */
+  data class SortColumn(
+      val sortAttribute: String,
+      val direction: Sort.Direction)
+
+  /**
+   * Wrapper for standard sort columns available in Corda Vault API.
+   * These constants are not intended to be used directly, but looked up by [attributeName]
+   * when resolving the value of [SortColumn.sortAttribute]
+   */
+  @Suppress("unused")
+  enum class StandardSortAttributes(
+      val attributeName: String,
+      val attribute: Sort.Attribute
+  ) {
+    STATE_REF("stateRef", Sort.CommonStateAttribute.STATE_REF),
+    STATE_REF_TXN_ID("stateRefTxId", Sort.CommonStateAttribute.STATE_REF_TXN_ID),
+    STATE_REF_INDEX("stateRefIndex", Sort.CommonStateAttribute.STATE_REF_INDEX),
+
+    NOTARY_NAME("notary", Sort.VaultStateAttribute.NOTARY_NAME),
+    CONTRACT_STATE_TYPE("contractStateClassName", Sort.VaultStateAttribute.CONTRACT_STATE_TYPE),
+    STATE_STATUS("stateStatus", Sort.VaultStateAttribute.STATE_STATUS),
+    RECORDED_TIME("recordedTime", Sort.VaultStateAttribute.RECORDED_TIME),
+    CONSUMED_TIME("consumedTime", Sort.VaultStateAttribute.CONSUMED_TIME),
+    LOCK_ID("lockId", Sort.VaultStateAttribute.LOCK_ID),
+    CONSTRAINT_TYPE("constraintType", Sort.VaultStateAttribute.CONSTRAINT_TYPE),
+
+    UUID("uuid", Sort.LinearStateAttribute.UUID),
+    EXTERNAL_ID("externalId", Sort.LinearStateAttribute.EXTERNAL_ID),
+
+    QUANTITY("quantity", Sort.FungibleStateAttribute.QUANTITY),
+    ISSUER_REF("issuerRef", Sort.FungibleStateAttribute.ISSUER_REF)
+  }
+}
+
+/**
+ * Result for a paged vault query modelled after [Vault.Page]
+ */
+data class CordaVaultPage<T: ContractState>(
+    val states: List<StateAndRef<T>>,
+    val statesMetadata: List<Vault.StateMetadata>,
+    val totalStatesAvailable: Long,
+    val stateTypes: Vault.StateStatus
+)
+
+/**
+ * Modelled after Corda RPC DataFeed construct to allow both a result of a query
+ * and updates going forward to be returned from an API call.
+ *
+ * Actual DataFeed class is not used because of the old version of rxjava Observable.
+ */
+data class CordaDataFeed<T: ContractState>(
+    val snapshot: CordaVaultPage<T>,
+    val feed: Observable<Vault.Update<T>>
 )

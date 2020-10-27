@@ -6,23 +6,25 @@ import net.corda.core.contracts.ContractState
 import net.corda.core.contracts.StateRef
 import net.corda.core.crypto.SecureHash
 import net.corda.core.flows.FlowLogic
+import net.corda.core.identity.CordaX500Name
 import net.corda.core.node.services.Vault
+import net.corda.core.node.services.vault.DEFAULT_PAGE_SIZE
 import net.corda.core.transactions.SignedTransaction
 import org.koin.core.inject
 import tech.b180.cordaptor.corda.*
 import tech.b180.cordaptor.kernel.CordaptorComponent
 import tech.b180.cordaptor.kernel.loggerFor
+import tech.b180.cordaptor.shaded.javax.json.JsonObject
+import java.util.*
 import java.util.concurrent.TimeUnit
 import javax.servlet.http.HttpServletResponse
 import kotlin.math.min
 import kotlin.reflect.KClass
-import kotlin.text.Regex
-import kotlin.text.toInt
 
 /**
  * Factory class for specific Jetty handlers created for flows and contract states of CorDapps found on the node.
  */
-class NodeStateAPIProvider(private val contextPath: String) : EndpointProvider, CordaptorComponent {
+class NodeStateAPIProvider(contextPath: String) : EndpointProvider, CordaptorComponent {
 
   private val nodeCatalog by inject<CordaNodeCatalog>()
 
@@ -30,20 +32,27 @@ class NodeStateAPIProvider(private val contextPath: String) : EndpointProvider, 
   override val queryEndpoints: List<QueryEndpoint<*>>
 
   init {
-    operationEndpoints = nodeCatalog.cordapps
-        .flatMap { cordapp -> cordapp.flows.map { it to cordapp } }
-        .map { (flowInfo, cordapp) ->
-          val handlerPath = "$contextPath/${cordapp.shortName}/${flowInfo.flowClass.simpleName}"
-          @Suppress("UNCHECKED_CAST")
-          FlowInitiationEndpoint(handlerPath, flowInfo.flowClass, flowInfo.flowResultClass as KClass<Any>)
-        }
+    operationEndpoints = mutableListOf()
+    queryEndpoints = mutableListOf()
 
-    queryEndpoints = nodeCatalog.cordapps
-        .flatMap { cordapp -> cordapp.contractStates.map { it to cordapp } }
-        .map { (stateInfo, cordapp) ->
-          val handlerPath = "$contextPath/${cordapp.shortName}/${stateInfo.stateClass.simpleName}"
-          ContractStateQueryEndpoint(handlerPath, stateInfo.stateClass)
-        }
+    for (cordapp in nodeCatalog.cordapps) {
+      for (flowInfo in cordapp.flows) {
+        val handlerPath = "$contextPath/${cordapp.shortName}/${flowInfo.flowClass.simpleName}"
+        @Suppress("UNCHECKED_CAST")
+        val endpoint = FlowInitiationEndpoint(
+            handlerPath, flowInfo.flowClass, flowInfo.flowResultClass as KClass<Any>)
+
+        operationEndpoints.add(endpoint)
+      }
+
+      for (stateInfo in cordapp.contractStates) {
+        val stateClass = stateInfo.stateClass
+        val handlerPath = "$contextPath/${cordapp.shortName}/${stateClass.simpleName}"
+
+        queryEndpoints.add(ContractStateRefQueryEndpoint(handlerPath, stateClass))
+        operationEndpoints.add(ContractStateVaultQueryEndpoint("$handlerPath/query", stateClass))
+      }
+    }
   }
 }
 
@@ -184,7 +193,7 @@ class FlowInitiationEndpoint<FlowReturnType: Any>(
  * This class uses type parameters to reduce the chance of introducing any type-related bugs
  * in the implementation code. However, this class is not instantiated with type parameters.
  */
-class ContractStateQueryEndpoint<StateType: ContractState>(
+class ContractStateRefQueryEndpoint<StateType: ContractState>(
     contextPath: String,
     private val contractStateClass: KClass<StateType>
 ) : QueryEndpoint<StateType>, ContextMappedResourceEndpoint(contextPath, allowNullPathInfo = false),
@@ -195,7 +204,7 @@ class ContractStateQueryEndpoint<StateType: ContractState>(
   companion object {
     private val pathInfoPattern = Regex("""^/([A-Z0-9]+)\(([0-9]+)\)$""")
 
-    private val logger = loggerFor<ContractStateQueryEndpoint<*>>()
+    private val logger = loggerFor<ContractStateRefQueryEndpoint<*>>()
   }
 
   override val responseType = contractStateClass.java
@@ -226,7 +235,7 @@ class ContractStateQueryEndpoint<StateType: ContractState>(
       OpenAPI.PathItem(
           get = OpenAPI.Operation(
               summary = "Finds contract state recorded to the ledger with a given hash and index ",
-              operationId = "findContractState"
+              operationId = "get${contractStateClass.simpleName}ByRef"
           ).withParameter(OpenAPI.Parameter(name = "hash", `in` = OpenAPI.ParameterLocation.PATH,
               description = "Transaction hash value", required = true,
               schema = schemaGenerator.generateSchema(SerializerKey(SecureHash::class)))
@@ -241,6 +250,176 @@ class ContractStateQueryEndpoint<StateType: ContractState>(
           )
       )
 }
+
+/**
+ * Allows flexible querying of the node vault for states. Note that both GET and POST
+ * methods are supported, so the endpoint is both a [QueryEndpoint] and an [OperationEndpoint].
+ *
+ * This is a strongly-typed API endpoint allowing full JSON schema to be generated.
+ *
+ * This class uses type parameters to reduce the chance of introducing any type-related bugs
+ * in the implementation code. However, this class is not instantiated with type parameters.
+ */
+class ContractStateVaultQueryEndpoint<StateType: ContractState>(
+    contextPath: String,
+    private val contractStateClass: KClass<StateType>
+) : QueryEndpoint<CordaVaultPage<StateType>>,
+    OperationEndpoint<CordaVaultQuery<StateType>, CordaVaultPage<StateType>>,
+    ContextMappedResourceEndpoint(contextPath, allowNullPathInfo = true),
+    CordaptorComponent {
+
+  companion object {
+    private val logger = loggerFor<ContractStateVaultQueryEndpoint<*>>()
+
+    const val PARAMETER_NAME_PAGE_NUMBER = "pageNumber"
+    const val PARAMETER_NAME_PAGE_SIZE = "pageSize"
+    const val PARAMETER_NAME_CONSUMED = "consumed"
+    const val PARAMETER_NAME_EXTERNAL_ID = "externalId"
+    const val PARAMETER_NAME_UUID = "uuid"
+    const val PARAMETER_NAME_PARTICIPANT = "participant"
+    const val PARAMETER_NAME_OWNER = "owner"
+    const val PARAMETER_NAME_NOTARY = "notary"
+
+    /** JSON Schema object for parameter [PARAMETER_NAME_CONSUMED] */
+    private val CONSUMED_PARAMETER_SCHEMA: JsonObject = mapOf(
+        "type" to "string",
+        "enum" to listOf("ignore", "include", "only")
+    ).asJsonObject()
+  }
+
+  private val nodeState: CordaNodeState by inject()
+
+  override val requestType = SerializerKey(CordaVaultQuery::class.java, contractStateClass.java).asType()
+  override val responseType = SerializerKey(CordaVaultPage::class.java, contractStateClass.java).asType()
+  override val supportedMethods = listOf("GET", "POST")
+
+  // GET form of query supports a limited subset of criteria
+  override fun executeQuery(request: Request): Response<CordaVaultPage<StateType>> {
+    val query = buildQueryFromRequestParameters(request)
+    logger.debug("Performing vault query: {}", query)
+
+    val page = nodeState.queryStates(query)
+    logger.debug("Vault query returned page with {} states, {} available in total",
+        page.states.size, page.totalStatesAvailable)
+
+    return Response(page)
+  }
+
+  // POST form of query caters for more complicated query scenarios
+  override fun executeOperation(
+      request: RequestWithPayload<CordaVaultQuery<StateType>>
+  ): Single<Response<CordaVaultPage<StateType>>> {
+
+    val query = request.payload
+    logger.debug("Performing vault query: {}", query)
+
+    val page = nodeState.queryStates(query)
+    logger.debug("Vault query returned page with {} states, {} available in total",
+        page.states.size, page.totalStatesAvailable)
+
+    // query is performed synchronously above, so resolve straight away
+    return Single.just(Response(page))
+  }
+
+  private fun buildQueryFromRequestParameters(request: Request): CordaVaultQuery<StateType> {
+    logger.debug("Building vault query from HTTP GET query parameters: {}", request.queryParameters)
+
+    val pageNumber = request.getPositiveIntParameterValue(PARAMETER_NAME_PAGE_NUMBER, 0)
+    val pageSize = request.getPositiveIntParameterValue(PARAMETER_NAME_PAGE_SIZE, DEFAULT_PAGE_SIZE)
+
+    val stateStatus = when (request.getParameterValue(PARAMETER_NAME_CONSUMED)?.toLowerCase()) {
+      null -> Vault.StateStatus.UNCONSUMED    // default value
+      "ignore" -> Vault.StateStatus.UNCONSUMED
+      "include" -> Vault.StateStatus.ALL
+      "only" -> Vault.StateStatus.CONSUMED
+      else -> throw BadOperationRequestException("Invalid value", parameterName = PARAMETER_NAME_CONSUMED)
+    }
+
+    val externalIds = request.getAllParameterValues(PARAMETER_NAME_EXTERNAL_ID)
+    val uuids = request.getAllParameterValues(PARAMETER_NAME_UUID)?.map {
+      try {
+        UUID.fromString(it)
+      } catch (e: IllegalArgumentException) {
+        throw BadOperationRequestException("Malformed UUID", parameterName = PARAMETER_NAME_UUID, cause = e)
+      }
+    }
+
+    val participantNames = getX500NamesFromRequestParameter(request, PARAMETER_NAME_PARTICIPANT)
+    val ownerNames = getX500NamesFromRequestParameter(request, PARAMETER_NAME_OWNER)
+    val notaryNames = getX500NamesFromRequestParameter(request, PARAMETER_NAME_NOTARY)
+
+    return CordaVaultQuery(
+        contractStateClass = contractStateClass,
+        pageNumber = pageNumber,
+        pageSize = pageSize,
+        stateStatus = stateStatus,
+        linearStateExternalIds = externalIds,
+        linearStateUUIDs = uuids,
+        participantNames = participantNames,
+        ownerNames = ownerNames,
+        notaryNames = notaryNames
+    )
+  }
+
+  private fun getX500NamesFromRequestParameter(request: Request, paramName: String): List<CordaX500Name>? {
+    try {
+      return request.getAllParameterValues(paramName)?.map { CordaX500Name.parse(it) }
+    } catch (e: IllegalArgumentException) {
+      throw BadOperationRequestException("Malformed X500 name", parameterName = paramName, cause = e)
+    }
+  }
+
+  override fun generatePathInfoSpecification(schemaGenerator: JsonSchemaGenerator): OpenAPI.PathItem =
+      OpenAPI.PathItem(
+          post = OpenAPI.Operation(
+              summary = "Performs a query of the vault of the underlying Corda node with a complex criteria",
+              operationId = "query${contractStateClass.simpleName}Instances"
+          ).withRequestBody(OpenAPI.RequestBody.createJsonRequest(
+              schema = schemaGenerator.generateSchema(SerializerKey.forType(requestType)),
+              required = true)
+          ).withResponse(OpenAPI.HttpStatusCode.OK, OpenAPI.Response.createJsonResponse(
+              description = "Query ran successfully",
+              schema = schemaGenerator.generateSchema(SerializerKey.forType(responseType)))
+          ),
+          get = OpenAPI.Operation(
+              summary = "Performs a query of the vault of the underlying Corda node with a simplified criteria",
+              operationId = "fetch${contractStateClass.simpleName}Instances"
+          ).withParameter(OpenAPI.Parameter(name = PARAMETER_NAME_PAGE_NUMBER, `in` = OpenAPI.ParameterLocation.QUERY,
+              description = "Zero-based index of the page to return (0 by default)", required = false,
+              schema = OpenAPI.PrimitiveTypes.POSITIVE_INTEGER)
+          ).withParameter(OpenAPI.Parameter(name = PARAMETER_NAME_PAGE_SIZE, `in` = OpenAPI.ParameterLocation.QUERY,
+              description = "Size of the page to return ($DEFAULT_PAGE_SIZE by default)", required = false,
+              schema = OpenAPI.PrimitiveTypes.POSITIVE_INTEGER)
+          ).withParameter(OpenAPI.Parameter(name = PARAMETER_NAME_CONSUMED, `in` = OpenAPI.ParameterLocation.QUERY,
+              description = "Approach to querying consumed states (ignore by default)", required = false,
+              schema = CONSUMED_PARAMETER_SCHEMA)
+          ).withParameter(OpenAPI.Parameter(name = PARAMETER_NAME_EXTERNAL_ID, `in` = OpenAPI.ParameterLocation.QUERY,
+              description = "One or more external keys used in unique identifiers of linear states",
+              required = false, explode = true,
+              schema = OpenAPI.PrimitiveTypes.NON_EMPTY_STRING)
+          ).withParameter(OpenAPI.Parameter(name = PARAMETER_NAME_UUID, `in` = OpenAPI.ParameterLocation.QUERY,
+              description = "One or more UUIDs used in unique identifiers of linear states",
+              required = false, explode = true,
+              schema = OpenAPI.PrimitiveTypes.UUID_STRING)
+          ).withParameter(OpenAPI.Parameter(name = PARAMETER_NAME_PARTICIPANT, `in` = OpenAPI.ParameterLocation.QUERY,
+              description = "One or more of X500 names of participants in a state",
+              required = false, explode = true,
+              schema = OpenAPI.PrimitiveTypes.NON_EMPTY_STRING)
+          ).withParameter(OpenAPI.Parameter(name = PARAMETER_NAME_OWNER, `in` = OpenAPI.ParameterLocation.QUERY,
+              description = "One or more of X500 names of owning parties for ownable states",
+              required = false, explode = true,
+              schema = OpenAPI.PrimitiveTypes.NON_EMPTY_STRING)
+          ).withParameter(OpenAPI.Parameter(name = PARAMETER_NAME_NOTARY, `in` = OpenAPI.ParameterLocation.QUERY,
+              description = "One or more of X500 names of notarizing parties for a state",
+              required = false, explode = true,
+              schema = OpenAPI.PrimitiveTypes.NON_EMPTY_STRING)
+          ).withResponse(OpenAPI.HttpStatusCode.OK, OpenAPI.Response.createJsonResponse(
+              description = "Query ran successfully",
+              schema = schemaGenerator.generateSchema(SerializerKey.forType(responseType)))
+          )
+      )
+}
+
 
 /**
  * Resolves REST API queries for specific transactions using a secure hash.
@@ -268,7 +447,7 @@ class TransactionQueryEndpoint(contextPath: String)
 
     val stx = nodeState.findTransactionByHash(SecureHash.parse(hash))
         ?: throw EndpointOperationException(
-            message = "No transaction with hash ${hash} in the vault",
+            message = "No transaction with hash $hash in the vault",
             errorType = OperationErrorType.NOT_FOUND)
 
     return Response(stx)
@@ -287,25 +466,6 @@ class TransactionQueryEndpoint(contextPath: String)
               schema = schemaGenerator.generateSchema(SerializerKey.forType(responseType)))
           ).withResponse(OpenAPI.HttpStatusCode.NOT_FOUND, OpenAPI.Response(
               description = "Transaction with given hash value was not found")
-          )
-      )
-}
-
-/**
- * Allows flexible querying of the node vault for states.
- */
-class VaultQueryEndpoint(contextPath: String)
-  : ContextMappedQueryEndpoint<List<ContractState>>(contextPath, allowNullPathInfo = true), CordaptorComponent {
-
-  override fun executeQuery(request: Request): Response<List<ContractState>> {
-    TODO("Not yet implemented")
-  }
-
-  override fun generatePathInfoSpecification(schemaGenerator: JsonSchemaGenerator): OpenAPI.PathItem =
-      OpenAPI.PathItem(
-          get = OpenAPI.Operation(
-              summary = "Performs a query of the vault of the underlying Corda node",
-              operationId = "queryVault"
           )
       )
 }

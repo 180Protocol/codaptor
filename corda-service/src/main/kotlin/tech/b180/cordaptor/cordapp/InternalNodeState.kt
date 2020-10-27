@@ -15,6 +15,7 @@ import net.corda.core.node.AppServiceHub
 import net.corda.core.node.NodeInfo
 import net.corda.core.node.services.TransactionStorage
 import net.corda.core.node.services.Vault
+import net.corda.core.node.services.VaultService
 import net.corda.core.node.services.diagnostics.NodeVersionInfo
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.utilities.getOrThrow
@@ -35,6 +36,7 @@ import kotlin.reflect.KClass
 class CordaNodeStateImpl : CordaNodeStateInner, CordaptorComponent {
 
   private val appServiceHub: AppServiceHub by inject()
+  private val vaultService: VaultService by inject()
   private val transactionStorage: TransactionStorage by inject()
   private val flowDispatcher: CordaFlowDispatcher by inject()
 
@@ -64,13 +66,24 @@ class CordaNodeStateImpl : CordaNodeStateInner, CordaptorComponent {
     return transactionStorage.getTransaction(hash)
   }
 
-  override fun <T : ContractState> countStates(query: CordaStateQuery<T>): Int {
+  override fun <T : ContractState> queryStates(query: CordaVaultQuery<T>): CordaVaultPage<T> {
+    val page = vaultService.queryBy(query.contractStateClass.java,
+        query.toCordaQueryCriteria(appServiceHub.identityService),
+        query.toCordaPageSpecification(), query.toCordaSort())
+
+    return page.toCordaptorPage()
+  }
+
+  override fun <T : ContractState> countStates(query: CordaVaultQuery<T>): Int {
     TODO("Not yet implemented")
   }
 
-  override fun <T : ContractState> trackStates(query: CordaStateQuery<T>): io.reactivex.rxjava3.core.Observable<T> {
-//    appServiceHub.vaultService.trackBy()
-    TODO("Not yet implemented")
+  override fun <T : ContractState> trackStates(query: CordaVaultQuery<T>): CordaDataFeed<T> {
+    val feed = vaultService.trackBy(query.contractStateClass.java,
+        query.toCordaQueryCriteria(appServiceHub.identityService),
+        query.toCordaPageSpecification(), query.toCordaSort())
+
+    return feed.toCordaptorFeed()
   }
 
   @Suppress("UNCHECKED_CAST")

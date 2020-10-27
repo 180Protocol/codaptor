@@ -33,7 +33,6 @@ class RestEndpointModuleProvider : ModuleProvider {
     single { NodeInfoEndpoint("/node/info") } bind QueryEndpoint::class
     single { NodeVersionEndpoint("/node/version") } bind QueryEndpoint::class
     single { TransactionQueryEndpoint("/node/tx") } bind QueryEndpoint::class
-    single { VaultQueryEndpoint("/node/states") } bind QueryEndpoint::class
 
     single { APISpecificationEndpointHandler("/api.json", get()) } bind ContextMappedHandler::class
     single { SwaggerUIHandler("/swagger") } bind ContextMappedHandler::class

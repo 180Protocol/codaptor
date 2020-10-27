@@ -54,7 +54,8 @@ class EmbeddedBundleTest {
     val stateRef = testFlowWaitForCompletion(client)
     testTransactionQuery(client, stateRef.txhash)
     testStateQuery(client, stateRef)
-    testVaultQuery(client)
+    testVaultQueryViaGET(client)
+    testVaultQueryViaPOST(client)
   }
 
   private fun testOpenAPISpecification(client: HttpClient) {
@@ -176,13 +177,41 @@ class EmbeddedBundleTest {
     val response = client.GET(
         "http://localhost:8500/node/reference/SimpleLinearState/${stateRef}")
 
-    val state = Json.createReader(StringReader(response.contentAsString)).readObject()
+    assertEquals(HttpServletResponse.SC_OK, response.status)
+    assertEquals("application/json", response.mediaType)
+
+    val state = response.contentAsString.asJsonObject()
     assertEquals("TEST-111",
         state.getValue("/linearId/externalId").asString())
   }
 
-  private fun testVaultQuery(client: HttpClient) {
+  private fun testVaultQueryViaGET(client: HttpClient) {
+    val response = client.GET(
+        "http://localhost:8500/node/reference/SimpleLinearState/query?externalId=TEST-111")
 
+    assertEquals(HttpServletResponse.SC_OK, response.status)
+    assertEquals("application/json", response.mediaType)
+
+    val page = response.contentAsString.asJsonObject()
+    assertEquals(2, page.getInt("totalStatesAvailable"))
+  }
+
+  private fun testVaultQueryViaPOST(client: HttpClient) {
+    val req = client.POST(
+        "http://localhost:8500/node/reference/SimpleLinearState/query")
+
+    val content = """{
+      |"contractStateClass":"tech.b180.ref_cordapp.SimpleLinearState",
+      |"linearStateExternalIds":["TEST-111"]}""".trimMargin()
+
+    req.content(StringContentProvider("application/json", content, Charsets.UTF_8))
+    val response = req.send()
+
+    assertEquals(HttpServletResponse.SC_OK, response.status)
+    assertEquals("application/json", response.mediaType)
+
+    val page = response.contentAsString.asJsonObject()
+    assertEquals(2, page.getInt("totalStatesAvailable"))
   }
 
   private fun DriverDSL.startNode(name: CordaX500Name): NodeHandle {
