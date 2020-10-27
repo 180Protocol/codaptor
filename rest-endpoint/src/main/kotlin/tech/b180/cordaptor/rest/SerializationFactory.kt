@@ -293,7 +293,10 @@ class SerializationFactory(
 
   private fun createSerializer(key: SerializerKey): JsonSerializer<Any> {
     val type = localTypeModel.inspect(key.asType())
-    logger.debug("Introspected local type information for {}\n{}", key, type)
+    if (logger.isTraceEnabled) {
+      // this invokes significant overhead, so needs to be used as as last resort
+      logger.trace("Introspected local type information for $key:\n${type.prettyPrint(true)}")
+    }
 
     return when (type) {
       is LocalTypeInformation.Composable -> ComposableTypeJsonSerializer(type, this)
@@ -304,8 +307,11 @@ class SerializationFactory(
       is LocalTypeInformation.AnEnum -> EnumSerializer(type) as JsonSerializer<Any>
       is LocalTypeInformation.AMap -> MapSerializer(type, this) as JsonSerializer<Any>
       is LocalTypeInformation.Top -> DynamicObjectSerializer(SerializerKey.forType(type.observedType), this)
-      else -> throw AssertionError("Don't know how to create a serializer for " +
-          "${type.observedType} (introspected as ${type.javaClass.canonicalName})")
+      is LocalTypeInformation.NonComposable ->
+        throw SerializationException("Cannot create a serializer for type $key introspected as non-composable for " +
+            "the following reason: ${type.reason}")
+      else -> throw SerializationException("Don't know how to create a serializer for type " +
+          "$key (introspected as ${type.javaClass.canonicalName})")
     }
   }
 
