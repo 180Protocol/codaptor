@@ -294,7 +294,7 @@ interface SerializableEnum {
 class EnumSerializer(
     private val enumClass: Class<Enum<*>>,
     override val valueType: SerializerKey
-) : JsonSerializer<Enum<*>> {
+) : JsonSerializer<Enum<*>>, StandaloneTypeSerializer {
 
   @Suppress("UNCHECKED_CAST")
   constructor(introspectedType: LocalTypeInformation.AnEnum) : this(
@@ -310,6 +310,12 @@ class EnumSerializer(
       "type" to "string",
       "enum" to members.values
   ).asJsonObject()
+
+  override val schemaTypeName: String
+    get() = if (enumClass.canonicalName.startsWith("net.corda"))
+        "Corda${enumClass.simpleName}"
+      else
+        enumClass.simpleName
 
   override fun fromJson(value: JsonValue): Enum<*> {
     if (value.valueType != JsonValue.ValueType.STRING) {

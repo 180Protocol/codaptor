@@ -15,6 +15,15 @@
       "schema"
     ]
   },
+  "ParameterLocation": {
+    "type": "string",
+    "enum": [
+      "query",
+      "header",
+      "path",
+      "cookie"
+    ]
+  },
   "Parameter": {
     "type": "object",
     "properties": {
@@ -31,13 +40,7 @@
         "type": "boolean"
       },
       "in": {
-        "type": "string",
-        "enum": [
-          "query",
-          "header",
-          "path",
-          "cookie"
-        ]
+        "$ref": "#/components/schemas/ParameterLocation"
       },
       "name": {
         "type": "string"
@@ -93,6 +96,15 @@
       "description"
     ]
   },
+  "SecuritySchemeType": {
+    "type": "string",
+    "enum": [
+      "apiKey",
+      "http",
+      "oauth2",
+      "openIdConnect"
+    ]
+  },
   "SecurityScheme": {
     "type": "object",
     "properties": {
@@ -103,13 +115,7 @@
         "type": "string"
       },
       "in": {
-        "type": "string",
-        "enum": [
-          "query",
-          "header",
-          "path",
-          "cookie"
-        ]
+        "$ref": "#/components/schemas/ParameterLocation"
       },
       "name": {
         "type": "string"
@@ -121,13 +127,7 @@
         "type": "string"
       },
       "type": {
-        "type": "string",
-        "enum": [
-          "apiKey",
-          "http",
-          "oauth2",
-          "openIdConnect"
-        ]
+        "$ref": "#/components/schemas/SecuritySchemeType"
       }
     },
     "required": [
