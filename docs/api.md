@@ -6,18 +6,18 @@ Principles:
 
 Reg 1.1 Obtaining an OpenAPI definition file for the API from a running Cordaptor instance
 ```
-GET /openapi.json
+GET /api.json
 ```
 
 Req 1.2 Accessing SwaggerUI for the API from a running Cordaptor instance
 ```
-GET /swagger-ui.html
+GET /swagger/index.html
 ```
 
 Req 1.6 Querying flow's progress tracker steps via an HTTP GET request
 Req 1.7 Querying flow's invocation parameters and result schema via an HTTP GET request
 ```
-GET /node/{flowClassName}
+GET /node/{cordappShortName}/{flowClassName}
 ```
 Returns flow metadata:
 * Progress tracker steps
@@ -26,7 +26,7 @@ Returns flow metadata:
 
 Req 1.8 Querying contract state's schema via an HTTP GET request
 ```
-GET /node/{stateClassName}
+GET /node/{cordappShortName}/{stateClassName}
 ```
 Returns contract state metadata:
 * Contract state FQCN
@@ -34,24 +34,24 @@ Returns contract state metadata:
 
 Req 2.1 Querying the vault for a contract state by a stateref via an HTTP GET request
 ```
-GET /node/{stateClassName}/{stateRef}
+GET /node/{cordappShortName}/{stateClassName}/{hash}({index})
 ```
 stateClassName - FQCN, FQCN of a supertype, simple name, simple name of a supertype (e.g. ContractState)
 Canonical URL when used with FQCN, other queries return 303 See Other and a Location URL with FQDN
 
 Req 2.2 Querying the vault for linear states by UUID with pagination via an HTTP GET request
 ```
-GET /node/states?uuid={uuid}&...
+GET /node/{cordappShortName}/{stateClassName}/query?uuid={uuid}&...
 ```
 
 Req 2.3 Querying the vault for ownable states by the owner with pagination via an HTTP GET request
 ```
-GET /node/states?owner={x500name}&...
+GET /node/{cordappShortName}/{stateClassName}/query?owner={x500name}&...
 ```
 
 Req 2.4 Querying the vault for queryable states by schema fields with pagination via an HTTP GET request
 ```
-GET /node/states?{fieldName}={value}
+GET /node/{cordappShortName}/{stateClassName}/query?{fieldName}={value}
 ```
 
 Req 2.5 Querying the vault for a transaction by txhash via an HTTP GET request
@@ -62,18 +62,18 @@ Canonical URL
 
 Req 2.6 Querying the vault for the number of states satisfying given criteria
 ```
-GET /node/statesCount?...
+GET /node/{cordappShortName}/{stateClassName}/count?...
 ```
 
 Req 2.7 Querying the vault for the total amount of fungible states satisfying given criteria
 ```
-GET /node/statesTotalAmount?...
+GET /node/{cordappShortName}/{stateClassName}/totalAmount?...
 ```
 
 Req 3.1 Initiating a flow via an HTTP POST request and optionally waiting for completion
 Req 3.2 Initiating a flow via an HTTP POST request and obtaining a flow runid
 ```
-POST /node/{flowClassName}?wait={seconds}
+POST /node/{cordappShortName}/{flowClassName}?wait={seconds}
 ```
 Returns 200 OK if completed within the given timeout, body contains completed flow status and result if applicable
 Returns 202 Accepted if not completed within the given timeout, body contains flow runid + Location
@@ -81,7 +81,7 @@ Returns 500 when the flow has failed during the specified timeout period
 
 Req 3.3 Querying the state and obtaining the result of a flow by runid via an HTTP GET request
 ```
-GET /node/flows/{runId}
+GET /node/{cordappShortName}/{flowClassName}/{runId}
 ```
 Returns 200 OK, and the body provides information about flow status, progress, result, and created transactions
 
@@ -128,6 +128,7 @@ ws(s)://{cordaptorBaseUrl}/node
 Req 5.1 Getting node status and diagnostics via an HTTP GET request
 ```
 GET /node/info
+GET /node/version
 ```
 
 ## Error handling
