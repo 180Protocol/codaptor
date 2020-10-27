@@ -4,6 +4,7 @@ import net.corda.core.contracts.ContractState
 import net.corda.core.contracts.TransactionState
 import net.corda.core.crypto.SecureHash
 import net.corda.core.crypto.TransactionSignature
+import net.corda.core.flows.FlowLogic
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.identity.Party
 import net.corda.core.identity.PartyAndCertificate
@@ -11,6 +12,8 @@ import net.corda.core.node.NodeInfo
 import net.corda.core.transactions.CoreTransaction
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.WireTransaction
+import net.corda.serialization.internal.model.LocalTypeInformation
+import tech.b180.cordaptor.corda.CordaFlowInstruction
 import tech.b180.cordaptor.corda.CordaNodeState
 import tech.b180.cordaptor.shaded.javax.json.JsonObject
 import java.security.PublicKey
@@ -18,6 +21,7 @@ import java.security.cert.X509Certificate
 import java.time.Instant
 import java.time.format.DateTimeFormatter
 import java.util.*
+import kotlin.reflect.KClass
 
 /**
  * Serializer for [CordaX500Name] converting to/from a string value.
@@ -238,5 +242,78 @@ class CordaTransactionStateSerializer(
   companion object {
     @Suppress("UNCHECKED_CAST")
     val contractStateAccessor = { s: TransactionState<ContractState> -> s.data } as ObjectPropertyValueAccessor
+  }
+}
+
+/**
+ * Builds a serializer for a specific parameterized type based on [CordaFlowInstruction] class.
+ * The purpose is to make it appear in JSON Schema as an instance of the underlying [FlowLogic] class,
+ * whereby class name is implicit, and constructor-bound properties are represented inline.
+ *
+ * This mimicry is required to offer more user-friendly JSON Schema when initiating Corda flows without
+ * actually instantiating respective subclass of [FlowLogic] where it is not required, e.g. when initiating
+ * a flow via Corda RPC.
+ */
+class CordaFlowInstructionSerializerFactory(
+    private val factory: SerializationFactory
+) : CustomSerializerFactory<CordaFlowInstruction<*>> {
+
+  companion object {
+    const val TRACK_PROGRESS_PROPERTY = "trackProgress"
+  }
+
+  override val rawType = CordaFlowInstruction::class.java
+
+  override fun doCreateSerializer(key: SerializerKey): JsonSerializer<CordaFlowInstruction<*>> {
+    // flow instructions are not meant to be sent to client, so explicitly forbidding serialization
+    return object : CustomStructuredObjectSerializer<CordaFlowInstruction<*>>(
+        factory, serialize = false, explicitValueType = key
+    ) {
+      private val flowClass: Class<*> = valueType.typeParameters[0].rawType
+
+      init {
+        if (!FlowLogic::class.java.isAssignableFrom((flowClass))) {
+          throw SerializationException("The first parameter of $key type is not " +
+              "recognized as a Corda flow class: ${flowClass.canonicalName}")
+        }
+      }
+
+      override val properties: Map<String, ObjectProperty>
+        get() {
+          val typeInfo = factory.inspectLocalType(flowClass)
+          val constructor = (typeInfo as? LocalTypeInformation.Composable)?.constructor
+              ?: throw SerializationException("Flow type identified as $key was not introspected as composable.\n" +
+                  "Introspection details: ${typeInfo.prettyPrint()})")
+
+          // expose trackProgress flag explicitly among the properties
+          // FIXME watch out for property name clashes
+          val properties: MutableList<Pair<String, ObjectProperty>> = mutableListOf(TRACK_PROGRESS_PROPERTY
+              to KotlinObjectProperty(property = CordaFlowInstruction<*>::trackProgress))
+
+          constructor.parameters.mapTo(properties) {
+            val prop = typeInfo.properties[it.name]
+                ?: throw SerializationException("Could not find property ${it.name} for type type $key, " +
+                    "despite it being referenced in constructor parameters")
+
+            it.name to ComposableTypeJsonSerializer.createIntrospectedProperty(it.name, prop)
+          }
+
+          return properties.toMap()
+        }
+
+      override fun initializeInstance(values: Map<String, Any?>): CordaFlowInstruction<*> {
+        val trackProgress = values[TRACK_PROGRESS_PROPERTY] as? Boolean
+            ?: throw SerializationException("No value given for mandatory property $TRACK_PROGRESS_PROPERTY")
+
+        @Suppress("UNCHECKED_CAST")
+        val flowClass = flowClass.kotlin as KClass<FlowLogic<Any>>
+
+        @Suppress("UNCHECKED_CAST")
+        val flowProperties = values.filter { it.key != TRACK_PROGRESS_PROPERTY && it.value != null } as Map<String, Any>
+
+        return CordaFlowInstruction<FlowLogic<Any>>(flowClass = flowClass,
+            trackProgress = trackProgress, flowProperties = flowProperties)
+      }
+    }
   }
 }

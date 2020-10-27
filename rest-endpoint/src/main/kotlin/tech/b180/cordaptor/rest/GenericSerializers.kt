@@ -2,6 +2,7 @@ package tech.b180.cordaptor.rest
 
 import net.corda.serialization.internal.model.LocalPropertyInformation
 import net.corda.serialization.internal.model.LocalTypeInformation
+import net.corda.serialization.internal.model.PropertyName
 import tech.b180.cordaptor.kernel.loggerFor
 import tech.b180.cordaptor.shaded.javax.json.*
 import tech.b180.cordaptor.shaded.javax.json.stream.JsonGenerator
@@ -19,7 +20,30 @@ class ComposableTypeJsonSerializer<T: Any>(
 ) : StructuredObjectSerializer<T>(factory = factory, explicitValueType = SerializerKey.forType(typeInfo.observedType)) {
 
   companion object {
-    val logger = loggerFor<ComposableTypeJsonSerializer<*>>()
+    private val logger = loggerFor<ComposableTypeJsonSerializer<*>>()
+
+    fun createIntrospectedProperty(name: PropertyName, prop: LocalPropertyInformation): IntrospectedProperty {
+      val accessor: ObjectPropertyValueAccessor? = when (prop) {
+        is LocalPropertyInformation.ConstructorPairedProperty -> { obj: Any -> prop.observedGetter.invoke(obj) }
+        is LocalPropertyInformation.PrivateConstructorPairedProperty -> {
+          prop.observedField.apply {
+            if (!isAccessible) {
+              try {
+                isAccessible = true
+              } catch (e: Exception) {
+                throw SerializationException("Unable to make private field ${prop.observedField} accessible", e)
+              }
+            }
+          };
+          { obj: Any -> prop.observedField.get(obj) }
+        }
+        is LocalPropertyInformation.CalculatedProperty -> { obj: Any -> prop.observedGetter.invoke(obj) }
+        is LocalPropertyInformation.GetterSetterProperty -> { obj: Any -> prop.observedGetter.invoke(obj) }
+        is LocalPropertyInformation.ReadOnlyProperty -> { obj: Any -> prop.observedGetter.invoke(obj) }
+        else -> null
+      }
+      return IntrospectedProperty(accessor, prop)
+    }
   }
 
   data class IntrospectedProperty(
@@ -51,7 +75,7 @@ class ComposableTypeJsonSerializer<T: Any>(
             }
           }
           .mapValues { (name, prop) ->
-            // if there is a custom serializer for this type, it will be an instance of Opaque
+            // if there is a custom serializer for this type already, it will be an instance of Opaque
             if (prop.type is LocalTypeInformation.Top
                 || prop.type is LocalTypeInformation.AnInterface
                 || prop.type is LocalTypeInformation.Abstract) {
@@ -61,26 +85,7 @@ class ComposableTypeJsonSerializer<T: Any>(
                   "without a JSON Schema. Consider creating a custom abstract class serializer for it")
             }
 
-            val accessor: ObjectPropertyValueAccessor? = when (prop) {
-              is LocalPropertyInformation.ConstructorPairedProperty -> { obj: Any -> prop.observedGetter.invoke(obj) }
-              is LocalPropertyInformation.PrivateConstructorPairedProperty -> {
-                prop.observedField.apply {
-                  if (!isAccessible) {
-                    try {
-                      isAccessible = true
-                    } catch (e: Exception) {
-                      throw SerializationException("Unable to make private field ${prop.observedField} accessible", e)
-                    }
-                  }
-                };
-                { obj: Any -> prop.observedField.get(obj) }
-              }
-              is LocalPropertyInformation.CalculatedProperty -> { obj: Any -> prop.observedGetter.invoke(obj) }
-              is LocalPropertyInformation.GetterSetterProperty -> { obj: Any -> prop.observedGetter.invoke(obj) }
-              is LocalPropertyInformation.ReadOnlyProperty -> { obj: Any -> prop.observedGetter.invoke(obj) }
-              else -> null
-            }
-            IntrospectedProperty(accessor, prop)
+            createIntrospectedProperty(name, prop)
           }
 
   override fun initializeInstance(values: Map<String, Any?>): T {

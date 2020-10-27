@@ -13,6 +13,7 @@ import org.koin.dsl.bind
 import org.koin.dsl.module
 import org.koin.test.KoinTest
 import org.koin.test.KoinTestRule
+import tech.b180.cordaptor.corda.CordaFlowInstruction
 import tech.b180.cordaptor.corda.CordaFlowProgress
 import tech.b180.cordaptor.corda.CordaFlowSnapshot
 import tech.b180.cordaptor.corda.CordaNodeState
@@ -30,7 +31,7 @@ class CordaTypesTest : KoinTest {
     private val mockNodeState = mockkClass(CordaNodeState::class)
 
     val serializersModule = module {
-      single { SerializationFactory(lazyGetAll()) }
+      single { SerializationFactory(lazyGetAll(), lazyGetAll()) }
 
       // register custom serializers for the factory to discover
       single { CordaUUIDSerializer() } bind CustomSerializer::class
@@ -48,6 +49,8 @@ class CordaTypesTest : KoinTest {
       single { CordaPublicKeySerializer(get(), mockNodeState) } bind CustomSerializer::class
       single { JsonObjectSerializer() } bind CustomSerializer::class
 
+      single { CordaFlowInstructionSerializerFactory(get()) } bind CustomSerializerFactory::class
+
       // factory for requesting specific serializers into the non-generic serialization code
       factory<JsonSerializer<*>> { (key: SerializerKey) -> get<SerializationFactory>().getSerializer(key) }
     }
@@ -55,7 +58,7 @@ class CordaTypesTest : KoinTest {
 
   @get:Rule
   val koinTestRule = KoinTestRule.create {
-    modules(CordaTypesTest.serializersModule)
+    modules(serializersModule)
   }
 
   @Test
@@ -171,6 +174,36 @@ class CordaTypesTest : KoinTest {
   @Test
   fun `test corda transaction serialization`() {
     val serializer = getKoin().getSerializer(SignedTransaction::class)
+  }
+
+  @Test
+  fun `test corda flow instruction serialization`() {
+    val serializer = getKoin().getSerializer(CordaFlowInstruction::class, TestFlow::class)
+
+    assertEquals("""{"type":"object",
+      "properties":{
+      "trackProgress":{"type":"boolean"},
+      "stringParam":{"type":"string"},
+      "objectParam":{"type":"object",
+      "properties":{"intParam":{"type":"number","format":"int32"}},
+      "required":["intParam"]}},
+      "required":["trackProgress","stringParam"]}""".asJsonObject(), serializer.generateRecursiveSchema(getKoin().get()))
+
+    assertEquals(CordaFlowInstruction(flowClass = TestFlow::class, trackProgress = true,
+        flowProperties = mapOf("stringParam" to "ABC", "objectParam" to TestFlowParam(intParam = 123))),
+        serializer.fromJson("""{"trackProgress":true,"stringParam":"ABC","objectParam":{"intParam":123}}""".asJsonObject()))
+
+    assertEquals(CordaFlowInstruction(flowClass = TestFlow::class, trackProgress = true,
+        flowProperties = mapOf("stringParam" to "ABC")),
+        serializer.fromJson("""{"trackProgress":true,"stringParam":"ABC"}""".asJsonObject()))
+
+    assertFailsWith(SerializationException::class, message = "Missing track progress flag") {
+      serializer.fromJson("""{"stringParam":"ABC"}""".asJsonObject())
+    }
+
+    assertFailsWith(SerializationException::class, message = "Missing mandatory flow class constructor parameter") {
+      serializer.fromJson("""{"trackProgress":true}""".asJsonObject())
+    }
   }
 }
 

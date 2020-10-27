@@ -153,7 +153,7 @@ class SerializationTest {
   @Test
   fun `test composable type serializer`() {
 
-    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() })
+    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() }, lazy { emptyList<CustomSerializerFactory<Any>>() })
 
     val publicPropertiesSerializer = f.getSerializer(TestDataObject::class)
     val privatePropertiesSerializer = f.getSerializer(NonPublicPropertiesObject::class)
@@ -177,7 +177,7 @@ class SerializationTest {
   @Test
   fun `test collection types serializer`() {
 
-    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() })
+    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() }, lazy { emptyList<CustomSerializerFactory<Any>>() })
 
     // roundabout way to make sure type comes with generic
     val arraySerializer = ListSerializer(localTypeModel.inspectProperty(ObjectWithParametrizedProperties::array), f)
@@ -219,7 +219,7 @@ class SerializationTest {
 
   @Test
   fun `test enum type serialization`() {
-    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() })
+    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() }, lazy { emptyList<CustomSerializerFactory<Any>>() })
 
     val serializer = f.getSerializer(TestEnum::class)
 
@@ -234,7 +234,7 @@ class SerializationTest {
 
   @Test
   fun `test atomic types schema`() {
-    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() })
+    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() }, lazy { emptyList<CustomSerializerFactory<Any>>() })
     assertEquals("""{"type": "string"}""".asJsonObject(), SerializationFactory.StringSerializer.generateRecursiveSchema(f))
     assertEquals("""{"type": "boolean"}""".asJsonObject(), SerializationFactory.BooleanSerializer.generateRecursiveSchema(f))
     assertEquals("""{"type": "number", "format": "int32"}""".asJsonObject(), SerializationFactory.IntSerializer.generateRecursiveSchema(f))
@@ -242,7 +242,7 @@ class SerializationTest {
 
   @Test
   fun `test composite type schema`() {
-    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() })
+    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() }, lazy { emptyList<CustomSerializerFactory<Any>>() })
 
     val publicPropertiesSerializer = f.getSerializer(TestDataObject::class)
 
@@ -270,7 +270,7 @@ class SerializationTest {
 
   @Test
   fun `test collection types schema`() {
-    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() })
+    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() }, lazy { emptyList<CustomSerializerFactory<Any>>() })
 
     // roundabout way to make sure type comes with generic
     val arraySerializer = ListSerializer(localTypeModel.inspectProperty(ObjectWithParametrizedProperties::array), f)
@@ -295,7 +295,7 @@ class SerializationTest {
 
   @Test
   fun `test class literals serialization`() {
-    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() })
+    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() }, lazy { emptyList<CustomSerializerFactory<Any>>() })
 
     val kotlinClassSerializer = f.getSerializer(KClass::class.java)
     val javaClassSerializer = f.getSerializer(Class::class.java)
@@ -306,7 +306,7 @@ class SerializationTest {
 
   @Test
   fun `test transient annotation`() {
-    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() })
+    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() }, lazy { emptyList<CustomSerializerFactory<Any>>() })
 
     val serializer = f.getSerializer(ObjectWithTransientProperties::class.java)
 
@@ -316,7 +316,7 @@ class SerializationTest {
 
   @Test
   fun `test calculated property annotation`() {
-    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() })
+    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() }, lazy { emptyList<CustomSerializerFactory<Any>>() })
 
     val serializer = f.getSerializer(ObjectWithCalculatedProperties::class.java)
 
@@ -326,7 +326,7 @@ class SerializationTest {
 
   @Test
   fun `test abstract class serialization`() {
-    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() })
+    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() }, lazy { emptyList<CustomSerializerFactory<Any>>() })
 
     val serializer = object : CustomAbstractClassSerializer<BaseObject>(f) {
       override val subclassesMap = mapOf(

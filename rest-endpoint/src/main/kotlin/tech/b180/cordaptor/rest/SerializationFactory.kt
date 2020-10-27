@@ -28,7 +28,8 @@ class SerializationException(
 
 @Suppress("UNCHECKED_CAST")
 class SerializationFactory(
-    private val lazySerializers: Lazy<List<CustomSerializer<Any>>>
+    lazySerializers: Lazy<List<CustomSerializer<Any>>>,
+    lazySerializerFactories: Lazy<List<CustomSerializerFactory<Any>>>
 ) {
   companion object {
     private val logger = loggerFor<SerializationFactory>()
@@ -47,6 +48,7 @@ class SerializationFactory(
   private var lazyInitialization = false
 
   private val customSerializers by lazySerializers
+  private val customSerializerFactories by lazySerializerFactories
 
   private val localTypeModel by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
     val customSerializerRegistry = CachingCustomSerializerRegistry(DefaultDescriptorBasedSerializerRegistry())
@@ -58,6 +60,12 @@ class SerializationFactory(
 
     )
     ConfigurableLocalTypeModel(typeModelConfiguration)
+  }
+
+  private val objectSerializerFactories by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+    customSerializerFactories.map {
+      it.rawType to it
+    }.toMap()
   }
 
   private val objectSerializers by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
@@ -253,10 +261,20 @@ class SerializationFactory(
    * This method is most likely to be used within generic serialization logic.
    */
   fun getSerializer(key: SerializerKey): JsonSerializer<Any> {
-    // for some types like KClass we always force non-typed serializer
-    // in order to prevent a large number of serializers to be created
-    if (key.typeParameters.isNotEmpty() && mustUseRaw(key.rawType)) {
-      return getSerializer(key.asRaw().rawType)
+
+    if (key.typeParameters.isNotEmpty()) {
+      val factory = objectSerializerFactories[key.rawType]
+      if (factory != null) {
+        // some parameterized types need special handling depending on the type parameters,
+        // which is encapsulated into the serializer factory
+        return factory.createSerializer(key)
+      }
+
+      if (mustUseRaw(key.rawType)) {
+        // for some types like KClass we always force non-typed serializer
+        // in order to prevent a large number of serializers to be created
+        return getSerializer(key.asRaw().rawType)
+      }
     }
 
     return objectSerializers.getOrPut(key, {
@@ -275,6 +293,8 @@ class SerializationFactory(
 
   private fun createSerializer(key: SerializerKey): JsonSerializer<Any> {
     val type = localTypeModel.inspect(key.asType())
+    logger.debug("Introspected local type information for {}\n{}", key, type)
+
     return when (type) {
       is LocalTypeInformation.Composable -> ComposableTypeJsonSerializer(type, this)
       is LocalTypeInformation.Abstract -> DynamicObjectSerializer(SerializerKey.forType(type.observedType), this)
@@ -287,6 +307,15 @@ class SerializationFactory(
       else -> throw AssertionError("Don't know how to create a serializer for " +
           "${type.observedType} (introspected as ${type.javaClass.canonicalName})")
     }
+  }
+
+  /**
+   * Exposes the underlying type introspection facility from Corda.
+   * This method is intended to be used when implementing dynamic serializer factories
+   * in some specific cases, e.g. [CordaFlowInstructionSerializerFactory]
+   */
+  fun inspectLocalType(clazz: Class<*>): LocalTypeInformation {
+    return localTypeModel.inspect(clazz)
   }
 }
 
@@ -497,18 +526,23 @@ interface JsonSchemaGenerator {
  * Note that the implementation must not use [SerializationFactory] in the constructor,
  * because a list of
  */
-interface CustomSerializer<T> : JsonSerializer<T> {
-}
+interface CustomSerializer<T> : JsonSerializer<T>
 
-fun Type.isAssignableTo(clazz: Class<*>): Boolean = when(this) {
-  is Class<*> -> clazz.isAssignableFrom(this)
-  is ParameterizedType -> {
-    val rawType = this.rawType
-    // this cannot be done recursively because compiler cannot check this for correctness
-    when (rawType) {
-      is Class<*> -> clazz.isAssignableFrom(rawType)
-      else -> throw AssertionError("Don't know how to check if ${rawType.typeName} is assignable to ${clazz.canonicalName}")
+/**
+ * Alternative to [CustomSerializer] when custom serializers need to be created for
+ * parameterized types where parameters are determined at runtime and the schema
+ * may be dependent on the actual parameters.
+ */
+interface CustomSerializerFactory<T: Any> {
+  val rawType: Class<*>
+
+  fun createSerializer(key: SerializerKey): JsonSerializer<T> {
+    if (!rawType.isAssignableFrom(key.rawType)) {
+      throw SerializationException("Parameter's raw type ${key.rawType.canonicalName} " +
+          "is not compatible with factory's ${rawType.canonicalName}")
     }
+    return doCreateSerializer(key)
   }
-  else -> throw AssertionError("Don't know how to check if ${this.typeName} is assignable to ${clazz.canonicalName}")
+
+  fun doCreateSerializer(key: SerializerKey): JsonSerializer<T>
 }

@@ -46,7 +46,7 @@ class RestEndpointModuleProvider : ModuleProvider {
     single { NodeStateAPIProvider("/node") } bind EndpointProvider::class
 
     // JSON serialization enablement
-    single { SerializationFactory(lazyGetAll()) }
+    single { SerializationFactory(lazyGetAll(), lazyGetAll()) }
 
     single { CordaX500NameSerializer() } bind CustomSerializer::class
     single { CordaSecureHashSerializer() } bind CustomSerializer::class
@@ -62,6 +62,8 @@ class RestEndpointModuleProvider : ModuleProvider {
     single { CordaTransactionStateSerializer(get()) } bind CustomSerializer::class
     single { CordaPublicKeySerializer(get(), get()) } bind CustomSerializer::class
     single { JsonObjectSerializer() } bind CustomSerializer::class
+
+    single { CordaFlowInstructionSerializerFactory(get()) } bind CustomSerializerFactory::class
 
     // factory for requesting specific serializers into the non-generic serialization code
     factory<JsonSerializer<*>> { (key: SerializerKey) -> get<SerializationFactory>().getSerializer(key) }

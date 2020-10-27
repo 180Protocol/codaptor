@@ -35,7 +35,7 @@ class JettyServerTest : KoinTest {
   companion object {
 
     private val testModule = module {
-      single { SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() }) }
+      single { SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() }, lazy { emptyList<CustomSerializerFactory<Any>>() }) }
 
       factory<JsonSerializer<*>> { (key: SerializerKey) -> get<SerializationFactory>().getSerializer(key) }
 
