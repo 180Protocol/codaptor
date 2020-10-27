@@ -311,11 +311,7 @@ class EnumSerializer(
       "enum" to members.values
   ).asJsonObject()
 
-  override val schemaTypeName: String
-    get() = if (enumClass.canonicalName.startsWith("net.corda"))
-        "Corda${enumClass.simpleName}"
-      else
-        enumClass.simpleName
+  override val schemaTypeName = generateSchemaTypeBaseName(enumClass)
 
   override fun fromJson(value: JsonValue): Enum<*> {
     if (value.valueType != JsonValue.ValueType.STRING) {
@@ -421,3 +417,7 @@ class JsonObjectSerializer : CustomSerializer<JsonObject> {
 
   override fun generateSchema(generator: JsonSchemaGenerator): JsonObject = schema
 }
+
+fun generateSchemaTypeBaseName(clazz: Class<*>): String =
+    (if (clazz.canonicalName.startsWith("net.corda")) "Corda" else "") +
+        (clazz.enclosingClass?.simpleName ?: "") + clazz.simpleName

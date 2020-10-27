@@ -1,23 +1,56 @@
 {
-  "Components": {
+  "OpenAPI": {
+    "type": "object",
+    "properties": {
+      "components": {
+        "$ref": "#/components/schemas/OpenAPIComponents"
+      },
+      "info": {
+        "$ref": "#/components/schemas/OpenAPIInfo"
+      },
+      "openapi": {
+        "type": "string",
+        "readOnly": true
+      },
+      "paths": {
+        "type": "array",
+        "additionalProperties": {
+          "$ref": "#/components/schemas/OpenAPIPathItem"
+        }
+      },
+      "servers": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/OpenAPIServer"
+        }
+      }
+    },
+    "required": [
+      "info",
+      "openapi",
+      "paths",
+      "servers"
+    ]
+  },
+  "OpenAPIComponents": {
     "type": "object",
     "properties": {
       "headers": {
         "type": "array",
         "additionalProperties": {
-          "$ref": "#/components/schemas/Header"
+          "$ref": "#/components/schemas/OpenAPIHeader"
         }
       },
       "parameters": {
         "type": "array",
         "additionalProperties": {
-          "$ref": "#/components/schemas/Parameter"
+          "$ref": "#/components/schemas/OpenAPIParameter"
         }
       },
       "responses": {
         "type": "array",
         "additionalProperties": {
-          "$ref": "#/components/schemas/Response"
+          "$ref": "#/components/schemas/OpenAPIResponse"
         }
       },
       "schemas": {
@@ -31,13 +64,13 @@
       "securitySchemes": {
         "type": "array",
         "additionalProperties": {
-          "$ref": "#/components/schemas/SecurityScheme"
+          "$ref": "#/components/schemas/OpenAPISecurityScheme"
         }
       }
     },
     "required": []
   },
-  "Contact": {
+  "OpenAPIContact": {
     "type": "object",
     "properties": {
       "email": {
@@ -56,7 +89,7 @@
       "url"
     ]
   },
-  "Header": {
+  "OpenAPIHeader": {
     "type": "object",
     "properties": {
       "description": {
@@ -72,17 +105,17 @@
       "schema"
     ]
   },
-  "Info": {
+  "OpenAPIInfo": {
     "type": "object",
     "properties": {
       "contact": {
-        "$ref": "#/components/schemas/Contact"
+        "$ref": "#/components/schemas/OpenAPIContact"
       },
       "description": {
         "type": "string"
       },
       "license": {
-        "$ref": "#/components/schemas/License"
+        "$ref": "#/components/schemas/OpenAPILicense"
       },
       "termsOfService": {
         "type": "string"
@@ -99,7 +132,7 @@
       "version"
     ]
   },
-  "License": {
+  "OpenAPILicense": {
     "type": "object",
     "properties": {
       "name": {
@@ -114,7 +147,7 @@
       "url"
     ]
   },
-  "MediaType": {
+  "OpenAPIMediaType": {
     "type": "object",
     "properties": {
       "schema": {
@@ -127,40 +160,7 @@
       "schema"
     ]
   },
-  "OpenAPI": {
-    "type": "object",
-    "properties": {
-      "components": {
-        "$ref": "#/components/schemas/Components"
-      },
-      "info": {
-        "$ref": "#/components/schemas/Info"
-      },
-      "openapi": {
-        "type": "string",
-        "readOnly": true
-      },
-      "paths": {
-        "type": "array",
-        "additionalProperties": {
-          "$ref": "#/components/schemas/PathItem"
-        }
-      },
-      "servers": {
-        "type": "array",
-        "items": {
-          "$ref": "#/components/schemas/Server"
-        }
-      }
-    },
-    "required": [
-      "info",
-      "openapi",
-      "paths",
-      "servers"
-    ]
-  },
-  "Operation": {
+  "OpenAPIOperation": {
     "type": "object",
     "properties": {
       "deprecated": {
@@ -175,22 +175,22 @@
       "parameters": {
         "type": "array",
         "items": {
-          "$ref": "#/components/schemas/Parameter"
+          "$ref": "#/components/schemas/OpenAPIParameter"
         }
       },
       "requestBody": {
-        "$ref": "#/components/schemas/RequestBody"
+        "$ref": "#/components/schemas/OpenAPIRequestBody"
       },
       "responses": {
         "type": "array",
         "additionalProperties": {
-          "$ref": "#/components/schemas/Response"
+          "$ref": "#/components/schemas/OpenAPIResponse"
         }
       },
       "servers": {
         "type": "array",
         "items": {
-          "$ref": "#/components/schemas/Server"
+          "$ref": "#/components/schemas/OpenAPIServer"
         }
       },
       "summary": {
@@ -209,7 +209,7 @@
       "summary"
     ]
   },
-  "Parameter": {
+  "OpenAPIParameter": {
     "type": "object",
     "properties": {
       "allowEmptyValue": {
@@ -225,7 +225,7 @@
         "type": "boolean"
       },
       "in": {
-        "$ref": "#/components/schemas/ParameterLocation"
+        "$ref": "#/components/schemas/OpenAPIParameterLocation"
       },
       "name": {
         "type": "string"
@@ -245,7 +245,7 @@
       "schema"
     ]
   },
-  "ParameterLocation": {
+  "OpenAPIParameterLocation": {
     "type": "string",
     "enum": [
       "query",
@@ -254,61 +254,61 @@
       "cookie"
     ]
   },
-  "PathItem": {
+  "OpenAPIPathItem": {
     "type": "object",
     "properties": {
       "delete": {
-        "$ref": "#/components/schemas/Operation"
+        "$ref": "#/components/schemas/OpenAPIOperation"
       },
       "description": {
         "type": "string"
       },
       "get": {
-        "$ref": "#/components/schemas/Operation"
+        "$ref": "#/components/schemas/OpenAPIOperation"
       },
       "head": {
-        "$ref": "#/components/schemas/Operation"
+        "$ref": "#/components/schemas/OpenAPIOperation"
       },
       "options": {
-        "$ref": "#/components/schemas/Operation"
+        "$ref": "#/components/schemas/OpenAPIOperation"
       },
       "parameters": {
         "type": "array",
         "items": {
-          "$ref": "#/components/schemas/Parameter"
+          "$ref": "#/components/schemas/OpenAPIParameter"
         }
       },
       "patch": {
-        "$ref": "#/components/schemas/Operation"
+        "$ref": "#/components/schemas/OpenAPIOperation"
       },
       "post": {
-        "$ref": "#/components/schemas/Operation"
+        "$ref": "#/components/schemas/OpenAPIOperation"
       },
       "put": {
-        "$ref": "#/components/schemas/Operation"
+        "$ref": "#/components/schemas/OpenAPIOperation"
       },
       "servers": {
         "type": "array",
         "items": {
-          "$ref": "#/components/schemas/Server"
+          "$ref": "#/components/schemas/OpenAPIServer"
         }
       },
       "summary": {
         "type": "string"
       },
       "trace": {
-        "$ref": "#/components/schemas/Operation"
+        "$ref": "#/components/schemas/OpenAPIOperation"
       }
     },
     "required": []
   },
-  "RequestBody": {
+  "OpenAPIRequestBody": {
     "type": "object",
     "properties": {
       "content": {
         "type": "array",
         "additionalProperties": {
-          "$ref": "#/components/schemas/MediaType"
+          "$ref": "#/components/schemas/OpenAPIMediaType"
         }
       },
       "description": {
@@ -323,13 +323,13 @@
       "required"
     ]
   },
-  "Response": {
+  "OpenAPIResponse": {
     "type": "object",
     "properties": {
       "content": {
         "type": "array",
         "additionalProperties": {
-          "$ref": "#/components/schemas/MediaType"
+          "$ref": "#/components/schemas/OpenAPIMediaType"
         }
       },
       "description": {
@@ -338,7 +338,7 @@
       "headers": {
         "type": "array",
         "additionalProperties": {
-          "$ref": "#/components/schemas/Header"
+          "$ref": "#/components/schemas/OpenAPIHeader"
         }
       }
     },
@@ -346,7 +346,7 @@
       "description"
     ]
   },
-  "SecurityScheme": {
+  "OpenAPISecurityScheme": {
     "type": "object",
     "properties": {
       "bearerFormat": {
@@ -356,7 +356,7 @@
         "type": "string"
       },
       "in": {
-        "$ref": "#/components/schemas/ParameterLocation"
+        "$ref": "#/components/schemas/OpenAPIParameterLocation"
       },
       "name": {
         "type": "string"
@@ -368,7 +368,7 @@
         "type": "string"
       },
       "type": {
-        "$ref": "#/components/schemas/SecuritySchemeType"
+        "$ref": "#/components/schemas/OpenAPISecuritySchemeType"
       }
     },
     "required": [
@@ -376,7 +376,7 @@
       "type"
     ]
   },
-  "SecuritySchemeType": {
+  "OpenAPISecuritySchemeType": {
     "type": "string",
     "enum": [
       "apiKey",
@@ -385,7 +385,7 @@
       "openIdConnect"
     ]
   },
-  "Server": {
+  "OpenAPIServer": {
     "type": "object",
     "properties": {
       "description": {
@@ -397,7 +397,7 @@
       "variables": {
         "type": "array",
         "additionalProperties": {
-          "$ref": "#/components/schemas/ServerVariable"
+          "$ref": "#/components/schemas/OpenAPIServerVariable"
         }
       }
     },
@@ -405,7 +405,7 @@
       "url"
     ]
   },
-  "ServerVariable": {
+  "OpenAPIServerVariable": {
     "type": "object",
     "properties": {
       "default": {

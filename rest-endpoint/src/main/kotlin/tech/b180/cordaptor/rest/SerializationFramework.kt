@@ -108,12 +108,7 @@ abstract class StructuredObjectSerializer<T: Any>(
 
   override val schemaTypeName: String
     get() {
-      val baseName = if (!valueType.rawType.canonicalName.startsWith("net.corda")) {
-        valueType.rawType.simpleName
-      } else {
-        // prefix Corda API types to disambiguate from CorDapp objects
-        "Corda${valueType.rawType.simpleName}"
-      }
+      val baseName = generateSchemaTypeBaseName(valueType.rawType)
       return if (valueType.typeParameters.isEmpty()) {
         baseName
       } else {
