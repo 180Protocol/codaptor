@@ -109,7 +109,7 @@ class CordaFlowDispatcher : CordaptorComponent {
 
   fun <ReturnType: Any> initiateFlow(instruction: CordaFlowInstruction<FlowLogic<ReturnType>>): CordaFlowHandle<ReturnType> {
     val flowInstance = FlowInstanceBuilder(
-        instruction.flowClass, instruction.flowProperties, localTypeModel).instantiate()
+        instruction.flowClass, instruction.arguments, localTypeModel).instantiate()
 
     val cordaHandle = appServiceHub.startTrackedFlow(flowInstance)
     logger.debug("Flow {} started with run id {}", flowInstance.javaClass.canonicalName, cordaHandle.id)
@@ -128,7 +128,7 @@ class CordaFlowDispatcher : CordaptorComponent {
       }
     }
 
-    val progressUpdates = if (instruction.trackProgress) {
+    val progressUpdates = if (instruction.options?.trackProgress == true) {
       val flowProgressFeed = flowInstance.track()
       if (flowProgressFeed != null) {
         RxJavaInterop.toV3Observable(flowProgressFeed.updates).map {

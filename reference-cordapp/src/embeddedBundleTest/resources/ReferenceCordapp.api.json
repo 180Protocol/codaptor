@@ -37,8 +37,8 @@
       "CordaFlowInstruction_DelayedProgressFlow": {
         "type": "object",
         "properties": {
-          "trackProgress": {
-            "type": "boolean"
+          "options": {
+            "$ref": "#/components/schemas/Options"
           },
           "externalId": {
             "type": "string"
@@ -49,7 +49,6 @@
           }
         },
         "required": [
-          "trackProgress",
           "externalId",
           "delay"
         ]
@@ -57,15 +56,14 @@
       "CordaFlowInstruction_SimpleFlow": {
         "type": "object",
         "properties": {
-          "trackProgress": {
-            "type": "boolean"
+          "options": {
+            "$ref": "#/components/schemas/Options"
           },
           "externalId": {
             "type": "string"
           }
         },
         "required": [
-          "trackProgress",
           "externalId"
         ]
       },
@@ -497,6 +495,15 @@
       },
       "CordaX500Name": {
         "type": "string"
+      },
+      "Options": {
+        "type": "object",
+        "properties": {
+          "trackProgress": {
+            "type": "boolean"
+          }
+        },
+        "required": []
       },
       "PublicKey": {
         "type": "object",

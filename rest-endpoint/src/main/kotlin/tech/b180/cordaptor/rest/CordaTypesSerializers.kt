@@ -259,7 +259,7 @@ class CordaFlowInstructionSerializerFactory(
 ) : CustomSerializerFactory<CordaFlowInstruction<*>> {
 
   companion object {
-    const val TRACK_PROGRESS_PROPERTY = "trackProgress"
+    const val OPTIONS_PROPERTY_NAME = "options"
   }
 
   override val rawType = CordaFlowInstruction::class.java
@@ -287,8 +287,8 @@ class CordaFlowInstructionSerializerFactory(
 
           // expose trackProgress flag explicitly among the properties
           // FIXME watch out for property name clashes
-          val properties: MutableList<Pair<String, ObjectProperty>> = mutableListOf(TRACK_PROGRESS_PROPERTY
-              to KotlinObjectProperty(property = CordaFlowInstruction<*>::trackProgress))
+          val properties: MutableList<Pair<String, ObjectProperty>> = mutableListOf(OPTIONS_PROPERTY_NAME
+              to KotlinObjectProperty(property = CordaFlowInstruction<*>::options))
 
           constructor.parameters.mapTo(properties) {
             val prop = typeInfo.properties[it.name]
@@ -302,17 +302,15 @@ class CordaFlowInstructionSerializerFactory(
         }
 
       override fun initializeInstance(values: Map<String, Any?>): CordaFlowInstruction<*> {
-        val trackProgress = values[TRACK_PROGRESS_PROPERTY] as? Boolean
-            ?: throw SerializationException("No value given for mandatory property $TRACK_PROGRESS_PROPERTY")
+        val options = values[OPTIONS_PROPERTY_NAME] as? CordaFlowInstruction.Options
 
         @Suppress("UNCHECKED_CAST")
         val flowClass = flowClass.kotlin as KClass<FlowLogic<Any>>
 
         @Suppress("UNCHECKED_CAST")
-        val flowProperties = values.filter { it.key != TRACK_PROGRESS_PROPERTY && it.value != null } as Map<String, Any>
+        val arguments = values.filter { it.key != OPTIONS_PROPERTY_NAME && it.value != null } as Map<String, Any>
 
-        return CordaFlowInstruction<FlowLogic<Any>>(flowClass = flowClass,
-            trackProgress = trackProgress, flowProperties = flowProperties)
+        return CordaFlowInstruction(flowClass, arguments, options)
       }
     }
   }

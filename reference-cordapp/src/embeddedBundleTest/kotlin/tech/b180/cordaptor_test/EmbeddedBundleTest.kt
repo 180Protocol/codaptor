@@ -85,8 +85,7 @@ class EmbeddedBundleTest {
     val req = client.POST("http://localhost:8500/node/reference/SimpleFlow")
 
     val content = """{
-      |"externalId":"TEST-111",
-      |"trackProgress":false}""".trimMargin()
+      |"externalId":"TEST-111"}""".trimMargin()
 
     req.content(StringContentProvider("application/json", content, Charsets.UTF_8))
     val response = req.send()
@@ -132,8 +131,7 @@ class EmbeddedBundleTest {
     val req = client.POST("http://localhost:8500/node/reference/SimpleFlow?wait=100")
 
     val content = """{
-      |"externalId":"TEST-111",
-      |"trackProgress":false}""".trimMargin()
+      |"externalId":"TEST-111"}""".trimMargin()
 
     req.content(StringContentProvider("application/json", content, Charsets.UTF_8))
     val requestTimestamp = Instant.now()

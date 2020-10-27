@@ -110,9 +110,16 @@ interface CordaFlowCache {
  */
 data class CordaFlowInstruction<FlowClass: FlowLogic<Any>>(
     val flowClass: KClass<FlowClass>,
-    val flowProperties: Map<String, Any>,
-    val trackProgress: Boolean = true
-)
+    val arguments: Map<String, Any>,
+    val options: Options? = null
+) {
+
+  /** Options that change the behaviour of the flow initiation logic */
+  data class Options(
+      /** by default false */
+      val trackProgress: Boolean?
+  )
+}
 
 /**
  * Container for a result of executing Corda flow, which may be either

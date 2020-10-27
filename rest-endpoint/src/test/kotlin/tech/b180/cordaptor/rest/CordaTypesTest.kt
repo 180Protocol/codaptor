@@ -182,27 +182,23 @@ class CordaTypesTest : KoinTest {
 
     assertEquals("""{"type":"object",
       "properties":{
-      "trackProgress":{"type":"boolean"},
+      "options":{"type":"object","properties":{"trackProgress":{"type":"boolean"}},"required":[]},
       "stringParam":{"type":"string"},
       "objectParam":{"type":"object",
       "properties":{"intParam":{"type":"number","format":"int32"}},
       "required":["intParam"]}},
-      "required":["trackProgress","stringParam"]}""".asJsonObject(), serializer.generateRecursiveSchema(getKoin().get()))
+      "required":["stringParam"]}""".asJsonObject(), serializer.generateRecursiveSchema(getKoin().get()))
 
-    assertEquals(CordaFlowInstruction(flowClass = TestFlow::class, trackProgress = true,
-        flowProperties = mapOf("stringParam" to "ABC", "objectParam" to TestFlowParam(intParam = 123))),
-        serializer.fromJson("""{"trackProgress":true,"stringParam":"ABC","objectParam":{"intParam":123}}""".asJsonObject()))
+    assertEquals(CordaFlowInstruction(flowClass = TestFlow::class, options = CordaFlowInstruction.Options(true),
+        arguments = mapOf("stringParam" to "ABC", "objectParam" to TestFlowParam(intParam = 123))),
+        serializer.fromJson("""{"options":{"trackProgress":true},"stringParam":"ABC","objectParam":{"intParam":123}}""".asJsonObject()))
 
-    assertEquals(CordaFlowInstruction(flowClass = TestFlow::class, trackProgress = true,
-        flowProperties = mapOf("stringParam" to "ABC")),
-        serializer.fromJson("""{"trackProgress":true,"stringParam":"ABC"}""".asJsonObject()))
-
-    assertFailsWith(SerializationException::class, message = "Missing track progress flag") {
-      serializer.fromJson("""{"stringParam":"ABC"}""".asJsonObject())
-    }
+    assertEquals(CordaFlowInstruction(flowClass = TestFlow::class,
+        arguments = mapOf("stringParam" to "ABC")),
+        serializer.fromJson("""{"stringParam":"ABC"}""".asJsonObject()))
 
     assertFailsWith(SerializationException::class, message = "Missing mandatory flow class constructor parameter") {
-      serializer.fromJson("""{"trackProgress":true}""".asJsonObject())
+      serializer.fromJson("""{"objectParam":{"intParam":123}}}""".asJsonObject())
     }
   }
 }
