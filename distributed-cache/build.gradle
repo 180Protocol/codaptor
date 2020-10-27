@@ -4,7 +4,7 @@ dependencies {
     implementation project(":kernel")
     implementation project(":corda-common")
 
-    implementation "io.reactivex.rxjava3:rxjava:3.0.6"
+    implementation "io.reactivex.rxjava3:rxjava:$rxjava3_version"
 
     compile "net.corda:corda-core:$corda_core_release_version"
     runtime "net.corda:corda-node-api:$corda_core_release_version"

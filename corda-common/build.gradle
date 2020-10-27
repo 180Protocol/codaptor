@@ -3,6 +3,7 @@ apply plugin: 'org.jetbrains.kotlin.jvm'
 dependencies {
     api project(":kernel")
     api "io.reactivex.rxjava3:rxjava:$rxjava3_version"
+    implementation "com.github.akarnokd:rxjava3-interop:$rxjava3_interop_version"
 
     compileOnly "net.corda:corda-core:$corda_core_release_version"
     compileOnly "net.corda:corda-serialization:$corda_core_release_version"

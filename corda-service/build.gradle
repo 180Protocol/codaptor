@@ -4,7 +4,9 @@ dependencies {
     api project(":kernel")
     api project(":corda-common")
 
-    implementation "com.github.akarnokd:rxjava3-interop:3.0.2"
+    implementation "io.reactivex.rxjava3:rxjava:$rxjava3_version"
+    implementation "com.github.akarnokd:rxjava3-interop:$rxjava3_interop_version"
+
     compileOnly "com.google.guava:guava:$guava_version"
 
     compileOnly "net.corda:corda-core:$corda_core_release_version"
