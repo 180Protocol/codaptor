@@ -23,11 +23,9 @@ class NodeInfoEndpoint(contextPath: String)
           get = OpenAPI.Operation(
               summary = "Returns network map entry for the underlying Corda node",
               operationId = "getNodeInfo"
-          )
-              .withResponse(OpenAPI.HttpStatusCode.OK, OpenAPI.Response.createJsonResponse(
-                  description = "Successful operation",
-                  schema = schemaGenerator.generateSchema(SerializerKey(NodeInfo::class))
-              )
+          ).withResponse(OpenAPI.HttpStatusCode.OK, OpenAPI.Response.createJsonResponse(
+              description = "Successful operation",
+              schema = schemaGenerator.generateSchema(SerializerKey(NodeInfo::class)))
           )
       )
 }
@@ -49,11 +47,9 @@ class NodeVersionEndpoint(contextPath: String)
           get = OpenAPI.Operation(
               summary = "Returns software version information for the underlying Corda node",
               operationId = "getNodeVersion"
-          )
-              .withResponse(OpenAPI.HttpStatusCode.OK, OpenAPI.Response.createJsonResponse(
-                  description = "Successful operation",
-                  schema = schemaGenerator.generateSchema(SerializerKey(NodeVersionInfo::class))
-              )
+          ).withResponse(OpenAPI.HttpStatusCode.OK, OpenAPI.Response.createJsonResponse(
+              description = "Successful operation",
+              schema = schemaGenerator.generateSchema(SerializerKey(NodeVersionInfo::class)))
           )
       )
 }

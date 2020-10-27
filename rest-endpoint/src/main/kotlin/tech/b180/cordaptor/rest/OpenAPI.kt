@@ -4,6 +4,7 @@ import net.corda.core.serialization.SerializableCalculatedProperty
 import tech.b180.cordaptor.shaded.javax.json.Json
 import tech.b180.cordaptor.shaded.javax.json.JsonObject
 import java.net.URL
+import java.util.*
 import javax.servlet.http.HttpServletResponse
 
 typealias SemanticVersion = String
@@ -21,7 +22,7 @@ data class OpenAPI(
     val servers: List<Server>,
 
     /** [https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.3.md#paths-object] */
-    val paths: Map<ResourcePath, PathItem>,
+    val paths: SortedMap<ResourcePath, PathItem>,
     val components: Components? = null
 ) {
 
@@ -64,7 +65,7 @@ data class OpenAPI(
   data class Server(
       val url: URL,
       val description: String? = null,
-      val variables: Map<String, ServerVariable>? = null
+      val variables: SortedMap<String, ServerVariable>? = null
   )
 
   /** [https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.3.md#serverVariableObject] */
@@ -109,7 +110,8 @@ data class OpenAPI(
 
       // FIXME 'default' response is not supported
       /** [https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.3.md#responsesObject] */
-      val responses: Map<HttpStatusCode, Response> = emptyMap(),
+      val responses: SortedMap<HttpStatusCode, Response> = emptyMap<HttpStatusCode, Response>().toSortedMap(),
+
       val parameters: List<Parameter>? = null,
       val description: String? = null,
       val tags: List<String>? = null,
@@ -118,7 +120,7 @@ data class OpenAPI(
   ) {
 
     fun withResponse(statusCode: HttpStatusCode, response: Response): Operation =
-        copy(responses = responses + (statusCode to response))
+        copy(responses = (responses.plus(statusCode to response).toSortedMap()))
 
     fun withRequestBody(requestBody: RequestBody): Operation =
         copy(requestBody = requestBody)
@@ -129,23 +131,23 @@ data class OpenAPI(
 
   /** [https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.3.md#componentsObject] */
   data class Components(
-      val schemas: Map<String, JsonObject>? = null,
-      val responses: Map<String, Response>? = null,
-      val parameters: Map<String, Parameter>? = null,
-      val headers: Map<String, Header>? = null,
-      val securitySchemes: Map<String, SecurityScheme>? = null
+      val schemas: SortedMap<String, JsonObject>? = null,
+      val responses: SortedMap<String, Response>? = null,
+      val parameters: SortedMap<String, Parameter>? = null,
+      val headers: SortedMap<String, Header>? = null,
+      val securitySchemes: SortedMap<String, SecurityScheme>? = null
   )
 
   /** [https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.3.md#responseObject] */
   data class Response(
       val description: String,
-      val content: Map<ContentType, MediaType>? = null,
-      val headers: Map<HttpHeader, Header>? = null
+      val content: SortedMap<ContentType, MediaType>? = null,
+      val headers: SortedMap<HttpHeader, Header>? = null
   ) {
 
     companion object {
       fun createJsonResponse(description: String, schema: JsonObject) =
-          Response(description = description, content = mapOf(JSON_CONTENT_TYPE to MediaType(schema)))
+          Response(description = description, content = sortedMapOf(JSON_CONTENT_TYPE to MediaType(schema)))
     }
   }
 
@@ -174,13 +176,13 @@ data class OpenAPI(
 
   /** [https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.3.md#requestBodyObject] */
   data class RequestBody(
-      val content: Map<ContentType, MediaType>,
+      val content: SortedMap<ContentType, MediaType>,
       val required: Boolean = false,
       val description: String? = null
   ) {
     companion object {
       fun createJsonRequest(schema: JsonObject, required: Boolean) =
-          RequestBody(content = mapOf(JSON_CONTENT_TYPE to MediaType(schema)), required = required)
+          RequestBody(content = sortedMapOf(JSON_CONTENT_TYPE to MediaType(schema)), required = required)
     }
   }
 
@@ -244,6 +246,16 @@ data class OpenAPI(
     val POSITIVE_INTEGER: JsonObject = Json.createObjectBuilder()
         .add("type", "number")
         .add("minimum", 0)
+        .build()
+
+    val NON_EMPTY_STRING: JsonObject = Json.createObjectBuilder()
+        .add("type", "string")
+        .add("minLength", 1)
+        .build()
+
+    val UUID_STRING: JsonObject = Json.createObjectBuilder()
+        .add("type", "string")
+        .add("format", "uuid")
         .build()
   }
 }

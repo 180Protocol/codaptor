@@ -1,5 +1,4 @@
 {
-  "openapi": "3.0.3",
   "components": {
     "schemas": {
       "TestPayload": {
@@ -19,7 +18,36 @@
     "title": "title",
     "version": "version"
   },
+  "openapi": "3.0.3",
   "paths": {
+    "/operation": {
+      "post": {
+        "operationId": "operation",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestPayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestPayload"
+                }
+              }
+            },
+            "description": "default response"
+          }
+        },
+        "summary": "test operation"
+      }
+    },
     "/query": {
       "post": {
         "operationId": "query",
@@ -47,34 +75,6 @@
           }
         },
         "summary": "test query"
-      }
-    },
-    "/operation": {
-      "post": {
-        "operationId": "operation",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TestPayload"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TestPayload"
-                }
-              }
-            },
-            "description": "default response"
-          }
-        },
-        "summary": "test operation"
       }
     }
   },

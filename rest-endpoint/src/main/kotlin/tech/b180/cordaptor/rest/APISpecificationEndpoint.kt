@@ -81,6 +81,7 @@ data class OpenAPISpecificationBuilder(
         .map { it.resourcePath to it.generatePathInfoSpecification(generator) }
         .groupBy(keySelector = { it.first }, valueTransform = { it.second })
         .mapValues { (_, items) -> items.reduce(OpenAPI.PathItem::mergeOperationsWith) }
+        .toSortedMap()  // ensure consistent ordering between runs
 
     return OpenAPI(info = info!!, servers = servers, paths = paths,
         components = OpenAPI.Components(generator.collectedSchemas))
