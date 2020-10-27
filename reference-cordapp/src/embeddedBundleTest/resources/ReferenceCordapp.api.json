@@ -282,20 +282,24 @@
           "serial"
         ]
       },
-      "DelayedProgressFlow": {
+      "CordaFlowInstruction_DelayedProgressFlow": {
         "type": "object",
         "properties": {
-          "delay": {
-            "type": "number",
-            "format": "int64"
+          "trackProgress": {
+            "type": "boolean"
           },
           "externalId": {
             "type": "string"
+          },
+          "delay": {
+            "type": "number",
+            "format": "int64"
           }
         },
         "required": [
-          "delay",
-          "externalId"
+          "trackProgress",
+          "externalId",
+          "delay"
         ]
       },
       "CordaFlowProgress": {
@@ -404,14 +408,18 @@
           "startedAt"
         ]
       },
-      "SimpleFlow": {
+      "CordaFlowInstruction_SimpleFlow": {
         "type": "object",
         "properties": {
+          "trackProgress": {
+            "type": "boolean"
+          },
           "externalId": {
             "type": "string"
           }
         },
         "required": [
+          "trackProgress",
           "externalId"
         ]
       }
@@ -558,7 +566,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/DelayedProgressFlow"
+                "$ref": "#/components/schemas/CordaFlowInstruction_DelayedProgressFlow"
               }
             }
           },
@@ -618,7 +626,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SimpleFlow"
+                "$ref": "#/components/schemas/CordaFlowInstruction_SimpleFlow"
               }
             }
           },

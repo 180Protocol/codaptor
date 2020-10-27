@@ -68,6 +68,8 @@ interface CordaNodeState {
 
   fun <ReturnType: Any> initiateFlow(flowInstance: FlowLogic<ReturnType>): CordaFlowHandle<ReturnType>
 
+  fun <ReturnType: Any> initiateFlow(instruction: CordaFlowInstruction<FlowLogic<ReturnType>>): CordaFlowHandle<ReturnType>
+
   /**
    * Allows to observe the execution of a flow that was started earlier.
    *
@@ -98,8 +100,19 @@ interface CordaNodeStateInner : CordaNodeState
 interface CordaFlowCache {
 
   fun <ReturnType: Any> getFlowInstance(
-      flowClass: KClass<ReturnType>, flowRunId: StateMachineRunId): CordaFlowSnapshot<ReturnType>
+      flowClass: KClass<FlowLogic<ReturnType>>, flowRunId: StateMachineRunId): CordaFlowSnapshot<ReturnType>
 }
+
+/**
+ * Encapsulates the instruction to Corda node to initiate a flow.
+ * This class is expected to be used with the type parameter in order to
+ * generate typesafe serialization bindings.
+ */
+data class CordaFlowInstruction<FlowClass: FlowLogic<Any>>(
+    val flowClass: KClass<FlowClass>,
+    val flowProperties: Map<String, Any>,
+    val trackProgress: Boolean = true
+)
 
 /**
  * Container for a result of executing Corda flow, which may be either

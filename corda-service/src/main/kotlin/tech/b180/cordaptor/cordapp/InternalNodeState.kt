@@ -19,6 +19,7 @@ import net.corda.core.node.services.Vault
 import net.corda.core.node.services.diagnostics.NodeVersionInfo
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.utilities.getOrThrow
+import net.corda.serialization.internal.model.LocalTypeModel
 import org.koin.core.inject
 import tech.b180.cordaptor.corda.*
 import tech.b180.cordaptor.kernel.CordaptorComponent
@@ -74,8 +75,11 @@ class CordaNodeStateImpl : CordaNodeStateInner, CordaptorComponent {
   }
 
   @Suppress("UNCHECKED_CAST")
-  override fun <ReturnType: Any> initiateFlow(flowInstance: FlowLogic<ReturnType>): CordaFlowHandle<ReturnType> {
-    return flowDispatcher.initiateFlow(flowInstance) as CordaFlowHandle<ReturnType>
+  override fun <ReturnType: Any> initiateFlow(
+      instruction: CordaFlowInstruction<FlowLogic<ReturnType>>
+  ): CordaFlowHandle<ReturnType> {
+
+    return flowDispatcher.initiateFlow(instruction)
   }
 
   @Suppress("UNCHECKED_CAST")
@@ -99,16 +103,20 @@ class CordaFlowDispatcher : CordaptorComponent {
   }
 
   private val appServiceHub: AppServiceHub by inject()
+  private val localTypeModel: LocalTypeModel by inject()
 
-  private val activeHandles = ConcurrentHashMap<StateMachineRunId, CordaFlowHandle<Any>>()
+  private val activeHandles = ConcurrentHashMap<StateMachineRunId, CordaFlowHandle<*>>()
 
-  fun initiateFlow(flowInstance: FlowLogic<Any>): CordaFlowHandle<Any> {
+  fun <ReturnType: Any> initiateFlow(instruction: CordaFlowInstruction<FlowLogic<ReturnType>>): CordaFlowHandle<ReturnType> {
+    val flowInstance = FlowInstanceBuilder(
+        instruction.flowClass, instruction.flowProperties, localTypeModel).instantiate()
+
     val cordaHandle = appServiceHub.startTrackedFlow(flowInstance)
     logger.debug("Flow {} started with run id {}", flowInstance.javaClass.canonicalName, cordaHandle.id)
 
     // asynchronously emit the result when flow result future completes
     // this will happen on the node's state machine thread
-    val resultSubject = SingleSubject.create<CordaFlowResult<Any>>()
+    val resultSubject = SingleSubject.create<CordaFlowResult<ReturnType>>()
     cordaHandle.returnValue.then {
       try {
         val flowResult = it.getOrThrow()
@@ -120,17 +128,22 @@ class CordaFlowDispatcher : CordaptorComponent {
       }
     }
 
-    val flowProgressFeed = flowInstance.track()
-    val progressUpdates = if (flowProgressFeed != null) {
-      RxJavaInterop.toV3Observable(flowProgressFeed.updates).map {
-        logger.debug("Progress update for flow {}: {}", cordaHandle.id, it)
-        CordaFlowProgress(it)
+    val progressUpdates = if (instruction.trackProgress) {
+      val flowProgressFeed = flowInstance.track()
+      if (flowProgressFeed != null) {
+        RxJavaInterop.toV3Observable(flowProgressFeed.updates).map {
+          logger.debug("Progress update for flow {}: {}", cordaHandle.id, it)
+          CordaFlowProgress(it)
+        }
+      } else {
+        logger.info("Flow {} does not use progress tracker, no progress updates will be emitted",
+            flowInstance.javaClass.canonicalName)
+
+        // effectively it creates an observable that produces no items and never completes
+        ReplaySubject.create()
       }
     } else {
-      logger.info("Flow {} does not use progress tracker, no progress updates will be emitted",
-          flowInstance.javaClass.canonicalName)
-
-      // effectively it creates an observable that produces no items and never completes
+      logger.debug("Progress tracking was not requested for flow {}", cordaHandle.id)
       ReplaySubject.create()
     }
 
@@ -155,6 +168,7 @@ class CordaFlowDispatcher : CordaptorComponent {
   }
 
   fun findFlowHandle(runId: StateMachineRunId): CordaFlowHandle<Any>? {
-    return activeHandles[runId]
+    @Suppress("UNCHECKED_CAST")
+    return activeHandles[runId] as CordaFlowHandle<Any>?
   }
 }

@@ -12,10 +12,7 @@ import net.corda.core.node.NodeInfo
 import net.corda.core.node.services.Vault
 import net.corda.core.node.services.diagnostics.NodeVersionInfo
 import net.corda.core.transactions.SignedTransaction
-import tech.b180.cordaptor.corda.CordaFlowHandle
-import tech.b180.cordaptor.corda.CordaNodeState
-import tech.b180.cordaptor.corda.CordaNodeStateInner
-import tech.b180.cordaptor.corda.CordaStateQuery
+import tech.b180.cordaptor.corda.*
 import tech.b180.cordaptor.kernel.CordaptorComponent
 import tech.b180.cordaptor.kernel.LifecycleAware
 import java.security.PublicKey
@@ -55,7 +52,7 @@ class ClusteredNodeState(private val delegate: CordaNodeStateInner)
     TODO("Not yet implemented")
   }
 
-  override fun <ReturnType : Any> initiateFlow(flowInstance: FlowLogic<ReturnType>): CordaFlowHandle<ReturnType> {
+  override fun <ReturnType : Any> initiateFlow(instruction: CordaFlowInstruction<FlowLogic<ReturnType>>): CordaFlowHandle<ReturnType> {
     TODO("Not yet implemented")
   }
 

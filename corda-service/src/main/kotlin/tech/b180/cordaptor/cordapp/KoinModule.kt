@@ -2,6 +2,7 @@ package tech.b180.cordaptor.cordapp
 
 import net.corda.core.node.AppServiceHub
 import net.corda.node.services.api.ServiceHubInternal
+import net.corda.serialization.internal.model.LocalTypeModel
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import tech.b180.cordaptor.corda.CordaNodeCatalog
@@ -19,6 +20,7 @@ import tech.b180.cordaptor.kernel.ModuleProvider
 interface NodeServicesLocator {
   val appServiceHub: AppServiceHub
   val serviceHubInternal: ServiceHubInternal
+  val localTypeModel: LocalTypeModel
 }
 
 const val BUNDLE_CORDAPP_NAME_PROPERTY = "bundle.cordapp.name"
@@ -43,6 +45,7 @@ class CordaServiceModuleProvider : ModuleProvider {
 
     // expose Corda node APIs to other definitions without the need to traverse the properties
     single { get<NodeServicesLocator>().serviceHubInternal }
+    single { get<NodeServicesLocator>().localTypeModel }
     single { get<NodeServicesLocator>().appServiceHub }
     single { get<NodeServicesLocator>().appServiceHub.validatedTransactions }
     single { get<NodeServicesLocator>().appServiceHub.vaultService }

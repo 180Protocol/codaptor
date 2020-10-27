@@ -9,10 +9,7 @@ import net.corda.core.flows.FlowLogic
 import net.corda.core.node.services.Vault
 import net.corda.core.transactions.SignedTransaction
 import org.koin.core.inject
-import tech.b180.cordaptor.corda.CordaFlowProgress
-import tech.b180.cordaptor.corda.CordaFlowSnapshot
-import tech.b180.cordaptor.corda.CordaNodeCatalog
-import tech.b180.cordaptor.corda.CordaNodeState
+import tech.b180.cordaptor.corda.*
 import tech.b180.cordaptor.kernel.CordaptorComponent
 import tech.b180.cordaptor.kernel.loggerFor
 import java.util.concurrent.TimeUnit
@@ -61,7 +58,7 @@ class FlowInitiationEndpoint<FlowReturnType: Any>(
     contextPath: String,
     private val flowClass: KClass<out FlowLogic<FlowReturnType>>,
     flowResultClass: KClass<FlowReturnType>
-) : OperationEndpoint<FlowLogic<FlowReturnType>, CordaFlowSnapshot<FlowReturnType>>, CordaptorComponent,
+) : OperationEndpoint<CordaFlowInstruction<FlowLogic<FlowReturnType>>, CordaFlowSnapshot<FlowReturnType>>, CordaptorComponent,
     ContextMappedResourceEndpoint(contextPath, allowNullPathInfo = true) {
 
   companion object {
@@ -74,18 +71,21 @@ class FlowInitiationEndpoint<FlowReturnType: Any>(
   private val cordaNodeState: CordaNodeState by inject()
 
   override val responseType = CordaFlowSnapshot::class.asParameterizedType(flowResultClass)
-  override val requestType = flowClass.java
+  override val requestType = SerializerKey(CordaFlowInstruction::class.java, flowClass.java).asType()
   override val supportedMethods = OperationEndpoint.POST_ONLY
 
   override fun executeOperation(
-      request: RequestWithPayload<FlowLogic<FlowReturnType>>): Single<Response<CordaFlowSnapshot<FlowReturnType>>> {
+      request: RequestWithPayload<CordaFlowInstruction<FlowLogic<FlowReturnType>>>
+  ): Single<Response<CordaFlowSnapshot<FlowReturnType>>> {
 
     val waitTimeout = request.getPositiveIntParameterValue("wait", 0)
 
-    val flowInstance = request.payload
-    logger.debug("Initiating Corda flow {}", flowInstance)
-    val handle = cordaNodeState.initiateFlow(flowInstance)
-    logger.debug("Started flow {} with run id {} at {}", flowInstance, handle.flowRunId, handle.startedAt)
+    val flowInstruction = request.payload
+    logger.debug("Initiating Corda flow using instruction {}", flowInstruction)
+
+    val handle = cordaNodeState.initiateFlow(flowInstruction)
+    logger.debug("Started flow {} with run id {} at {}",
+        flowInstruction.flowClass.qualifiedName, handle.flowRunId, handle.startedAt)
 
     if (waitTimeout == 0) {
       logger.debug("Zero timeout specified, returning result straight away")

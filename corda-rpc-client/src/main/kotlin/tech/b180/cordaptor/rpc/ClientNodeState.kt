@@ -15,10 +15,7 @@ import net.corda.core.node.services.Vault
 import net.corda.core.node.services.diagnostics.NodeVersionInfo
 import net.corda.core.node.services.vault.QueryCriteria
 import net.corda.core.transactions.SignedTransaction
-import tech.b180.cordaptor.corda.CordaFlowHandle
-import tech.b180.cordaptor.corda.CordaNodeState
-import tech.b180.cordaptor.corda.CordaNodeStateInner
-import tech.b180.cordaptor.corda.CordaStateQuery
+import tech.b180.cordaptor.corda.*
 import tech.b180.cordaptor.kernel.CordaptorComponent
 import java.security.PublicKey
 import kotlin.reflect.KClass
@@ -66,7 +63,11 @@ class ClientNodeStateImpl(private val rpc: ReconnectingCordaRPCOps) : CordaNodeS
     TODO("Not yet implemented")
   }
 
-  override fun <ReturnType : Any> initiateFlow(flowInstance: FlowLogic<ReturnType>): CordaFlowHandle<ReturnType> {
+  override fun <ReturnType : Any> initiateFlow(
+      instruction: CordaFlowInstruction<FlowLogic<ReturnType>>
+  ): CordaFlowHandle<ReturnType> {
+
+//    rpc.startFlowDynamic(instruction.flowClass, )
     TODO("Not yet implemented")
   }
 

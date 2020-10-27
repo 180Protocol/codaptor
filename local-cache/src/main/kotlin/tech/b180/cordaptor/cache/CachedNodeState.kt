@@ -48,7 +48,7 @@ class CachedNodeState(private val delegate: CordaNodeStateInner) : CordaNodeStat
     TODO("Not yet implemented")
   }
 
-  override fun <ReturnType : Any> initiateFlow(flowInstance: FlowLogic<ReturnType>): CordaFlowHandle<ReturnType> {
+  override fun <ReturnType : Any> initiateFlow(instruction: CordaFlowInstruction<FlowLogic<ReturnType>>): CordaFlowHandle<ReturnType> {
     TODO("Not yet implemented")
   }
 
