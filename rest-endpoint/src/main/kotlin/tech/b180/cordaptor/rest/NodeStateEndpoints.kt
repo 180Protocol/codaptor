@@ -80,7 +80,7 @@ class FlowInitiationEndpoint<FlowReturnType: Any>(
   override fun executeOperation(
       request: RequestWithPayload<FlowLogic<FlowReturnType>>): Single<Response<CordaFlowSnapshot<FlowReturnType>>> {
 
-    val waitTimeout = request.getPositiveIntParameter("wait", 0)
+    val waitTimeout = request.getPositiveIntParameterValue("wait", 0)
 
     val flowInstance = request.payload
     logger.debug("Initiating Corda flow {}", flowInstance)

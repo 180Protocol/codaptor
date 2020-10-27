@@ -53,28 +53,34 @@ interface Request {
   val method: String
 
   /**
-   * Returns a query string parameter value or null
+   * Returns a query string parameter value or null.
+   * If there is more than one parameter for a given name, only one of them is returned
    */
-  fun getParameter(name: String): String?
+  fun getParameterValue(name: String): String?
+
+  /**
+   * Returns all values for a given query string parameter, which may be an empty list.
+   */
+  fun getAllParameterValues(name: String): List<String>
 }
 
-fun Request.getIntParameter(name: String): Int? =
-    getParameter(name)?.let {
+fun Request.getIntParameterValue(name: String): Int? =
+    getParameterValue(name)?.let {
       it.toIntOrNull() ?: throw BadOperationRequestException(
           "Expected integer value for parameter $name, got [$it]", parameterName = name)
     }
 
-fun Request.getIntParameter(name: String, defaultValue: Int): Int =
-    getIntParameter(name) ?: defaultValue
+fun Request.getIntParameterValue(name: String, defaultValue: Int): Int =
+    getIntParameterValue(name) ?: defaultValue
 
-fun Request.getPositiveIntParameter(name: String): Int? =
-    getIntParameter(name)?.let {
+fun Request.getPositiveIntParameterValue(name: String): Int? =
+    getIntParameterValue(name)?.let {
       if (it >= 0) it else throw BadOperationRequestException(
           "Expected positive value for parameter $name, got $it", parameterName = name)
     }
 
-fun Request.getPositiveIntParameter(name: String, defaultValue: Int): Int =
-    getPositiveIntParameter(name) ?: defaultValue
+fun Request.getPositiveIntParameterValue(name: String, defaultValue: Int): Int =
+    getPositiveIntParameterValue(name) ?: defaultValue
 
 /**
  * Extension of the protocol request type for an API operation
@@ -148,6 +154,8 @@ abstract class ContextMappedResourceEndpoint(
     allowNullPathInfo: Boolean
 ) : GenericEndpoint, OpenAPIResource {
 
+  /** Default implementation uses the same resource path as context path,
+   * but it must be overridden if the endpoint requires path parameters */
   override val resourcePath: String
     get() = contextPath
   override val contextMappingParameters = ContextMappingParameters(contextPath, allowNullPathInfo)
@@ -159,7 +167,7 @@ abstract class ContextMappedResourceEndpoint(
 /**
  * Extension of a basic [ContextMappedResourceEndpoint] for a [QueryEndpoint] removing some boilerplate code.
  * Note that extending this class only makes sense if subclass is giving a meaningful value for [ResponseType],
- * otherwise this base class adds no value.
+ * otherwise this base class adds no value and may lead to obscure errors during initialization.
  */
 abstract class ContextMappedQueryEndpoint<ResponseType: Any>(
     contextPath: String,
@@ -173,7 +181,8 @@ abstract class ContextMappedQueryEndpoint<ResponseType: Any>(
 /**
  * Extension of a basic [ContextMappedResourceEndpoint] for an [OperationEndpoint] removing some boilerplate code.
  * Note that extending this class only makes sense if subclass is giving meaningful values for
- * [RequestType] and [ResponseType], otherwise this base class adds no value.
+ * [RequestType] and [ResponseType], otherwise this base class adds no value  and may lead to obscure errors
+ * during initialization.
  */
 abstract class ContextMappedOperationEndpoint<RequestType: Any, ResponseType: Any>(
     contextPath: String,
@@ -352,7 +361,9 @@ abstract class AbstractEndpointHandler<ResponseType: Any>(
     override val method: String
       get() = request.method
 
-    override fun getParameter(name: String): String? = request.getParameter(name)
+    override fun getParameterValue(name: String): String? = request.getParameter(name)
+    override fun getAllParameterValues(name: String): List<String> = request.getParameterValues(name)?.asList()
+        ?: emptyList()
   }
 
   /**
