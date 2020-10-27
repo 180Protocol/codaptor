@@ -1,7 +1,6 @@
 package tech.b180.cordaptor.cordapp
 
 import hu.akarnokd.rxjava3.interop.RxJavaInterop
-import io.reactivex.rxjava3.subjects.ReplaySubject
 import io.reactivex.rxjava3.subjects.SingleSubject
 import net.corda.core.contracts.ContractState
 import net.corda.core.contracts.StateAndRef
@@ -128,23 +127,29 @@ class CordaFlowDispatcher : CordaptorComponent {
       }
     }
 
-    val progressUpdates = if (instruction.options?.trackProgress == true) {
+    val progressUpdates = if (
+        instruction.options?.trackProgress == true
+        && flowInstance.progressTracker != null
+    ) {
       val flowProgressFeed = flowInstance.track()
-      if (flowProgressFeed != null) {
-        RxJavaInterop.toV3Observable(flowProgressFeed.updates).map {
-          logger.debug("Progress update for flow {}: {}", cordaHandle.id, it)
-          CordaFlowProgress(it)
-        }
-      } else {
-        logger.info("Flow {} does not use progress tracker, no progress updates will be emitted",
-            flowInstance.javaClass.canonicalName)
+          ?: throw IllegalStateException("Flow has a progress tracked, but calling track() returned null progress feed")
 
-        // effectively it creates an observable that produces no items and never completes
-        ReplaySubject.create()
+      RxJavaInterop.toV3Observable(flowProgressFeed.updates).map {
+        logger.debug("Progress update for flow {}: {}", cordaHandle.id, it)
+        CordaFlowProgress(it)
+      }.doOnDispose {
+        logger.debug("Progress observable for flow {} was disposed", cordaHandle.id)
+      }.doOnComplete {
+        logger.debug("Progress observable for flow {} completed", cordaHandle.id)
       }
     } else {
-      logger.debug("Progress tracking was not requested for flow {}", cordaHandle.id)
-      ReplaySubject.create()
+      if (flowInstance.progressTracker == null) {
+        logger.info("Flow {} does not use progress tracker, no progress feed will be available",
+            flowInstance.javaClass.canonicalName)
+      } else {
+        logger.debug("Progress tracking was not requested for flow {}", cordaHandle.id)
+      }
+      null
     }
 
     val ourHandle = CordaFlowHandle(
@@ -152,11 +157,7 @@ class CordaFlowDispatcher : CordaptorComponent {
         flowClass = flowInstance::class,
         flowRunId = cordaHandle.id.uuid,
         flowResultPromise = resultSubject,
-        flowProgressUpdates = progressUpdates.doOnDispose {
-          logger.debug("Progress observable for flow {} was disposed", cordaHandle.id)
-        }.doOnComplete {
-          logger.debug("Progress observable for flow {} completed", cordaHandle.id)
-        }
+        flowProgressUpdates = progressUpdates
     )
 
     ourHandle.flowResultPromise

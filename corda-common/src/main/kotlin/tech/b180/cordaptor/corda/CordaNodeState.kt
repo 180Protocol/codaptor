@@ -172,12 +172,15 @@ data class CordaFlowHandle<ReturnType: Any>(
     val flowResultPromise: Single<CordaFlowResult<ReturnType>>,
 
     /**
-     * A feed of flow progress updates.
-     * This observable will complete when [flowResultPromise] is complete.
+     * A feed of flow progress updates if progress tracking is available for the flow
+     * and it was requested via [CordaFlowInstruction.Options.trackProgress].
+     *
+     * Returned observable will complete when [flowResultPromise] is complete.
+     *
      * Client code that is no longer interested in the result of the flow
      * should dispose the single to avoid wasting server resources.
      */
-    val flowProgressUpdates: Observable<CordaFlowProgress>) {
+    val flowProgressUpdates: Observable<CordaFlowProgress>?) {
 
   /** Returns an 'initial' snapshot with no progress information and not result */
   fun asInitialSnapshot() = CordaFlowSnapshot(flowClass = flowClass,

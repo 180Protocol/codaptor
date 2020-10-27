@@ -49,7 +49,8 @@ class EmbeddedBundleTest {
     testOpenAPISpecification(client)
     testNodeInfoRequest(client)
     testFlowFireAndForget(client)
-    testFlowWaitWithTimeout(client)
+    testFlowWaitWithTimeout(client, true)
+    testFlowWaitWithTimeout(client, false)
     val stateRef = testFlowWaitForCompletion(client)
     testTransactionQuery(client, stateRef.txhash)
     testStateQuery(client, stateRef)
@@ -98,32 +99,38 @@ class EmbeddedBundleTest {
     assertFalse(handle.containsKey("result"))
   }
 
-  private fun testFlowWaitWithTimeout(client: HttpClient) {
-    val maxRequestTime = Duration.ofSeconds(5)    // more than wait parameter, less than delay
+  private fun testFlowWaitWithTimeout(client: HttpClient, trackProgress: Boolean) {
+    val maxRequestTime = Duration.ofSeconds(4)    // more than wait parameter, less than delay
     val req = client.POST("http://localhost:8500/node/reference/DelayedProgressFlow?wait=2")
 
     val content = """{
       |"externalId":"TEST-111",
       |"delay":5,
-      |"trackProgress":true}""".trimMargin()
+      |"options":{"trackProgress":$trackProgress}}""".trimMargin()
 
     req.content(StringContentProvider("application/json", content, Charsets.UTF_8))
     val requestTimestamp = Instant.now()
     val response = req.send()
     assertTrue(Instant.now() < requestTimestamp + maxRequestTime,
-        "Request should have completed before the flow")
+        "Request should have completed before the flow, " +
+            "took ${Duration.between(requestTimestamp, Instant.now()).toMillis()}ms")
     assertEquals(HttpServletResponse.SC_ACCEPTED, response.status)
     assertEquals("application/json", response.mediaType)
 
     val handle = response.contentAsString.asJsonObject()
     assertEquals(DelayedProgressFlow::class.qualifiedName, handle.getValue("/flowClass").asString())
     assertFalse(handle.containsKey("result"))
-    assertEquals(JsonValue.ValueType.OBJECT, handle.getValue("/currentProgress").valueType)
-    assertEquals("Sleeping", handle.getValue("/currentProgress/currentStepName").asString())
+    if (trackProgress) {
+      assertEquals(JsonValue.ValueType.OBJECT, handle.getValue("/currentProgress").valueType)
+      assertEquals("Sleeping", handle.getValue("/currentProgress/currentStepName").asString())
 
-    val lastProgressTimestamp = Instant.parse(handle.getValue("/currentProgress/timestamp").asString())
-    assertTrue(lastProgressTimestamp > requestTimestamp)
-    assertTrue(lastProgressTimestamp < Instant.now())
+      val lastProgressTimestamp = Instant.parse(handle.getValue("/currentProgress/timestamp").asString())
+      assertTrue(lastProgressTimestamp > requestTimestamp)
+      assertTrue(lastProgressTimestamp < Instant.now())
+
+    } else {
+      assertFalse(handle.containsKey("currentProgress"))
+    }
   }
 
   private fun testFlowWaitForCompletion(client: HttpClient): StateRef {
@@ -138,7 +145,9 @@ class EmbeddedBundleTest {
     val response = req.send()
     assertEquals(HttpServletResponse.SC_OK, response.status)
     assertEquals("application/json", response.mediaType)
-    assertTrue(Instant.now() < requestTimestamp + maxRequestTime)
+    assertTrue(Instant.now() < requestTimestamp + maxRequestTime,
+        "Request should have completed before the flow, " +
+            "took ${Duration.between(requestTimestamp, Instant.now()).toMillis()}ms")
 
     val handle = response.contentAsString.asJsonObject()
     assertEquals(SimpleFlow::class.qualifiedName!!.asJsonValue(), handle.getValue("/flowClass"))

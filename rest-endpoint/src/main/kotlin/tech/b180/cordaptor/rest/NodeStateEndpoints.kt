@@ -102,16 +102,27 @@ class FlowInitiationEndpoint<FlowReturnType: Any>(
         handle.asSnapshotWithResult(it)
       }
 
-      // this replay subject will only keep one last progress update
-      val progressUpdates = ReplaySubject.createWithSize<CordaFlowProgress>(1)
-      handle.flowProgressUpdates.subscribe(progressUpdates)
+      // timer for the wait timeout will complete after a delay
+      val timer = Single.timer(waitTimeout.toLong(), TimeUnit.SECONDS).doOnSuccess {
+        logger.debug("The wait for the flow {} to complete has timed out", handle.flowRunId)
+      }
 
-      // when timeout ends, last progress update will be replayed
-      val lastProgressUpdateBeforeTimeout = Single.merge(
-          Single.timer(waitTimeout.toLong(), TimeUnit.SECONDS).doOnSuccess {
-            logger.debug("The wait for the flow {} to complete has timed out", handle.flowRunId)
-          }.map { progressUpdates.take(1).singleOrError() })
-          .map { handle.asSnapshotWithProgress(it) }
+      val lastProgressUpdateBeforeTimeout = if (handle.flowProgressUpdates != null) {
+
+        // this replay subject will only keep one last progress update
+        val progressUpdates = ReplaySubject.createWithSize<CordaFlowProgress>(1)
+        handle.flowProgressUpdates!!.subscribe(progressUpdates)
+
+        // when timeout ends, progress update subject will be subscribed to and the last received item replayed
+        Single.merge(timer.map {
+          progressUpdates.take(1).singleOrError().map {
+            handle.asSnapshotWithProgress(it)
+          }
+        })
+      } else {
+        // progress updates are not available, so return initial snapshot without progress or result after the timoout
+        timer.map { handle.asInitialSnapshot() }
+      }
 
       // race between the result and the timeout
       return resultPromise.ambWith(lastProgressUpdateBeforeTimeout).map { snapshot ->
