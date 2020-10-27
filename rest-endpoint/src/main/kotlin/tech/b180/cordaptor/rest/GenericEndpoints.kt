@@ -211,6 +211,9 @@ interface QueryEndpoint<ResponseType: Any> : GenericEndpoint {
 /**
  * Contract of a Cordaptor API endpoint that takes a HTTP request representing an
  * action verb (POST, PUT, etc), and performs an operation.
+ *
+ * Note that [OperationEndpointHandler] supports scenario where the endpoint also implements [QueryEndpoint],
+ * but for this to work [supportedMethods] property must return GET among its other methods.
  */
 interface OperationEndpoint<RequestType: Any, ResponseType: Any> : GenericEndpoint {
 
@@ -410,6 +413,10 @@ class QueryEndpointHandler<ResponseType: Any>(
  *
  * The implementation normally expects an asynchronous execution,
  * but the endpoint may indicate a synchronously produced response by calling [Single.just]
+ *
+ * Operation endpoints may also implement [QueryEndpoint] interface, in which case
+ * the handler will accept GET request, and delegate it to [QueryEndpoint.executeQuery] method.
+ * Note that [OperationEndpoint.supportedMethods] must explicitly allow GET method for this to work.
  */
 class OperationEndpointHandler<RequestType: Any, ResponseType: Any>(
     private val endpoint: OperationEndpoint<RequestType, ResponseType>
@@ -421,11 +428,28 @@ class OperationEndpointHandler<RequestType: Any, ResponseType: Any>(
 
   private val requestSerializer by injectSerializer<RequestType>(endpoint.requestType)
 
+  /**
+   * This field will be not null if the endpoint is also
+   */
+  @Suppress("UNCHECKED_CAST")
+  private val queryEndpoint = endpoint as? QueryEndpoint<ResponseType>
+
+  init {
+    if (queryEndpoint != null) {
+      logger.debug("Operation endpoint at {} will also accept GET queries",
+          endpoint.contextMappingParameters.contextPath)
+    }
+  }
+
   override fun canHandle(request: HttpServletRequest): Boolean {
     return request.method in endpoint.supportedMethods
   }
 
   override fun doHandle(request: HttpServletRequest, response: HttpServletResponse) {
+    if (tryHandlingAsQuery(request, response)) {
+      return
+    }
+
     if (request.contentLength == 0) {
       throw BadOperationRequestException("Empty request payload")
     }
@@ -476,6 +500,16 @@ class OperationEndpointHandler<RequestType: Any, ResponseType: Any>(
         }
       }
     })
+  }
+
+  private fun tryHandlingAsQuery(request: HttpServletRequest, response: HttpServletResponse): Boolean {
+    if (queryEndpoint == null || request.method != "GET") {
+      return false
+    }
+    val endpointRequest = HttpRequest(request)
+    val endpointResponse = queryEndpoint.executeQuery(endpointRequest)
+    sendResponse(response, endpointResponse)
+    return true
   }
 
   override fun toString(): String {

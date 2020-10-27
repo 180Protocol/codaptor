@@ -158,6 +158,15 @@ class JettyServerTest : KoinTest {
       assertEquals("""{"pathInfo":"","method":"POST","message":"sync"}""".asJsonObject(),
           it.contentAsString.asJsonObject())
     }
+
+    // test that operation endpoint may also accept GET requests if configured
+    httpClient.GET("http://localhost:9000/echo-op-sync/pathInfo").let {
+      assertEquals(HttpServletResponse.SC_ACCEPTED, it.status)
+      assertEquals(AbstractEndpointHandler.JSON_CONTENT_TYPE, it.mediaType)
+
+      assertEquals("""{"pathInfo":"/pathInfo","method":"GET","message":"sync"}""".asJsonObject(),
+          it.contentAsString.asJsonObject())
+    }
   }
 
   @Test
@@ -243,16 +252,21 @@ class MisconfiguredEchoQueryEndpoint(contextPath: String) : QueryEndpoint<EchoPa
     get() = throw NotImplementedError("Not meant to be called")
 }
 
-class SyncEchoOperationEndpoint(contextPath: String) : OperationEndpoint<SimplePayload, EchoPayload> {
+class SyncEchoOperationEndpoint(contextPath: String)
+  : OperationEndpoint<SimplePayload, EchoPayload>, QueryEndpoint<EchoPayload> {
   override val responseType = EchoPayload::class.java
   override val contextMappingParameters = ContextMappingParameters(contextPath, true)
   override val requestType: Type = SimplePayload::class.java
-  override val supportedMethods: Collection<String> = listOf("POST")
+  override val supportedMethods: Collection<String> = listOf("POST", "GET")
 
   override fun executeOperation(request: RequestWithPayload<SimplePayload>): Single<Response<EchoPayload>> {
-    return Single.just(Response(
+    return Single.just(executeQuery(request))
+  }
+
+  override fun executeQuery(request: tech.b180.cordaptor.rest.Request): Response<EchoPayload> {
+    return Response(
         payload = EchoPayload(request.pathInfo ?: "", request.method, message = "sync"),
-        statusCode = HttpServletResponse.SC_ACCEPTED))
+        statusCode = HttpServletResponse.SC_ACCEPTED)
   }
 
   override val resourceSpecification: OpenAPIResource
