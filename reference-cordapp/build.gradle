@@ -51,7 +51,7 @@ configurations {
 }
 
 tasks.withType(Test) {
-    jvmArgs += "-Xmx2g" // OOMs unless enough memory is given
+    jvmArgs += "-Xmx3g" // OOMs unless enough memory is given
     jvmArgs += "-javaagent:lib/quasar.jar"
     jvmArgs += "-Dnet.corda.client.rpc.trackRpcCallSites=true"
 }
