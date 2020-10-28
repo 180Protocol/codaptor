@@ -2,6 +2,7 @@ package tech.b180.cordaptor.rest
 
 import org.koin.core.inject
 import tech.b180.cordaptor.kernel.CordaptorComponent
+import tech.b180.cordaptor.kernel.LifecycleAware
 import tech.b180.cordaptor.kernel.getAll
 import tech.b180.cordaptor.kernel.loggerFor
 import tech.b180.cordaptor.shaded.javax.json.Json
@@ -15,17 +16,22 @@ import javax.servlet.http.HttpServletResponse
  * Jetty context handler responsible for generating an OpenAPI definition file
  * based on the catalog of the underlying node.
  */
-class APISpecificationEndpointHandler(
-    contextPath: String,
-    connectorConfiguration: JettyConnectorConfiguration
-) : AbstractEndpointHandler<OpenAPI>(
+class APISpecificationEndpointHandler(contextPath: String) : AbstractEndpointHandler<OpenAPI>(
     responseType = SerializerKey(OpenAPI::class),
     mappingParameters = ContextMappingParameters(contextPath, true)
-), CordaptorComponent {
+), CordaptorComponent, LifecycleAware {
 
   private val serializationFactory: SerializationFactory by inject()
 
   override fun canHandle(request: HttpServletRequest): Boolean = request.method == "GET"
+
+  private val connectorConfiguration: JettyConnectorConfiguration by inject()
+  private val notifications: NodeNotifications by inject()
+
+  override fun onStarted() {
+    val apiSpecUrl = connectorConfiguration.toAbsoluteUrl(mappingParameters.contextPath)
+    notifications.emitOperatorMessage("Cordaptor: generated OpenAPI specification is available at $apiSpecUrl")
+  }
 
   /** Object representing OpenAPI schema */
   private val apiSpecification by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {

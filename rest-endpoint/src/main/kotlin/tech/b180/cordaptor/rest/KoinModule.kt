@@ -3,6 +3,7 @@ package tech.b180.cordaptor.rest
 import org.koin.core.Koin
 import org.koin.core.parameter.parametersOf
 import org.koin.dsl.bind
+import org.koin.dsl.binds
 import org.koin.dsl.module
 import tech.b180.cordaptor.kernel.*
 import kotlin.reflect.KClass
@@ -33,7 +34,7 @@ class RestEndpointModuleProvider : ModuleProvider {
     single { NodeVersionEndpoint("/node/version") } bind QueryEndpoint::class
     single { TransactionQueryEndpoint("/node/tx") } bind QueryEndpoint::class
 
-    single { APISpecificationEndpointHandler("/api.json", get()) } bind ContextMappedHandler::class
+    single { APISpecificationEndpointHandler("/api.json") } bind ContextMappedHandler::class
     single { SwaggerUIHandler("/swagger") } bind ContextMappedHandler::class
 
     // parameterized accessor for obtaining handler instances allowing them to have dependencies managed by Koin

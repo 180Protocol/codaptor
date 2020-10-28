@@ -9,6 +9,8 @@ data class JettyConnectorConfiguration(
     val secure: Boolean
 ) {
 
+  fun toAbsoluteUrl(contextPath: String) = baseUrl + contextPath
+
   val baseUrl: String
   get() = "${if (secure) "https" else "http"}://${bindAddress.hostname}:${bindAddress.port}"
 }
