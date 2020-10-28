@@ -127,6 +127,8 @@ data class OpenAPI(
 
     fun withParameter(parameter: Parameter): Operation =
         copy(parameters = listOf(parameter) + (parameters ?: emptyList()))
+
+    fun withTags(vararg tags: String): Operation = copy(tags = tags.asList())
   }
 
   /** [https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.3.md#componentsObject] */

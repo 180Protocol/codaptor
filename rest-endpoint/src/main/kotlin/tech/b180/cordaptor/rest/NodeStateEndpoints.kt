@@ -21,6 +21,9 @@ import javax.servlet.http.HttpServletResponse
 import kotlin.math.min
 import kotlin.reflect.KClass
 
+const val FLOW_INITIATION_TAG = "flowInitiation"
+const val VAULT_QUERY_TAG = "vaultQuery"
+
 /**
  * Factory class for specific Jetty handlers created for flows and contract states of CorDapps found on the node.
  */
@@ -183,7 +186,7 @@ class FlowInitiationEndpoint<FlowReturnType: Any>(
               OpenAPI.Response.createJsonResponse(
                   description = "Flow execution failed and error information is available",
                   schema = schemaGenerator.generateSchema(responseType))
-          )
+          ).withTags(FLOW_INITIATION_TAG)
       )
 }
 
@@ -247,7 +250,7 @@ class ContractStateRefQueryEndpoint<StateType: ContractState>(
               schema = schemaGenerator.generateSchema(responseType))
           ).withResponse(OpenAPI.HttpStatusCode.NOT_FOUND, OpenAPI.Response(
               description = "Contract state with given hash and index was not found")
-          )
+          ).withTags(VAULT_QUERY_TAG)
       )
 }
 
@@ -380,7 +383,7 @@ class ContractStateVaultQueryEndpoint<StateType: ContractState>(
           ).withResponse(OpenAPI.HttpStatusCode.OK, OpenAPI.Response.createJsonResponse(
               description = "Query ran successfully",
               schema = schemaGenerator.generateSchema(responseType))
-          ),
+          ).withTags(VAULT_QUERY_TAG),
           get = OpenAPI.Operation(
               summary = "Performs a query of the vault of the underlying Corda node with a simplified criteria",
               operationId = "fetch${contractStateClass.simpleName}Instances"
@@ -416,7 +419,7 @@ class ContractStateVaultQueryEndpoint<StateType: ContractState>(
           ).withResponse(OpenAPI.HttpStatusCode.OK, OpenAPI.Response.createJsonResponse(
               description = "Query ran successfully",
               schema = schemaGenerator.generateSchema(responseType))
-          )
+          ).withTags(VAULT_QUERY_TAG)
       )
 }
 
@@ -466,6 +469,6 @@ class TransactionQueryEndpoint(contextPath: String)
               schema = schemaGenerator.generateSchema(responseType))
           ).withResponse(OpenAPI.HttpStatusCode.NOT_FOUND, OpenAPI.Response(
               description = "Transaction with given hash value was not found")
-          )
+          ).withTags(VAULT_QUERY_TAG)
       )
 }

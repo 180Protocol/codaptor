@@ -662,7 +662,10 @@
             "description": "Successful operation"
           }
         },
-        "summary": "Returns network map entry for the underlying Corda node"
+        "summary": "Returns network map entry for the underlying Corda node",
+        "tags": [
+          "nodeDiagnostic"
+        ]
       }
     },
     "/node/reference/DelayedProgressFlow": {
@@ -722,7 +725,10 @@
             "description": "Flow execution failed and error information is available"
           }
         },
-        "summary": "Initiates and tracks execution of Corda flow DelayedProgressFlow with given parameters"
+        "summary": "Initiates and tracks execution of Corda flow DelayedProgressFlow with given parameters",
+        "tags": [
+          "flowInitiation"
+        ]
       }
     },
     "/node/reference/SimpleFlow": {
@@ -782,7 +788,10 @@
             "description": "Flow execution failed and error information is available"
           }
         },
-        "summary": "Initiates and tracks execution of Corda flow SimpleFlow with given parameters"
+        "summary": "Initiates and tracks execution of Corda flow SimpleFlow with given parameters",
+        "tags": [
+          "flowInitiation"
+        ]
       }
     },
     "/node/reference/SimpleLinearState/query": {
@@ -891,7 +900,10 @@
             "description": "Query ran successfully"
           }
         },
-        "summary": "Performs a query of the vault of the underlying Corda node with a simplified criteria"
+        "summary": "Performs a query of the vault of the underlying Corda node with a simplified criteria",
+        "tags": [
+          "vaultQuery"
+        ]
       },
       "post": {
         "operationId": "querySimpleLinearStateInstances",
@@ -917,7 +929,10 @@
             "description": "Query ran successfully"
           }
         },
-        "summary": "Performs a query of the vault of the underlying Corda node with a complex criteria"
+        "summary": "Performs a query of the vault of the underlying Corda node with a complex criteria",
+        "tags": [
+          "vaultQuery"
+        ]
       }
     },
     "/node/reference/SimpleLinearState/{hash}({index})": {
@@ -959,7 +974,10 @@
             "description": "Contract state with given hash and index was not found"
           }
         },
-        "summary": "Finds contract state recorded to the ledger with a given hash and index "
+        "summary": "Finds contract state recorded to the ledger with a given hash and index ",
+        "tags": [
+          "vaultQuery"
+        ]
       }
     },
     "/node/tx/{hash}": {
@@ -991,7 +1009,10 @@
             "description": "Transaction with given hash value was not found"
           }
         },
-        "summary": "Finds a transaction recorded to the ledger with a given hash value"
+        "summary": "Finds a transaction recorded to the ledger with a given hash value",
+        "tags": [
+          "vaultQuery"
+        ]
       }
     },
     "/node/version": {
@@ -1009,7 +1030,10 @@
             "description": "Successful operation"
           }
         },
-        "summary": "Returns software version information for the underlying Corda node"
+        "summary": "Returns software version information for the underlying Corda node",
+        "tags": [
+          "nodeDiagnostic"
+        ]
       }
     }
   },
