@@ -222,29 +222,6 @@ class CordaPublicKeySerializer(
 }
 
 /**
- * Serializer for a [TransactionState] representing it as a JSON object.
- * This object is most commonly serialized as part of a [SignedTransaction].
- * There is no support for restoring instances of [TransactionState] from JSON structures.
- */
-class CordaTransactionStateSerializer(
-    factory: SerializationFactory
-) : CustomStructuredObjectSerializer<TransactionState<*>>(factory, deserialize = false) {
-
-  override val properties = mapOf(
-      "contract" to KotlinObjectProperty(TransactionState<*>::contract),
-      "encumbrance" to KotlinObjectProperty(TransactionState<*>::encumbrance, isMandatory = false),
-      "notary" to KotlinObjectProperty(TransactionState<*>::notary),
-      "data" to SyntheticObjectProperty(valueType = SerializerKey(ContractState::class),
-          isMandatory = true, accessor = contractStateAccessor)
-  )
-
-  companion object {
-    @Suppress("UNCHECKED_CAST")
-    val contractStateAccessor = { s: TransactionState<ContractState> -> s.data } as ObjectPropertyValueAccessor
-  }
-}
-
-/**
  * Builds a serializer for a specific parameterized type based on [CordaFlowInstruction] class.
  * The purpose is to make it appear in JSON Schema as an instance of the underlying [FlowLogic] class,
  * whereby class name is implicit, and constructor-bound properties are represented inline.

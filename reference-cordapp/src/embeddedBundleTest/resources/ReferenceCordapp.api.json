@@ -1,6 +1,83 @@
 {
   "components": {
     "schemas": {
+      "CordaAttachmentConstraint": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "alwaysAccept"
+                ]
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CordaHashAttachmentConstraint"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "hash"
+                    ]
+                  }
+                },
+                "required": [
+                  "type"
+                ]
+              }
+            ]
+          },
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CordaSignatureAttachmentConstraint"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "signature"
+                    ]
+                  }
+                },
+                "required": [
+                  "type"
+                ]
+              }
+            ]
+          },
+          {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "whitelistedByZone"
+                ]
+              }
+            },
+            "required": [
+              "type"
+            ]
+          }
+        ],
+        "discriminator": {
+          "propertyName": "type"
+        }
+      },
       "CordaCommand_Object": {
         "type": "object",
         "properties": {
@@ -369,8 +446,16 @@
       "CordaTransactionState": {
         "type": "object",
         "properties": {
+          "constraint": {
+            "$ref": "#/components/schemas/CordaAttachmentConstraint"
+          },
           "contract": {
             "type": "string"
+          },
+          "data": {
+            "type": "object",
+            "description": "Dynamic container for subclasses of net.corda.core.contracts.ContractState",
+            "additionalProperties": "true"
           },
           "encumbrance": {
             "type": "number",
@@ -378,17 +463,13 @@
           },
           "notary": {
             "$ref": "#/components/schemas/CordaParty"
-          },
-          "data": {
-            "type": "object",
-            "description": "Dynamic container for subclasses of net.corda.core.contracts.ContractState",
-            "additionalProperties": "true"
           }
         },
         "required": [
+          "constraint",
           "contract",
-          "notary",
-          "data"
+          "data",
+          "notary"
         ]
       },
       "CordaUniqueIdentifier": {
@@ -410,81 +491,7 @@
         "type": "object",
         "properties": {
           "constraint": {
-            "oneOf": [
-              {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "enum": [
-                      "alwaysAccept"
-                    ]
-                  }
-                },
-                "required": [
-                  "type"
-                ]
-              },
-              {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/CordaHashAttachmentConstraint"
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "type": {
-                        "type": "string",
-                        "enum": [
-                          "hash"
-                        ]
-                      }
-                    },
-                    "required": [
-                      "type"
-                    ]
-                  }
-                ]
-              },
-              {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/CordaSignatureAttachmentConstraint"
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "type": {
-                        "type": "string",
-                        "enum": [
-                          "signature"
-                        ]
-                      }
-                    },
-                    "required": [
-                      "type"
-                    ]
-                  }
-                ]
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "enum": [
-                      "whitelistedByZone"
-                    ]
-                  }
-                },
-                "required": [
-                  "type"
-                ]
-              }
-            ],
-            "discriminator": {
-              "propertyName": "type"
-            }
+            "$ref": "#/components/schemas/CordaAttachmentConstraint"
           }
         },
         "required": [

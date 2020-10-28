@@ -67,7 +67,6 @@ class RestEndpointModuleProvider : ModuleProvider {
     single { CordaTransactionSignatureSerializer(get()) } bind CustomSerializer::class
     single { CordaCoreTransactionSerializer(get()) } bind CustomSerializer::class
     single { CordaWireTransactionSerializer(get()) } bind CustomSerializer::class
-    single { CordaTransactionStateSerializer(get()) } bind CustomSerializer::class
     single { CordaPublicKeySerializer(get(), get()) } bind CustomSerializer::class
     single { CordaAttachmentConstraintSerializer(get()) } bind CustomSerializer::class
     single { JsonObjectSerializer() } bind CustomSerializer::class
