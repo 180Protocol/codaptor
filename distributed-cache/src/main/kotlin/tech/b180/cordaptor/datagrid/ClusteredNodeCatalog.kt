@@ -17,11 +17,11 @@ class ClusteredNodeCatalog(private val delegate: CordaNodeCatalogInner)
   override val cordapps: Collection<CordappInfo>
     get() = TODO("Not yet implemented")
 
-  override fun initialize() {
+  override fun onInitialize() {
     TODO("Not yet implemented")
   }
 
-  override fun shutdown() {
+  override fun onShutdown() {
     TODO("Not yet implemented")
   }
 

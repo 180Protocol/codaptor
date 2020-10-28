@@ -5,18 +5,16 @@ import org.eclipse.jetty.server.Server
 import org.eclipse.jetty.server.handler.ContextHandler
 import org.eclipse.jetty.server.handler.ContextHandlerCollection
 import org.koin.core.get
+import org.koin.core.inject
 import org.koin.core.parameter.parametersOf
-import org.slf4j.LoggerFactory
-import tech.b180.cordaptor.kernel.CordaptorComponent
-import tech.b180.cordaptor.kernel.LifecycleAware
-import tech.b180.cordaptor.kernel.getAll
-import tech.b180.cordaptor.kernel.loggerFor
+import tech.b180.cordaptor.kernel.*
 
 /**
  * Describes a logic configuring a given instance of Jetty server.
  */
 interface JettyConfigurator {
-  fun configure(server: Server)
+  fun beforeServerStarted(server: Server)
+  fun afterServerStarted(server: Server)
 }
 
 data class ContextMappingParameters(
@@ -46,9 +44,12 @@ class JettyServer : LifecycleAware, CordaptorComponent {
 
   private val server = Server()
 
-  override fun initialize() {
-    getAll<JettyConfigurator>().forEach() {
-      it.configure(server)
+  private val control: LifecycleControl by inject()
+
+  override fun onInitialize() {
+    val configurators = getAll<JettyConfigurator>()
+    for (configurator in configurators) {
+      configurator.beforeServerStarted(server)
     }
 
     val mappedHandlers : List<ContextMappedHandler> = getAll<ContextMappedHandler>() +
@@ -75,11 +76,20 @@ class JettyServer : LifecycleAware, CordaptorComponent {
 
     server.handler = ContextHandlerCollection(*contextHandlers.toTypedArray())
 
+    // this may fail with IOException wrapping BindException if the port is not available
+    // but we cannot sensibly recover from it, so will simply propagate the exception
+
     server.start()
-    logger.info("Jetty server started $server")
+    logger.info("Jetty server started")
+
+    for (configurator in configurators) {
+      configurator.afterServerStarted(server)
+    }
+
+    control.serverStarted()
   }
 
-  override fun shutdown() {
+  override fun onShutdown() {
     // just stop the servers
     server.stop()
   }

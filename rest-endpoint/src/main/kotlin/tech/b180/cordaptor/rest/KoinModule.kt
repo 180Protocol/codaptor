@@ -26,7 +26,7 @@ class RestEndpointModuleProvider : ModuleProvider {
     }
     single { JettyServer() } bind LifecycleAware::class
 
-    single { ConnectorFactory(get()) } bind JettyConfigurator::class
+    single { ConnectorFactory(get(), get()) } bind JettyConfigurator::class
 
     // definitions for Cordaptor API endpoints handlers
     single { NodeInfoEndpoint("/node/info") } bind QueryEndpoint::class
@@ -65,6 +65,8 @@ class RestEndpointModuleProvider : ModuleProvider {
 
     // factory for requesting specific serializers into the non-generic serialization code
     factory<JsonSerializer<*>> { (key: SerializerKey) -> get<SerializationFactory>().getSerializer(key) }
+
+    single { NodeNotifications() }
   }
 }
 

@@ -4,9 +4,7 @@ import org.koin.core.Koin
 import org.koin.core.KoinApplication
 import org.koin.core.context.KoinContextHandler
 import org.koin.core.logger.Level
-import org.koin.core.logger.Logger as KoinLogger
 import org.koin.core.logger.MESSAGE
-import org.koin.core.logger.PrintLogger
 import org.koin.core.module.Module
 import org.koin.core.qualifier.Qualifier
 import org.koin.dsl.koinApplication
@@ -14,20 +12,22 @@ import org.koin.dsl.module
 import org.slf4j.Logger
 import java.util.*
 import kotlin.reflect.KClass
+import org.koin.core.logger.Logger as KoinLogger
 
 /**
  * Represents an instance of Cordaptor microkernel.
  *
  * Constructor takes an argument, which is a factory building a Koin module to be added to Koin container.
  * The purpose of this module is to make any information preset at the point of
- * the microkernel's instantiation available in other Koin definitions. For example,
- * if the microkernel is instantiated via the [main] function, then the context module will
- * contribute [CommandLineArguments] singleton.
+ * the microkernel's instantiation available in other Koin definitions.
  *
  * A factory is used instead of passing in the actual instance of [Module] because
  * Koin does not like its Module DSL used outside of Koin instantiation flow.
  */
-class Container(bootstrapSettings: BootstrapSettings, contextModuleFactory: () -> Module = { module {  } }) {
+class Container(
+    bootstrapSettings: BootstrapSettings,
+    contextModuleFactory: () -> Module = { module {  } }
+) : LifecycleControl {
 
   companion object {
     private val logger = loggerFor<Container>()
@@ -63,9 +63,17 @@ class Container(bootstrapSettings: BootstrapSettings, contextModuleFactory: () -
 
       val sortedModules = modules.sortedBy { it.first }
 
-      modules(sortedModules.map { it.second })
+      modules(sortedModules.map { it.second } + module {
+        // expose container instance as a component itself using narrowly defined interfaces
+        single { this@Container as LifecycleControl }
+      })
     }
     logger.info("Initialized Koin application $koinApp")
+  }
+
+  override fun serverStarted() {
+    logger.info("Notifying lifecycle-aware components about successful start")
+    withAllLifecycleAware { onStarted() }
   }
 
   fun <T : Any> get(clazz: KClass<T>, qualifier: Qualifier? = null): T {
@@ -77,21 +85,19 @@ class Container(bootstrapSettings: BootstrapSettings, contextModuleFactory: () -
   }
 
   fun initialize() {
-    logger.info("Initializing lifecycle aware components")
-
-    // creating a set to avoid calling more than once if bound twice
-    val all = koinInstance.getAll<LifecycleAware>().toSet()
-    all.forEach {
-      it.initialize();
-    }
+    logger.info("Initializing lifecycle-aware components")
+    withAllLifecycleAware { onInitialize() }
   }
 
   fun shutdown() {
-    logger.info("Shutting down lifecycle aware components")
+    logger.info("Shutting down lifecycle-aware components")
+    withAllLifecycleAware { onShutdown() }
+  }
+
+  private fun withAllLifecycleAware(block: LifecycleAware.() -> Unit) {
+    // creating a set to avoid calling more than once if bound twice
     val all = koinInstance.getAll<LifecycleAware>().toSet()
-    all.forEach {
-      it.shutdown();
-    }
+    all.forEach { it.block() }
   }
 }
 

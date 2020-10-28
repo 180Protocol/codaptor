@@ -17,9 +17,12 @@ data class JettyConnectorConfiguration(
  * Responsible for configuring an HTTP connector for an instance of Jetty server.
  * Depending on the configuration, the connector may be a plain connector or a secure one.
  */
-class ConnectorFactory(private val configuration: JettyConnectorConfiguration) : JettyConfigurator {
+class ConnectorFactory(
+    private val configuration: JettyConnectorConfiguration,
+    private val notifications: NodeNotifications
+) : JettyConfigurator {
 
-  override fun configure(server: Server) {
+  override fun beforeServerStarted(server: Server) {
     val connector = ServerConnector(server);
 
     if (configuration.secure) {
@@ -32,4 +35,7 @@ class ConnectorFactory(private val configuration: JettyConnectorConfiguration) :
     server.addConnector(connector)
   }
 
+  override fun afterServerStarted(server: Server) {
+    notifications.emitOperatorMessage("Cordaptor: base URL for the API is ${configuration.baseUrl}")
+  }
 }

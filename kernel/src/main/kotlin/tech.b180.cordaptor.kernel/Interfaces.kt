@@ -49,7 +49,39 @@ interface ModuleProvider {
  * and/or gracefully release necessary resources.
  */
 interface LifecycleAware {
-  fun initialize()
 
-  fun shutdown()
+  /**
+   * Called when the microkernel container got instantiated.
+   * At this point all the dependencies between modules will be resolved, so lazily injected
+   * properties are safe to use.
+   *
+   * The implementation must not assume any order of invocations between components.
+   */
+  fun onInitialize() { }
+
+  /**
+   * Called when the Cordaptor server has started and ready to accept API calls.
+   * At this point [onInitialize] is guaranteed to have been invoked.
+   *
+   * The implementation must not assume any order of invocations between components.
+   */
+  fun onStarted() { }
+
+  /**
+   * Called when the microkernel container is shutting down.
+   * It is not guaranteed that this will be invoked in all cases, e.g. abrupt JVM shutdown.
+   *
+   * The implementation must not assume any order of invocations between components.
+   * At this point [onInitialize] and [onSuccess] may have not been invoked if there was an initialization error.
+   */
+  fun onShutdown() { }
+}
+
+/**
+ * Allows components to initiate microkernel lifecycle events.
+ */
+interface LifecycleControl {
+
+  /** This will trigger [LifecycleAware.onStarted] lifecycle event callbacks for all registered components */
+  fun serverStarted()
 }

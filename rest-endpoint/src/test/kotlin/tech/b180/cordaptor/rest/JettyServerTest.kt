@@ -14,6 +14,7 @@ import org.koin.test.KoinTest
 import org.koin.test.KoinTestRule
 import org.koin.test.get
 import tech.b180.cordaptor.kernel.HostAndPort
+import tech.b180.cordaptor.kernel.LifecycleControl
 import tech.b180.cordaptor.shaded.javax.json.Json
 import java.util.concurrent.TimeUnit
 import javax.servlet.http.HttpServletRequest
@@ -40,8 +41,15 @@ class JettyServerTest : KoinTest {
 
       // initialize a server with plain HTTP connection
       single { JettyServer() }
-      single<JettyConfigurator> { ConnectorFactory(JettyConnectorConfiguration(
-          HostAndPort("localhost", 9000), false)) }
+      single { object : LifecycleControl {
+        override fun serverStarted() { }
+      } as LifecycleControl }
+      single<JettyConfigurator> {
+        ConnectorFactory(
+            JettyConnectorConfiguration(HostAndPort("localhost", 9000), false),
+            NodeNotifications()
+        )
+      }
 
       single { EchoHandler("/test") } bind ContextMappedHandler::class
 
@@ -62,14 +70,14 @@ class JettyServerTest : KoinTest {
 
   @Before
   fun setUp() {
-    get<JettyServer>().initialize()
+    get<JettyServer>().onInitialize()
     get<HttpClient>().start()
   }
 
   @After
   fun tearDown() {
     get<HttpClient>().stop()
-    get<JettyServer>().shutdown()
+    get<JettyServer>().onShutdown()
   }
 
   @Test

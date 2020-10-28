@@ -64,11 +64,11 @@ class ClusteredNodeState(private val delegate: CordaNodeStateInner)
     TODO("Not yet implemented")
   }
 
-  override fun initialize() {
+  override fun onInitialize() {
     TODO("Not yet implemented")
   }
 
-  override fun shutdown() {
+  override fun onShutdown() {
     TODO("Not yet implemented")
   }
 

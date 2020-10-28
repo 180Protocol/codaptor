@@ -60,11 +60,11 @@ class CachedNodeState(private val delegate: CordaNodeStateInner) : CordaNodeStat
     TODO("Not yet implemented")
   }
 
-  override fun initialize() {
+  override fun onInitialize() {
     TODO("Not yet implemented")
   }
 
-  override fun shutdown() {
+  override fun onShutdown() {
     TODO("Not yet implemented")
   }
 
