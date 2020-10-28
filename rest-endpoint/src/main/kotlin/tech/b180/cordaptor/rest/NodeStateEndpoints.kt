@@ -79,8 +79,8 @@ class FlowInitiationEndpoint<FlowReturnType: Any>(
 
   private val cordaNodeState: CordaNodeState by inject()
 
-  override val responseType = SerializerKey(CordaFlowSnapshot::class.java, flowResultClass.java).localType
-  override val requestType = SerializerKey(CordaFlowInstruction::class.java, flowClass.java).localType
+  override val responseType = SerializerKey(CordaFlowSnapshot::class, flowResultClass)
+  override val requestType = SerializerKey(CordaFlowInstruction::class, flowClass)
   override val supportedMethods = OperationEndpoint.POST_ONLY
 
   override fun executeOperation(
@@ -163,7 +163,7 @@ class FlowInitiationEndpoint<FlowReturnType: Any>(
               operationId = "initiate${flowClass.simpleName}"
           ).withRequestBody(
               OpenAPI.RequestBody.createJsonRequest(
-                  schemaGenerator.generateSchema(SerializerKey.forType(requestType)),
+                  schemaGenerator.generateSchema(requestType),
                   required = true)
           ).withParameter(OpenAPI.Parameter(name = "wait", `in` = OpenAPI.ParameterLocation.QUERY,
               description = "Timeout for synchronous flow execution, 0 for immediate return", required = false,
@@ -172,17 +172,17 @@ class FlowInitiationEndpoint<FlowReturnType: Any>(
               OpenAPI.HttpStatusCode.OK,
               OpenAPI.Response.createJsonResponse(
                   description = "Flow execution completed successfully and its result is available",
-                  schema = schemaGenerator.generateSchema(SerializerKey.forType(responseType)))
+                  schema = schemaGenerator.generateSchema(responseType))
           ).withResponse(
               OpenAPI.HttpStatusCode.ACCEPTED,
               OpenAPI.Response.createJsonResponse(
                   description = "Flow execution stared and its outcome is not yet available",
-                  schema = schemaGenerator.generateSchema(SerializerKey.forType(responseType)))
+                  schema = schemaGenerator.generateSchema(responseType))
           ).withResponse(
               OpenAPI.HttpStatusCode.INTERNAL_SERVER_ERROR,
               OpenAPI.Response.createJsonResponse(
                   description = "Flow execution failed and error information is available",
-                  schema = schemaGenerator.generateSchema(SerializerKey.forType(responseType)))
+                  schema = schemaGenerator.generateSchema(responseType))
           )
       )
 }
@@ -207,7 +207,7 @@ class ContractStateRefQueryEndpoint<StateType: ContractState>(
     private val logger = loggerFor<ContractStateRefQueryEndpoint<*>>()
   }
 
-  override val responseType = contractStateClass.java
+  override val responseType = SerializerKey(contractStateClass)
 
   override val resourcePath = "$contextPath/{hash}({index})"
 
@@ -244,7 +244,7 @@ class ContractStateRefQueryEndpoint<StateType: ContractState>(
               schema = schemaGenerator.generateSchema(SerializerKey(Int::class)))
           ).withResponse(OpenAPI.HttpStatusCode.OK, OpenAPI.Response.createJsonResponse(
               description = "Successfully retrieved contract state",
-              schema = schemaGenerator.generateSchema(SerializerKey.forType(responseType)))
+              schema = schemaGenerator.generateSchema(responseType))
           ).withResponse(OpenAPI.HttpStatusCode.NOT_FOUND, OpenAPI.Response(
               description = "Contract state with given hash and index was not found")
           )
@@ -289,8 +289,8 @@ class ContractStateVaultQueryEndpoint<StateType: ContractState>(
 
   private val nodeState: CordaNodeState by inject()
 
-  override val requestType = SerializerKey(CordaVaultQuery::class.java, contractStateClass.java).localType
-  override val responseType = SerializerKey(CordaVaultPage::class.java, contractStateClass.java).localType
+  override val requestType = SerializerKey(CordaVaultQuery::class.java, contractStateClass.java)
+  override val responseType = SerializerKey(CordaVaultPage::class.java, contractStateClass.java)
   override val supportedMethods = listOf("GET", "POST")
 
   // GET form of query supports a limited subset of criteria
@@ -375,11 +375,11 @@ class ContractStateVaultQueryEndpoint<StateType: ContractState>(
               summary = "Performs a query of the vault of the underlying Corda node with a complex criteria",
               operationId = "query${contractStateClass.simpleName}Instances"
           ).withRequestBody(OpenAPI.RequestBody.createJsonRequest(
-              schema = schemaGenerator.generateSchema(SerializerKey.forType(requestType)),
+              schema = schemaGenerator.generateSchema(requestType),
               required = true)
           ).withResponse(OpenAPI.HttpStatusCode.OK, OpenAPI.Response.createJsonResponse(
               description = "Query ran successfully",
-              schema = schemaGenerator.generateSchema(SerializerKey.forType(responseType)))
+              schema = schemaGenerator.generateSchema(responseType))
           ),
           get = OpenAPI.Operation(
               summary = "Performs a query of the vault of the underlying Corda node with a simplified criteria",
@@ -415,7 +415,7 @@ class ContractStateVaultQueryEndpoint<StateType: ContractState>(
               schema = OpenAPI.PrimitiveTypes.NON_EMPTY_STRING)
           ).withResponse(OpenAPI.HttpStatusCode.OK, OpenAPI.Response.createJsonResponse(
               description = "Query ran successfully",
-              schema = schemaGenerator.generateSchema(SerializerKey.forType(responseType)))
+              schema = schemaGenerator.generateSchema(responseType))
           )
       )
 }
@@ -463,7 +463,7 @@ class TransactionQueryEndpoint(contextPath: String)
               schema = schemaGenerator.generateSchema(SerializerKey(SecureHash::class)))
           ).withResponse(OpenAPI.HttpStatusCode.OK, OpenAPI.Response.createJsonResponse(
               description = "Successfully retrieved transaction",
-              schema = schemaGenerator.generateSchema(SerializerKey.forType(responseType)))
+              schema = schemaGenerator.generateSchema(responseType))
           ).withResponse(OpenAPI.HttpStatusCode.NOT_FOUND, OpenAPI.Response(
               description = "Transaction with given hash value was not found")
           )

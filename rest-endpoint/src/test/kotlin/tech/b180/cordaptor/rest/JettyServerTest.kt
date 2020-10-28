@@ -15,7 +15,6 @@ import org.koin.test.KoinTestRule
 import org.koin.test.get
 import tech.b180.cordaptor.kernel.HostAndPort
 import tech.b180.cordaptor.shaded.javax.json.Json
-import java.lang.reflect.Type
 import java.util.concurrent.TimeUnit
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
@@ -227,7 +226,7 @@ data class EchoPayload(val pathInfo: String, val method: String, val message: St
 
 class EchoQueryEndpoint(contextPath: String) : QueryEndpoint<EchoPayload> {
 
-  override val responseType = EchoPayload::class.java
+  override val responseType = SerializerKey(EchoPayload::class)
   override val contextMappingParameters = ContextMappingParameters(contextPath, false)
 
   override fun executeQuery(request: tech.b180.cordaptor.rest.Request): Response<EchoPayload> {
@@ -241,7 +240,7 @@ class EchoQueryEndpoint(contextPath: String) : QueryEndpoint<EchoPayload> {
 class MisconfiguredEchoQueryEndpoint(contextPath: String) : QueryEndpoint<EchoPayload> {
 
   // incorrect response type information specified here
-  override val responseType = String::class.java
+  override val responseType = SerializerKey(String::class)
   override val contextMappingParameters = ContextMappingParameters(contextPath, false)
 
   override fun executeQuery(request: tech.b180.cordaptor.rest.Request): Response<EchoPayload> {
@@ -254,9 +253,9 @@ class MisconfiguredEchoQueryEndpoint(contextPath: String) : QueryEndpoint<EchoPa
 
 class SyncEchoOperationEndpoint(contextPath: String)
   : OperationEndpoint<SimplePayload, EchoPayload>, QueryEndpoint<EchoPayload> {
-  override val responseType = EchoPayload::class.java
+  override val responseType = SerializerKey(EchoPayload::class)
   override val contextMappingParameters = ContextMappingParameters(contextPath, true)
-  override val requestType: Type = SimplePayload::class.java
+  override val requestType = SerializerKey(SimplePayload::class)
   override val supportedMethods: Collection<String> = listOf("POST", "GET")
 
   override fun executeOperation(request: RequestWithPayload<SimplePayload>): Single<Response<EchoPayload>> {
@@ -274,9 +273,9 @@ class SyncEchoOperationEndpoint(contextPath: String)
 }
 
 class AsyncEchoOperationEndpoint(contextPath: String) : OperationEndpoint<SimplePayload, EchoPayload> {
-  override val responseType = EchoPayload::class.java
+  override val responseType = SerializerKey(EchoPayload::class)
   override val contextMappingParameters = ContextMappingParameters(contextPath, true)
-  override val requestType: Type = SimplePayload::class.java
+  override val requestType = SerializerKey(SimplePayload::class)
   override val supportedMethods: Collection<String> = listOf("POST")
 
   override fun executeOperation(request: RequestWithPayload<SimplePayload>): Single<Response<EchoPayload>> {

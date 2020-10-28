@@ -10,8 +10,6 @@ import tech.b180.cordaptor.kernel.loggerFor
 import tech.b180.cordaptor.shaded.javax.json.Json
 import tech.b180.cordaptor.shaded.javax.json.stream.JsonParsingException
 import java.beans.Transient
-import java.lang.reflect.ParameterizedType
-import java.lang.reflect.Type
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 import org.eclipse.jetty.server.Request as JettyRequest
@@ -115,7 +113,7 @@ interface GenericEndpoint {
    * used by the endpoint handler. Note that returned type could be parameterized,
    * which comes handy if a specific serializer need to be used.
    */
-  val responseType: Type
+  val responseType: SerializerKey
 
   /**
    * Parameters used to construct an HTTP query handler.
@@ -176,8 +174,7 @@ abstract class ContextMappedQueryEndpoint<ResponseType: Any>(
     allowNullPathInfo: Boolean
 ) : ContextMappedResourceEndpoint(contextPath, allowNullPathInfo), QueryEndpoint<ResponseType> {
 
-  override val responseType: Type =
-      SerializerKey.fromSuperclassTypeArgument(QueryEndpoint::class, this::class).localType
+  override val responseType = SerializerKey.fromSuperclassTypeArgument(QueryEndpoint::class, this::class)
 }
 
 /**
@@ -191,11 +188,11 @@ abstract class ContextMappedOperationEndpoint<RequestType: Any, ResponseType: An
     allowNullPathInfo: Boolean
 ) : ContextMappedResourceEndpoint(contextPath, allowNullPathInfo), OperationEndpoint<RequestType, ResponseType> {
 
-  override val requestType: Type =
-      SerializerKey.fromSuperclassTypeArgument(OperationEndpoint::class, this::class, 0).localType
+  override val requestType =
+      SerializerKey.fromSuperclassTypeArgument(OperationEndpoint::class, this::class, 0)
 
-  override val responseType: Type =
-      SerializerKey.fromSuperclassTypeArgument(OperationEndpoint::class, this::class, 1).localType
+  override val responseType =
+      SerializerKey.fromSuperclassTypeArgument(OperationEndpoint::class, this::class, 1)
 }
 
 /**
@@ -224,7 +221,7 @@ interface OperationEndpoint<RequestType: Any, ResponseType: Any> : GenericEndpoi
    * used by the endpoint handler. Note that returned type could be parameterized,
    * which comes handy if a specific serializer need to be used.
    */
-  val requestType: Type
+  val requestType: SerializerKey
 
   /**
    * HTTP methods supported by the operation
@@ -258,7 +255,7 @@ interface InteractionEndpoint<RequestType: Any, ResponseType: Any> : GenericEndp
    * Returned type may be parameterized in order to correctly configure the serializer
    * used by the endpoint handler
    */
-  val requestType: Type
+  val requestType: SerializerKey
 
   fun beginInteraction(futureRequests: Observable<RequestType>): Observable<ResponseType>
 }
@@ -284,7 +281,7 @@ interface EndpointProvider {
  * Base implementation of Jetty request handler that wraps a particular Cordaptor API endpoint.
  */
 abstract class AbstractEndpointHandler<ResponseType: Any>(
-    private val responseType: Type,
+    private val responseType: SerializerKey,
     override val mappingParameters: ContextMappingParameters
 ) : ContextMappedHandler, AbstractHandler(), CordaptorComponent {
 
@@ -344,9 +341,9 @@ abstract class AbstractEndpointHandler<ResponseType: Any>(
 
     // validation for correct return type instead of failing to serialize with a cryptic message
     // this may occur if the endpoint's responseType is incorrectly set
-    if (!responseType.isAssignableFrom(endpointResponse.payload.javaClass)) {
+    if (!responseType.rawType.isAssignableFrom(endpointResponse.payload.javaClass)) {
       throw EndpointOperationException("Endpoint returned an instance of ${endpointResponse.payload.javaClass}, " +
-          "where an instance of $responseType was expected")
+          "where an instance of ${responseType.rawType} was expected")
     }
 
     servletResponse.status = endpointResponse.statusCode
@@ -406,7 +403,7 @@ class QueryEndpointHandler<ResponseType: Any>(
   }
 
   override fun toString(): String {
-    return "QueryEndpointHandler(responseType=${endpoint.responseType.typeName}, endpoint=${endpoint}"
+    return "QueryEndpointHandler(responseType=${endpoint.responseType}, endpoint=${endpoint}"
   }
 }
 
@@ -516,19 +513,7 @@ class OperationEndpointHandler<RequestType: Any, ResponseType: Any>(
   }
 
   override fun toString(): String {
-    return "OperationEndpointHandler(requestType=${endpoint.requestType.typeName}, responseType=${endpoint.responseType.typeName}, endpoint=${endpoint}"
+    return "OperationEndpointHandler(requestType=${endpoint.requestType}, " +
+        "responseType=${endpoint.responseType}, endpoint=${endpoint}"
   }
-}
-
-fun Type.isAssignableFrom(clazz: Class<*>): Boolean = when(this) {
-  is Class<*> -> this.isAssignableFrom(clazz)
-  is ParameterizedType -> {
-    val rawType = this.rawType
-    // this cannot be done recursively because compiler cannot check this for correctness
-    when (rawType) {
-      is Class<*> -> rawType.isAssignableFrom(clazz)
-      else -> throw AssertionError("Don't know how to check if ${rawType.typeName} is assignable from ${clazz.canonicalName}")
-    }
-  }
-  else -> throw AssertionError("Don't know how to check if ${this.typeName} is assignable from ${clazz.canonicalName}")
 }

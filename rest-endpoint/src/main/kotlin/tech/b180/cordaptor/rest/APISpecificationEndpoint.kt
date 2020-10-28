@@ -19,7 +19,7 @@ class APISpecificationEndpointHandler(
     contextPath: String,
     connectorConfiguration: JettyConnectorConfiguration
 ) : AbstractEndpointHandler<OpenAPI>(
-    responseType = OpenAPI::class.java,
+    responseType = SerializerKey(OpenAPI::class),
     mappingParameters = ContextMappingParameters(contextPath, true)
 ), CordaptorComponent {
 

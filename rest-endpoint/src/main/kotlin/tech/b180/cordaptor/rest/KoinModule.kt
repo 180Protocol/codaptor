@@ -5,7 +5,6 @@ import org.koin.core.parameter.parametersOf
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import tech.b180.cordaptor.kernel.*
-import java.lang.reflect.Type
 import kotlin.reflect.KClass
 
 /**
@@ -87,5 +86,5 @@ fun <T: Any> CordaptorComponent.injectSerializer(clazz: KClass<T>, vararg typePa
  * A shorthand to be used by an instance of [CordaptorComponent] requesting a JSON serializer
  * to be injected using given type information
  */
-fun <T: Any> CordaptorComponent.injectSerializer(type: Type): Lazy<JsonSerializer<T>> =
-    lazy { getKoin().get<JsonSerializer<T>> { parametersOf(SerializerKey.forType(type)) } }
+fun <T: Any> CordaptorComponent.injectSerializer(serializerKey: SerializerKey): Lazy<JsonSerializer<T>> =
+    lazy { getKoin().get<JsonSerializer<T>> { parametersOf(serializerKey) } }
