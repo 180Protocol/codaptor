@@ -190,10 +190,15 @@ class CordaWireTransactionSerializer(factory: SerializationFactory)
   : CustomStructuredObjectSerializer<WireTransaction>(factory, deserialize = false) {
 
   override val properties = mapOf(
+      "id" to KotlinObjectProperty(WireTransaction::id),
       "inputs" to KotlinObjectProperty(WireTransaction::inputs),
       "outputs" to KotlinObjectProperty(WireTransaction::outputs),
-      "inputs" to KotlinObjectProperty(WireTransaction::commands),
-      "references" to KotlinObjectProperty(WireTransaction::references)
+      "commands" to KotlinObjectProperty(WireTransaction::commands),
+      "references" to KotlinObjectProperty(WireTransaction::references),
+      "notary" to KotlinObjectProperty(WireTransaction::notary),
+      "timeWindow" to KotlinObjectProperty(WireTransaction::timeWindow),
+      "attachments" to KotlinObjectProperty(WireTransaction::attachments),
+      "networkParametersHash" to KotlinObjectProperty(WireTransaction::networkParametersHash)
   )
 }
 
@@ -303,5 +308,21 @@ class CordaAttachmentConstraintSerializer(factory: SerializationFactory)
       "hash" to HashAttachmentConstraint::class,
       "signature" to SignatureAttachmentConstraint::class,
       "whitelistedByZone" to WhitelistedByZoneAttachmentConstraint::class
+  )
+}
+
+/**
+ * Serializer for various subtypes of [TimeWindow]
+ */
+class CordaTimeWindowSerializer(factory: SerializationFactory)
+  : CustomAbstractClassSerializer<TimeWindow>(factory, deserialize = false) {
+
+  @Suppress("UNCHECKED_CAST")
+  override val subclassesMap = mapOf(
+      // concrete subclasses are unhelpfully marked as private,
+      // so we use reflection to get references to them
+      "from" to Class.forName("${TimeWindow::class.qualifiedName}\$From").kotlin as KClass<out TimeWindow>,
+      "until" to Class.forName("${TimeWindow::class.qualifiedName}\$Until").kotlin as KClass<out TimeWindow>,
+      "between" to Class.forName("${TimeWindow::class.qualifiedName}\$Between").kotlin as KClass<out TimeWindow>
   )
 }

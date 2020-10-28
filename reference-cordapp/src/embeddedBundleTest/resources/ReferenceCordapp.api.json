@@ -427,6 +427,110 @@
           "txhash"
         ]
       },
+      "CordaTimeWindow": {
+        "oneOf": [
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CordaTimeWindowFrom"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "from"
+                    ]
+                  }
+                },
+                "required": [
+                  "type"
+                ]
+              }
+            ]
+          },
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CordaTimeWindowUntil"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "until"
+                    ]
+                  }
+                },
+                "required": [
+                  "type"
+                ]
+              }
+            ]
+          },
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CordaTimeWindowBetween"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "between"
+                    ]
+                  }
+                },
+                "required": [
+                  "type"
+                ]
+              }
+            ]
+          }
+        ],
+        "discriminator": {
+          "propertyName": "type"
+        }
+      },
+      "CordaTimeWindowBetween": {
+        "type": "object",
+        "properties": {
+          "fromTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "untilTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": []
+      },
+      "CordaTimeWindowFrom": {
+        "type": "object",
+        "properties": {
+          "fromTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": []
+      },
+      "CordaTimeWindowUntil": {
+        "type": "object",
+        "properties": {
+          "untilTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": []
+      },
       "CordaTransactionSignature": {
         "type": "object",
         "properties": {
@@ -705,10 +809,13 @@
       "CordaWireTransaction": {
         "type": "object",
         "properties": {
+          "id": {
+            "$ref": "#/components/schemas/CordaSecureHash"
+          },
           "inputs": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/CordaCommand_Object"
+              "$ref": "#/components/schemas/CordaStateRef"
             }
           },
           "outputs": {
@@ -717,17 +824,41 @@
               "$ref": "#/components/schemas/CordaTransactionState_ContractState"
             }
           },
+          "commands": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CordaCommand_Object"
+            }
+          },
           "references": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/CordaStateRef"
             }
+          },
+          "notary": {
+            "$ref": "#/components/schemas/CordaParty"
+          },
+          "timeWindow": {
+            "$ref": "#/components/schemas/CordaTimeWindow"
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CordaSecureHash"
+            }
+          },
+          "networkParametersHash": {
+            "$ref": "#/components/schemas/CordaSecureHash"
           }
         },
         "required": [
+          "id",
           "inputs",
           "outputs",
-          "references"
+          "commands",
+          "references",
+          "attachments"
         ]
       },
       "CordaX500Name": {
