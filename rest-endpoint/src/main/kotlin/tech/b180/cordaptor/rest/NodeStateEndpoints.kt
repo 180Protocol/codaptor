@@ -79,8 +79,8 @@ class FlowInitiationEndpoint<FlowReturnType: Any>(
 
   private val cordaNodeState: CordaNodeState by inject()
 
-  override val responseType = CordaFlowSnapshot::class.asParameterizedType(flowResultClass)
-  override val requestType = SerializerKey(CordaFlowInstruction::class.java, flowClass.java).asType()
+  override val responseType = SerializerKey(CordaFlowSnapshot::class.java, flowResultClass.java).localType
+  override val requestType = SerializerKey(CordaFlowInstruction::class.java, flowClass.java).localType
   override val supportedMethods = OperationEndpoint.POST_ONLY
 
   override fun executeOperation(
@@ -289,8 +289,8 @@ class ContractStateVaultQueryEndpoint<StateType: ContractState>(
 
   private val nodeState: CordaNodeState by inject()
 
-  override val requestType = SerializerKey(CordaVaultQuery::class.java, contractStateClass.java).asType()
-  override val responseType = SerializerKey(CordaVaultPage::class.java, contractStateClass.java).asType()
+  override val requestType = SerializerKey(CordaVaultQuery::class.java, contractStateClass.java).localType
+  override val responseType = SerializerKey(CordaVaultPage::class.java, contractStateClass.java).localType
   override val supportedMethods = listOf("GET", "POST")
 
   // GET form of query supports a limited subset of criteria

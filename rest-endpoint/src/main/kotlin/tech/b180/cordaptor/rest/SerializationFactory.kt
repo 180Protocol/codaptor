@@ -5,10 +5,7 @@ import net.corda.serialization.internal.AllWhitelist
 import net.corda.serialization.internal.amqp.CachingCustomSerializerRegistry
 import net.corda.serialization.internal.amqp.DefaultDescriptorBasedSerializerRegistry
 import net.corda.serialization.internal.amqp.WhitelistBasedTypeModelConfiguration
-import net.corda.serialization.internal.model.BaseLocalTypes
-import net.corda.serialization.internal.model.ConfigurableLocalTypeModel
-import net.corda.serialization.internal.model.LocalTypeInformation
-import net.corda.serialization.internal.model.LocalTypeModelConfiguration
+import net.corda.serialization.internal.model.*
 import tech.b180.cordaptor.kernel.loggerFor
 import tech.b180.cordaptor.shaded.javax.json.*
 import tech.b180.cordaptor.shaded.javax.json.stream.JsonGenerator
@@ -56,7 +53,7 @@ class SerializationFactory(
         delegate = WhitelistBasedTypeModelConfiguration(AllWhitelist, customSerializerRegistry),
         // add all types with custom serializers to the opaque list, so that
         // Corda does not flag any transitive introspection problems
-        additionalOpaqueTypes = customSerializers.map { it.valueType.asType() }.toSet() + staticOpaqueTypes
+        additionalOpaqueTypes = customSerializers.map { it.valueType.localType }.toSet() + staticOpaqueTypes
 
     )
     ConfigurableLocalTypeModel(typeModelConfiguration)
@@ -253,7 +250,7 @@ class SerializationFactory(
   }
 
   fun getSerializer(typeInfo: LocalTypeInformation): JsonSerializer<Any> {
-    return getSerializer(SerializerKey.forType(typeInfo.observedType))
+    return getSerializer(SerializerKey(typeInfo.typeIdentifier))
   }
 
   /**
@@ -262,7 +259,7 @@ class SerializationFactory(
    */
   fun getSerializer(key: SerializerKey): JsonSerializer<Any> {
 
-    if (key.typeParameters.isNotEmpty()) {
+    if (key.isParameterized) {
       val factory = objectSerializerFactories[key.rawType]
       if (factory != null) {
         // some parameterized types need special handling depending on the type parameters,
@@ -273,7 +270,7 @@ class SerializationFactory(
       if (mustUseRaw(key.rawType)) {
         // for some types like KClass we always force non-typed serializer
         // in order to prevent a large number of serializers to be created
-        return getSerializer(key.asRaw().rawType)
+        return getSerializer(key.erased)
       }
     }
 
@@ -292,7 +289,7 @@ class SerializationFactory(
   }
 
   private fun createSerializer(key: SerializerKey): JsonSerializer<Any> {
-    val type = localTypeModel.inspect(key.asType())
+    val type = localTypeModel.inspect(key.localType)
     if (logger.isTraceEnabled) {
       // this invokes significant overhead, so needs to be used as as last resort
       logger.trace("Introspected local type information for $key:\n${type.prettyPrint(true)}")
@@ -326,91 +323,55 @@ class SerializationFactory(
 }
 
 /**
- * Shorthand for creating a reconstituted parameterised type using
- * a raw type and a collection of type parameters
- */
-fun <T: Any> KClass<T>.asParameterizedType(vararg params: KClass<*>): Type =
-    SerializerKey(this.java, params.map { SerializerKey.forType(it.java) }).asType()
-
-/**
  * A wrapper for a type, which is potentially parameterized, alongside with a specific
  * set of parameters. This structure is used as a key to obtain a serializer from
  * the [SerializationFactory].
  */
-data class SerializerKey(
-    val rawType: Class<*>,
-    val typeParameters: List<SerializerKey>) {
+data class SerializerKey(val typeIdentifier: TypeIdentifier) {
 
+  constructor(rawType: Class<*>, typeParameters: List<SerializerKey>) : this(
+      typeIdentifier = if (typeParameters.isEmpty())
+        TypeIdentifier.forClass(rawType)
+      else
+        TypeIdentifier.Parameterised(rawType.canonicalName,
+            rawType.enclosingClass?.let { TypeIdentifier.forClass(it) },
+            typeParameters.map { it.typeIdentifier })
+  )
   constructor(clazz: Class<*>, vararg typeParameters: Type) : this(clazz, typeParameters.map { forType(it) })
   constructor(klazz: KClass<*>, vararg typeParameters: KClass<*>)
       : this(klazz.java, typeParameters.map { forType(it.java) })
 
-  init {
-    if (rawType.typeParameters.isNotEmpty()
-        && typeParameters.isNotEmpty()
-        && typeParameters.size != rawType.typeParameters.size) {
-
-      throw AssertionError("Serializer key for parameterized type ${rawType.canonicalName} " +
-          "has insufficient number of type parameters: ${rawType.typeParameters.size} instead ${typeParameters.size}")
-    }
-  }
-
-  fun asRaw() = this.copy(typeParameters = emptyList())
 
   // e.g. java.util.List<java.lang.String>
-  override fun toString(): String = if (typeParameters.isEmpty())
-    rawType.canonicalName
-  else
-      """${rawType.canonicalName}<${typeParameters.joinToString(",")}>"""
+  override fun toString() = typeIdentifier.toString()
 
   /**
    * Reconstitutes a parameterised type from the associated raw type and given type parameters
    */
-  fun asType(): Type = if (typeParameters.isEmpty()) {
-    rawType
-  } else {
-    ReconstitutedParameterizedType(this)
+  val localType: Type get() = typeIdentifier.getLocalType()
+
+  val erased: SerializerKey get() = SerializerKey(typeIdentifier.erased)
+
+  val rawType: Class<*> get() {
+    val l = localType
+    return when (l) {
+      is Class<*> -> l
+      is ParameterizedType -> l.rawType as Class<*>
+      else -> TODO()
+    }
   }
 
-  private data class ReconstitutedParameterizedType(
-      val key: SerializerKey,
-      val _rawType: Type = key.rawType,
-      val _ownerType: Type? = key.rawType.enclosingClass,
-      val _actualTypeArguments: Array<Type> = key.typeParameters.map { it.asType() }.toTypedArray()
-  ) : ParameterizedType {
-    override fun getRawType() = _rawType
-    override fun getOwnerType() = _ownerType
-    override fun getActualTypeArguments() = _actualTypeArguments
-  }
-
-  companion object {
-    fun forType(type: Type): SerializerKey {
-      return when (type) {
-        is ReconstitutedParameterizedType -> type.key // shortcut for our own representation
-        is TypeVariable<*> -> if (type.bounds.size == 1)
-          forType(type.bounds[0])
-        else
-          throw AssertionError("Cannot differentiate between type bounds in $type")
-        is ParameterizedType -> forParameterizedType(type)
-        is Class<*> -> SerializerKey(type)
-        else -> throw SerializationException("Don't know how to deconstruct type ${type::class.qualifiedName}")
-      }
+  val typeParameters: List<SerializerKey> get() =
+    when (typeIdentifier) {
+      is TypeIdentifier.Parameterised -> typeIdentifier.parameters.map { SerializerKey(it) }
+      else -> emptyList()
     }
 
-    private fun forParameterizedType(type: ParameterizedType): SerializerKey {
-      val args = type.actualTypeArguments.mapNotNull {
-        when (it) {
-          is ReconstitutedParameterizedType -> it.key // shortcut for our own representation
-          is Class<*> -> SerializerKey(it)
-          is ParameterizedType -> forType(it)
-          is WildcardType -> null
-          else -> null
-        }
-      }
-      if (args.isNotEmpty() && args.size != type.actualTypeArguments.size) {
-        throw SerializationException("Type $type has a mixture of wildcard and actual arguments")
-      }
-      return SerializerKey(type.rawType as Class<*>, args)
+  val isParameterized: Boolean = typeIdentifier is TypeIdentifier.Parameterised
+
+  companion object {
+    fun forType(type: Type, resolutionContext: Type? = null): SerializerKey {
+      return SerializerKey(TypeIdentifier.forGenericType(type, resolutionContext ?: type))
     }
 
     /**

@@ -4,7 +4,6 @@ import tech.b180.cordaptor.shaded.javax.json.Json
 import tech.b180.cordaptor.shaded.javax.json.JsonObject
 import tech.b180.cordaptor.shaded.javax.json.JsonValue
 import tech.b180.cordaptor.shaded.javax.json.stream.JsonGenerator
-import java.lang.reflect.Type
 import kotlin.reflect.KProperty
 import kotlin.reflect.jvm.javaMethod
 
@@ -109,7 +108,7 @@ abstract class StructuredObjectSerializer<T: Any>(
   override val schemaTypeName: String
     get() {
       val baseName = generateSchemaTypeBaseName(valueType.rawType)
-      return if (valueType.typeParameters.isEmpty()) {
+      return if (!valueType.isParameterized) {
         baseName
       } else {
         "${baseName}_${valueType.typeParameters.map { it.rawType.simpleName }.joinToString("_")}"
@@ -209,7 +208,7 @@ abstract class StructuredObjectSerializer<T: Any>(
  * and could be read and/or written by [StructuredObjectSerializer].
  */
 interface ObjectProperty {
-  val valueType: Type
+  val valueType: SerializerKey
   val deserialize: Boolean
   val serialize: Boolean
   val isMandatory: Boolean
@@ -219,7 +218,7 @@ interface ObjectProperty {
 typealias ObjectPropertyValueAccessor = (obj: Any) -> Any?
 
 data class SyntheticObjectProperty(
-    override val valueType: Type,
+    override val valueType: SerializerKey,
     override val accessor: ObjectPropertyValueAccessor? = null,
     override val serialize: Boolean = true,
     override val deserialize: Boolean = true,
@@ -233,8 +232,8 @@ data class KotlinObjectProperty<T: Any?>(
     override val isMandatory: Boolean = property.isMandatory()
 ) : ObjectProperty {
 
-  override val valueType: Type = property.getter.javaMethod?.genericReturnType
-      ?: throw AssertionError("No getter found for property ${property.name}")
+  override val valueType = SerializerKey.forType(property.getter.javaMethod?.genericReturnType
+      ?: throw AssertionError("No getter found for property ${property.name}"))
 
   override val accessor: ObjectPropertyValueAccessor?
       get() = if (serialize) { obj -> property.getter.call(obj) } else null

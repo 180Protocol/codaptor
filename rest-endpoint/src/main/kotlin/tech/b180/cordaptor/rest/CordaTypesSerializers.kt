@@ -209,9 +209,9 @@ class CordaPublicKeySerializer(
 ) : CustomStructuredObjectSerializer<PublicKey>(factory, deserialize = false) {
 
   override val properties = mapOf(
-      "fingerprint" to SyntheticObjectProperty(valueType = String::class.java,
+      "fingerprint" to SyntheticObjectProperty(valueType = SerializerKey(String::class),
           deserialize = false, isMandatory = false, accessor = { "not implemented" }),
-      "knownParty" to SyntheticObjectProperty(valueType = Party::class.java,
+      "knownParty" to SyntheticObjectProperty(valueType = SerializerKey(Party::class),
           deserialize = false, isMandatory = false, accessor = makeKnownPartyAccessor(nodeState))
   )
 
@@ -235,7 +235,7 @@ class CordaTransactionStateSerializer(
       "contract" to KotlinObjectProperty(TransactionState<*>::contract),
       "encumbrance" to KotlinObjectProperty(TransactionState<*>::encumbrance, isMandatory = false),
       "notary" to KotlinObjectProperty(TransactionState<*>::notary),
-      "data" to SyntheticObjectProperty(valueType = ContractState::class.java,
+      "data" to SyntheticObjectProperty(valueType = SerializerKey(ContractState::class),
           isMandatory = true, accessor = contractStateAccessor)
   )
 

@@ -177,7 +177,7 @@ abstract class ContextMappedQueryEndpoint<ResponseType: Any>(
 ) : ContextMappedResourceEndpoint(contextPath, allowNullPathInfo), QueryEndpoint<ResponseType> {
 
   override val responseType: Type =
-      SerializerKey.fromSuperclassTypeArgument(QueryEndpoint::class, this::class).asType()
+      SerializerKey.fromSuperclassTypeArgument(QueryEndpoint::class, this::class).localType
 }
 
 /**
@@ -192,10 +192,10 @@ abstract class ContextMappedOperationEndpoint<RequestType: Any, ResponseType: An
 ) : ContextMappedResourceEndpoint(contextPath, allowNullPathInfo), OperationEndpoint<RequestType, ResponseType> {
 
   override val requestType: Type =
-      SerializerKey.fromSuperclassTypeArgument(OperationEndpoint::class, this::class, 0).asType()
+      SerializerKey.fromSuperclassTypeArgument(OperationEndpoint::class, this::class, 0).localType
 
   override val responseType: Type =
-      SerializerKey.fromSuperclassTypeArgument(OperationEndpoint::class, this::class, 1).asType()
+      SerializerKey.fromSuperclassTypeArgument(OperationEndpoint::class, this::class, 1).localType
 }
 
 /**

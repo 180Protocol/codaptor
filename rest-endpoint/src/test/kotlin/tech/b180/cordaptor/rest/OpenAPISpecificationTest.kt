@@ -54,7 +54,7 @@ class OpenAPISpecificationTest : KoinTest {
     // do not affect our ability to serialize OpenAPI constructs
     val f = get<SerializationFactory>()
     val gen = CollectingJsonSchemaGenerator(OpenAPI.COMPONENTS_SCHEMA_PREFIX, f)
-    val schema = gen.generateSchema(SerializerKey.forType(OpenAPI::class.java))
+    val schema = gen.generateSchema(SerializerKey(OpenAPI::class.java))
 
     assertEquals("""{"${'$'}ref":"#/components/schemas/OpenAPI"}"""".asJsonObject(), schema)
 

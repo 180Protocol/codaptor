@@ -50,7 +50,7 @@ class ComposableTypeJsonSerializer<T: Any>(
       override val accessor: ObjectPropertyValueAccessor?,
       val propInfo: LocalPropertyInformation
   ) : ObjectProperty {
-    override val valueType = propInfo.type.observedType
+    override val valueType = SerializerKey(propInfo.type.typeIdentifier)
     override val deserialize = !propInfo.isCalculated
     override val serialize = true
     override val isMandatory = propInfo.isMandatory
@@ -60,9 +60,12 @@ class ComposableTypeJsonSerializer<T: Any>(
   override val serialize = true
   override val deserialize = true
 
-  override val properties: Map<String, IntrospectedProperty> =
-      typeInfo.properties
-          .filterValues { prop ->
+  override val properties: Map<String, IntrospectedProperty>
+    get() {
+      logger.debug("Creating composable object serializer for type {}", valueType.typeIdentifier)
+
+      return typeInfo.properties
+          .filter { (name, prop) ->
             // skip properties that have getters market with java.beans.Transient annotation
             when (prop) {
               is LocalPropertyInformation.ConstructorPairedProperty ->
@@ -72,9 +75,15 @@ class ComposableTypeJsonSerializer<T: Any>(
               is LocalPropertyInformation.ReadOnlyProperty ->
                 prop.observedGetter.getAnnotation(java.beans.Transient::class.java)?.value?.not() == null
               else -> true
+            }.also {
+              if (!it) {
+                logger.debug("Skipping transient property $name")
+              }
             }
           }
           .mapValues { (name, prop) ->
+            logger.debug("Adding introspected property {}, of type {}", name, prop.type.typeIdentifier)
+
             // if there is a custom serializer for this type already, it will be an instance of Opaque
             if (prop.type is LocalTypeInformation.Top
                 || prop.type is LocalTypeInformation.AnInterface
@@ -87,6 +96,7 @@ class ComposableTypeJsonSerializer<T: Any>(
 
             createIntrospectedProperty(name, prop)
           }
+    }
 
   override fun initializeInstance(values: Map<String, Any?>): T {
     val ctor = typeInfo.constructor
@@ -146,7 +156,18 @@ class ListSerializer private constructor(
 ) : JsonSerializer<Any> {
 
   constructor(collectionType: LocalTypeInformation.ACollection, serializationFactory: SerializationFactory) : this(
-      elementSerializer = serializationFactory.getSerializer(collectionType.elementType),
+      elementSerializer = SerializerKey(collectionType.typeIdentifier).let {
+        // it is necessary to walk the type identifiers tree as opposed to use elementType property
+        // because the latter loses actual type parameters leading to unnecessary generic serializer
+        // which in turn impacts precision of generated JSON Schema
+        if (it.isParameterized) {
+          // for a list-like collection we assume the first argument is the element type
+          serializationFactory.getSerializer(it.typeParameters[0])
+        } else {
+          // fallback in case type parameters are not available
+          serializationFactory.getSerializer(collectionType.elementType)
+        }
+      },
       instantiationFunction = if (collectionType.observedType is ParameterizedType) {
         val parameterizedType = collectionType.observedType as ParameterizedType
         // FIXME additional handling is required for non-ArrayLists e.g. LinkedList
@@ -167,7 +188,7 @@ class ListSerializer private constructor(
       instantiationFunction = ::newArray
   )
 
-  override val valueType = SerializerKey(List::class.java, elementSerializer.valueType.asType())
+  override val valueType = SerializerKey(List::class.java, listOf(elementSerializer.valueType))
 
   companion object {
     fun newArrayList(items: List<*>) = ArrayList(items)
@@ -221,7 +242,18 @@ class MapSerializer(
     serializationFactory: SerializationFactory
 ) : JsonSerializer<Map<Any?, Any?>> {
 
-  private val valueSerializer = serializationFactory.getSerializer(mapType.valueType)
+  private val valueSerializer = SerializerKey(mapType.typeIdentifier).let {
+    // it is necessary to walk the type identifiers tree as opposed to use elementType property
+    // because the latter loses actual type parameters leading to unnecessary generic serializer
+    // which in turn impacts precision of generated JSON Schema
+    if (it.isParameterized) {
+      // for a list-like collection we assume the second argument is the element type
+      serializationFactory.getSerializer(it.typeParameters[1])
+    } else {
+      // fallback in case type parameters are not available
+      serializationFactory.getSerializer(mapType.valueType)
+    }
+  }
   private val keySerializer: JsonSerializer<Any>
 
   init {
@@ -237,7 +269,7 @@ class MapSerializer(
     }
   }
 
-  override val valueType = SerializerKey(Map::class.java, mapType.keyType.observedType, mapType.valueType.observedType)
+  override val valueType = SerializerKey(Map::class.java, listOf(keySerializer.valueType, valueSerializer.valueType))
 
   override fun generateSchema(generator: JsonSchemaGenerator): JsonObject {
     return Json.createObjectBuilder()
@@ -299,7 +331,7 @@ class EnumSerializer(
   @Suppress("UNCHECKED_CAST")
   constructor(introspectedType: LocalTypeInformation.AnEnum) : this(
       enumClass = introspectedType.observedType as Class<Enum<*>>,
-      valueType = SerializerKey.forType(introspectedType.observedType))
+      valueType = SerializerKey(introspectedType.typeIdentifier))
 
   private val members: Map<Enum<*>, /* value in JSON */ String> = enumClass.enumConstants.map {
     // use JsonValue provided by serializable enum if available, otherwise just constant's code name
@@ -341,9 +373,9 @@ class ThrowableSerializer(factory: SerializationFactory) : CustomStructuredObjec
 ) {
 
   override val properties: Map<String, ObjectProperty> = mapOf(
-      "class" to SyntheticObjectProperty(valueType = Class::class.java, accessor = throwableClassAccessor),
+      "class" to SyntheticObjectProperty(valueType = SerializerKey(Class::class), accessor = throwableClassAccessor),
       "message" to KotlinObjectProperty(property = Throwable::message),
-      "cause" to SyntheticObjectProperty(valueType = Any::class.java, accessor = throwableCauseAccessor)
+      "cause" to SyntheticObjectProperty(valueType = SerializerKey(Any::class), accessor = throwableCauseAccessor)
   ).toMap()
 
   @Suppress("UNCHECKED_CAST")

@@ -187,7 +187,7 @@ class SerializationTest {
     assertEquals(SerializerKey(List::class.java, String::class.java), listSerializer.valueType)
 
     val mapSerializer = MapSerializer(localTypeModel.inspectProperty(ObjectWithParametrizedProperties::map), f)
-    assertEquals(SerializerKey(Map::class.java, String::class.java, java.lang.Integer::class.java), mapSerializer.valueType)
+    assertEquals(SerializerKey(Map::class.java, String::class.java, Int::class.java), mapSerializer.valueType)
 
     val enumMapSerializer = MapSerializer(localTypeModel.inspectProperty(ObjectWithParametrizedProperties::enumMap), f)
     assertEquals(SerializerKey(Map::class.java, TestEnum::class.java, String::class.java), enumMapSerializer.valueType)
@@ -330,8 +330,8 @@ class SerializationTest {
 
     val serializer = object : CustomAbstractClassSerializer<BaseObject>(f) {
       override val subclassesMap = mapOf(
-          "one" to SerializerKey.forType(DerivedObjectOne::class.java),
-          "two" to SerializerKey.forType(DerivedObjectTwo::class.java)
+          "one" to SerializerKey(DerivedObjectOne::class.java),
+          "two" to SerializerKey(DerivedObjectTwo::class.java)
       )
     }
 
@@ -344,6 +344,33 @@ class SerializationTest {
         serializer.fromJson("""{"one":{"stringValue":"ABC"}}""".asJsonObject()))
     assertEquals(DerivedObjectTwo(123),
         serializer.fromJson("""{"two":{"intValue":123}}""".asJsonObject()))
+  }
+
+  @Test
+  fun `test typed schema for nested parameterized objects`() {
+    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() }, lazy { emptyList<CustomSerializerFactory<Any>>() })
+
+    val serializer1 = f.getSerializer(
+        SerializerKey(ParameterizedObjectsContainer::class, DerivedObjectOne::class).localType)
+    val serializer2 = f.getSerializer(
+        SerializerKey(ParameterizedObjectsContainer::class, DerivedObjectTwo::class).localType)
+
+    val schema1 = serializer1.generateRecursiveSchema(f)
+    val schema2 = serializer2.generateRecursiveSchema(f)
+
+    println(schema1)
+
+    assertEquals("""{"stringValue":{"type":"string"}}""".asJsonObject(),
+        schema1.getValue("/properties/list/items/properties/value/properties"))
+
+    assertEquals("""{"stringValue":{"type":"string"}}""".asJsonObject(),
+        schema1.getValue("/properties/map/additionalProperties/properties/value/properties"))
+
+    assertEquals("""{"intValue":{"type":"number","format":"int32"}}""".asJsonObject(),
+        schema2.getValue("/properties/list/items/properties/value/properties"))
+
+    assertEquals("""{"intValue":{"type":"number","format":"int32"}}""".asJsonObject(),
+        schema2.getValue("/properties/map/additionalProperties/properties/value/properties"))
   }
 }
 
@@ -452,3 +479,9 @@ abstract class BaseObject
 
 data class DerivedObjectOne(val stringValue: String) : BaseObject()
 data class DerivedObjectTwo(val intValue: Int) : BaseObject()
+
+data class ParameterizedObject<T: BaseObject>(val value: T)
+data class ParameterizedObjectsContainer<T: BaseObject>(
+    val list: List<ParameterizedObject<T>>,
+    val map: Map<String, ParameterizedObject<T>>
+)

@@ -1,7 +1,7 @@
 {
   "components": {
     "schemas": {
-      "CordaCommand": {
+      "CordaCommand_Object": {
         "type": "object",
         "properties": {
           "signers": {
@@ -12,7 +12,7 @@
           },
           "value": {
             "type": "object",
-            "description": "Dynamic container for subclasses of net.corda.core.contracts.CommandData",
+            "description": "Dynamic container for subclasses of java.lang.Object",
             "additionalProperties": "true"
           }
         },
@@ -268,21 +268,6 @@
           "DESC"
         ]
       },
-      "CordaStateAndRef": {
-        "type": "object",
-        "properties": {
-          "ref": {
-            "$ref": "#/components/schemas/CordaStateRef"
-          },
-          "state": {
-            "$ref": "#/components/schemas/CordaTransactionState"
-          }
-        },
-        "required": [
-          "ref",
-          "state"
-        ]
-      },
       "CordaStateAndRef_SimpleLinearState": {
         "type": "object",
         "properties": {
@@ -398,7 +383,7 @@
           "states": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/CordaStateAndRef"
+              "$ref": "#/components/schemas/CordaStateAndRef_SimpleLinearState"
             }
           },
           "statesMetadata": {
@@ -572,7 +557,7 @@
           "inputs": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/CordaCommand"
+              "$ref": "#/components/schemas/CordaCommand_Object"
             }
           },
           "outputs": {
