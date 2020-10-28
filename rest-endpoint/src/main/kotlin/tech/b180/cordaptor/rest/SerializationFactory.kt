@@ -279,7 +279,7 @@ class SerializationFactory(
   }
 
   private fun mustUseRaw(type: Type): Boolean {
-    return type in listOf(Class::class.java, KClass::class.java, TransactionState::class.java)
+    return type in listOf(Class::class.java, KClass::class.java)
   }
 
   fun getSerializer(type: Type): JsonSerializer<Any> {

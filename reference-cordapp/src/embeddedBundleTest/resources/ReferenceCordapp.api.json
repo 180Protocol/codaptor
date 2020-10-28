@@ -403,7 +403,7 @@
             "$ref": "#/components/schemas/CordaStateRef"
           },
           "state": {
-            "$ref": "#/components/schemas/CordaTransactionState"
+            "$ref": "#/components/schemas/CordaTransactionState_SimpleLinearState"
           }
         },
         "required": [
@@ -443,7 +443,7 @@
           "metadata"
         ]
       },
-      "CordaTransactionState": {
+      "CordaTransactionState_ContractState": {
         "type": "object",
         "properties": {
           "constraint": {
@@ -456,6 +456,33 @@
             "type": "object",
             "description": "Dynamic container for subclasses of net.corda.core.contracts.ContractState",
             "additionalProperties": "true"
+          },
+          "encumbrance": {
+            "type": "number",
+            "format": "int32"
+          },
+          "notary": {
+            "$ref": "#/components/schemas/CordaParty"
+          }
+        },
+        "required": [
+          "constraint",
+          "contract",
+          "data",
+          "notary"
+        ]
+      },
+      "CordaTransactionState_SimpleLinearState": {
+        "type": "object",
+        "properties": {
+          "constraint": {
+            "$ref": "#/components/schemas/CordaAttachmentConstraint"
+          },
+          "contract": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/SimpleLinearState"
           },
           "encumbrance": {
             "type": "number",
@@ -687,7 +714,7 @@
           "outputs": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/CordaTransactionState"
+              "$ref": "#/components/schemas/CordaTransactionState_ContractState"
             }
           },
           "references": {
