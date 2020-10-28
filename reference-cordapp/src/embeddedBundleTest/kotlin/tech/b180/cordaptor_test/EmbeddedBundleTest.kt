@@ -169,8 +169,10 @@ class EmbeddedBundleTest {
 
     val tx = response.contentAsString.asJsonObject()
     assertEquals(txid.toString(), tx.getString("id"))
+    assertEquals("wireTransaction",
+        tx.getValue("/content/type").asString())
     assertEquals("TEST-111",
-        tx.getValue("/content/wireTransaction/outputs/0/data/linearId/externalId").asString())
+        tx.getValue("/content/outputs/0/data/linearId/externalId").asString())
   }
 
   private fun testStateQuery(client: HttpClient, stateRef: StateRef) {

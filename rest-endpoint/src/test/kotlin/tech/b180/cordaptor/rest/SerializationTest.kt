@@ -330,20 +330,29 @@ class SerializationTest {
 
     val serializer = object : CustomAbstractClassSerializer<BaseObject>(f) {
       override val subclassesMap = mapOf(
-          "one" to SerializerKey(DerivedObjectOne::class.java),
-          "two" to SerializerKey(DerivedObjectTwo::class.java)
+          "one" to DerivedObjectOne::class,
+          "two" to DerivedObjectTwo::class,
+          "singleton" to DerivedSingleton::class
       )
     }
 
-    assertEquals("""{"one":{"stringValue":"ABC"}}""",
+    assertEquals("""{"type":"one","stringValue":"ABC"}""",
         serializer.toJsonString(DerivedObjectOne("ABC")))
-    assertEquals("""{"two":{"intValue":123}}""",
+    assertEquals("""{"type":"two","intValue":123}""",
         serializer.toJsonString(DerivedObjectTwo(123)))
+    assertEquals("""{"type":"singleton"}""",
+        serializer.toJsonString(DerivedSingleton))
     
     assertEquals(DerivedObjectOne("ABC"),
-        serializer.fromJson("""{"one":{"stringValue":"ABC"}}""".asJsonObject()))
+        serializer.fromJson("""{"type":"one","stringValue":"ABC"}""".asJsonObject()))
     assertEquals(DerivedObjectTwo(123),
-        serializer.fromJson("""{"two":{"intValue":123}}""".asJsonObject()))
+        serializer.fromJson("""{"type":"two","intValue":123}""".asJsonObject()))
+    assertSame(DerivedSingleton,
+        serializer.fromJson("""{"type":"singleton"}""".asJsonObject()))
+
+    assertFailsWith(SerializationException::class) {
+      serializer.fromJson("""{"type":"unknown"}""".asJsonObject())
+    }
   }
 
   @Test
@@ -479,6 +488,7 @@ abstract class BaseObject
 
 data class DerivedObjectOne(val stringValue: String) : BaseObject()
 data class DerivedObjectTwo(val intValue: Int) : BaseObject()
+object DerivedSingleton : BaseObject()
 
 data class ParameterizedObject<T: BaseObject>(val value: T)
 data class ParameterizedObjectsContainer<T: BaseObject>(

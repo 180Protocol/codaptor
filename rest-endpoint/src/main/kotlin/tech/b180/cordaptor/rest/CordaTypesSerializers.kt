@@ -177,8 +177,8 @@ class CordaCoreTransactionSerializer(factory: SerializationFactory)
   : CustomAbstractClassSerializer<CoreTransaction>(factory, deserialize = false) {
 
   // FIXME add support for notary change and contract upgrade transactions
-  override val subclassesMap: Map<String, SerializerKey> = mapOf(
-      "wireTransaction" to SerializerKey(WireTransaction::class)
+  override val subclassesMap = mapOf(
+      "wireTransaction" to WireTransaction::class
   )
 }
 

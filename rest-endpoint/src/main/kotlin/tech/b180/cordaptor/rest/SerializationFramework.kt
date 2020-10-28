@@ -2,8 +2,10 @@ package tech.b180.cordaptor.rest
 
 import tech.b180.cordaptor.shaded.javax.json.Json
 import tech.b180.cordaptor.shaded.javax.json.JsonObject
+import tech.b180.cordaptor.shaded.javax.json.JsonString
 import tech.b180.cordaptor.shaded.javax.json.JsonValue
 import tech.b180.cordaptor.shaded.javax.json.stream.JsonGenerator
+import kotlin.reflect.KClass
 import kotlin.reflect.KProperty
 import kotlin.reflect.jvm.javaMethod
 
@@ -253,16 +255,30 @@ abstract class AbstractClassSerializer<T: Any>(
     factory: SerializationFactory,
 
     /** If null, it will be inferred from the type parameter passed in by the superclass */
-    explicitValueType: SerializerKey? = null
+    explicitValueType: SerializerKey? = null,
+
+    /** Must be selected not to clash with any of the properties in subclasses */
+    private val discriminatorKey: String = DEFAULT_DISCRIMINATOR_KEY
 ) : JsonSerializer<T> {
 
-  abstract val subclassesMap: Map<String, SerializerKey>
+  companion object {
+    const val DEFAULT_DISCRIMINATOR_KEY = "type"
+  }
+
+  abstract val subclassesMap: Map<String, KClass<out T>>
   abstract val serialize: Boolean
   abstract val deserialize: Boolean
 
   private val subclassSerializers by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
-    subclassesMap.mapValues { (_, key) ->
-      factory.getSerializer(key)
+    subclassesMap.mapValues { (_, subclass) ->
+      // null value is the special case for singletons (Kotlin 'object' declarations),
+      // which are only signposted with discriminator value, but not actually serialized
+      if (subclass.objectInstance == null) {
+        @Suppress("UNCHECKED_CAST")
+        factory.getSerializer(subclass) as JsonSerializer<T>
+      } else {
+        null
+      }
     }
   }
 
@@ -279,14 +295,25 @@ abstract class AbstractClassSerializer<T: Any>(
     }
 
     val jsonObject = value as JsonObject
-    val (discriminatorKey, serializer) = subclassSerializers
-        .filterKeys { jsonObject.containsKey(it) }.entries.singleOrNull()
-        ?: throw SerializationException("Unable to find a key for a subclass")
+    if (!jsonObject.containsKey(discriminatorKey)) {
+      throw SerializationException("No value for mandatory discriminator property $discriminatorKey " +
+          "when attempting to deserialize an instance of $valueType")
+    }
+    val discriminatorJsonValue = jsonObject.getValue("/$discriminatorKey")
+    val discriminatorValue = (discriminatorJsonValue as? JsonString)?.string
+        ?: throw SerializationException("Invalid discriminator property value [$discriminatorJsonValue] " +
+            "when attempting to deserialize an instance of $valueType")
 
-    val subclassObject = jsonObject.getJsonObject(discriminatorKey)!!
+    if (!subclassSerializers.containsKey(discriminatorValue)) {
+      throw SerializationException("Unknown value $discriminatorValue for discriminator property $discriminatorKey " +
+          "when attempting to deserialize an instance of $valueType")
+    }
 
-    @Suppress("UNCHECKED_CAST")
-    return serializer.fromJson(subclassObject) as T
+    return subclassSerializers[discriminatorValue]?.fromJson(jsonObject)
+        // handle special case of a singleton subclass
+        ?: subclassesMap[discriminatorValue]?.objectInstance
+        ?: throw SerializationException("No available deserialization strategy for subclass $discriminatorValue " +
+            "when attempting to deserialize an instance of $valueType")
   }
 
   override fun toJson(obj: T, generator: JsonGenerator) {
@@ -294,27 +321,75 @@ abstract class AbstractClassSerializer<T: Any>(
       throw UnsupportedOperationException("Cannot serialize $valueType to JSON")
     }
 
-    val entry = subclassesMap.entries.find { (_, key) ->
-      key.rawType.isAssignableFrom(obj.javaClass) }
+    val entry = subclassesMap.entries.find { it.value.isInstance(obj) }
         ?: throw SerializationException("No matching entry for class ${obj.javaClass.canonicalName} " +
             "which is supposed subclass of $valueType -- missing entry in subclasses map?")
 
+    val discriminatorValue = entry.key
     val serializer = subclassSerializers[entry.key]
-        ?: throw AssertionError("No initialized serializer for known subclass mapping $entry")
 
-    generator.writeStartObject().writeKey(entry.key)
-    serializer.toJson(obj, generator)
-    generator.writeEnd()
+    generator.writeStartObject()
+    generator.write(discriminatorKey, discriminatorValue)
+
+    serializer?.toJson(obj, InterceptingJsonGenerator(generator))
+        ?: generator.writeEnd() // the serializer will invoke writeEnd, so only need to do so if there isn't one
   }
 
   override fun generateSchema(generator: JsonSchemaGenerator): JsonObject {
     return Json.createObjectBuilder()
-        .add("type", "object")
-        .add("properties", Json.createObjectBuilder().also { builder ->
-          for ((discriminatorKey, serializer) in subclassSerializers) {
-            builder.add(discriminatorKey, generator.generateSchema(serializer.valueType))
+        .addObjectForEach("oneOf", subclassSerializers.entries) { (discriminatorValue, serializer) ->
+          if (serializer != null) {
+            // defined serializer means it's a nested object, so actual schema is a union type
+            // between proper object schema and its discriminator property
+            addArray("allOf") {
+              add(generator.generateSchema(serializer.valueType))
+              addObject {
+                add("type", "object")
+                addObject("properties") {
+                  addObject(discriminatorKey) {
+                    add("type", "string")
+                    addArray("enum") {
+                      add(discriminatorValue)
+                    }
+                  }
+                }
+                addArray("required") {
+                  add("type")
+                }
+              }
+            }
+          } else {
+            // no serializer means it's a singleton, for which only type property is expected
+            add("type", "object")
+            addObject("properties") {
+              addObject(discriminatorKey) {
+                add("type", "string")
+                addArray("enum") {
+                  add(discriminatorValue)
+                }
+              }
+            }
+            addArray("required") {
+              add("type")
+            }
           }
-        })
-        .build()
+        }.addObject("discriminator") {
+          add("propertyName", discriminatorKey)
+        }.build()
+  }
+
+  // This is dangerous as most methods return this, which means it will be the delegate and not the interceptor
+  // however, all serializers writing JSON objects will call writeStartObject() as a first action,
+  // after which it should not matter whether it is still a delegate or not. Still, it's a potential source of bugs.
+  class InterceptingJsonGenerator(private val delegate: JsonGenerator) : JsonGenerator by delegate {
+    private var intercepted = false
+
+    override fun writeStartObject(): JsonGenerator {
+      if (intercepted)
+        return delegate.writeStartObject()
+
+      intercepted = true
+      return this
+    }
   }
 }

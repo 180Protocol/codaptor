@@ -241,11 +241,31 @@
             "$ref": "#/components/schemas/CordaTransactionHash"
           },
           "content": {
-            "type": "object",
-            "properties": {
-              "wireTransaction": {
-                "$ref": "#/components/schemas/CordaWireTransaction"
+            "oneOf": [
+              {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/CordaWireTransaction"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "wireTransaction"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "type"
+                    ]
+                  }
+                ]
               }
+            ],
+            "discriminator": {
+              "propertyName": "type"
             }
           },
           "sigs": {

@@ -1,9 +1,6 @@
 package tech.b180.cordaptor.rest
 
-import tech.b180.cordaptor.shaded.javax.json.Json
-import tech.b180.cordaptor.shaded.javax.json.JsonArray
-import tech.b180.cordaptor.shaded.javax.json.JsonObject
-import tech.b180.cordaptor.shaded.javax.json.JsonObjectBuilder
+import tech.b180.cordaptor.shaded.javax.json.*
 import tech.b180.cordaptor.shaded.javax.json.stream.JsonGenerator
 
 fun <T: Any> JsonObjectBuilder.addObject(key: String, obj: T, block: JsonObjectBuilder.(T) -> Unit): JsonObjectBuilder
@@ -15,6 +12,22 @@ fun JsonObjectBuilder.addObject(key: String, block: JsonObjectBuilder.() -> Unit
 fun JsonObjectBuilder.addModifiedObject(key: String, obj: JsonObject, block: JsonObjectBuilder.() -> Unit): JsonObjectBuilder
     = add(key, Json.createObjectBuilder(obj).apply(block).build())
 
+fun <T: Any> JsonObjectBuilder.addObjectForEach(
+    key: String, iterable: Iterable<T>, block: JsonObjectBuilder.(T) -> Unit): JsonObjectBuilder {
+
+  val arrayBuilder = Json.createArrayBuilder()
+  for (obj in iterable) {
+    val jsonObject = Json.createObjectBuilder().also { it.block(obj) }.build()
+    arrayBuilder.add(jsonObject)
+  }
+  return add(key, arrayBuilder.build())
+}
+
+fun JsonObjectBuilder.addArray(key: String, block: JsonArrayBuilder.() -> Unit): JsonObjectBuilder =
+    add(key, Json.createArrayBuilder().apply(block).build())
+
+fun JsonArrayBuilder.addObject(block: JsonObjectBuilder.() -> Unit): JsonArrayBuilder =
+    add(Json.createObjectBuilder().apply(block).build())
 
 /**
  * Note this only supports map of primitive types
