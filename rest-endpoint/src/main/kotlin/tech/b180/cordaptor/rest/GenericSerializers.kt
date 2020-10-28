@@ -449,7 +449,3 @@ class JsonObjectSerializer : CustomSerializer<JsonObject> {
 
   override fun generateSchema(generator: JsonSchemaGenerator): JsonObject = schema
 }
-
-fun generateSchemaTypeBaseName(clazz: Class<*>): String =
-    (if (clazz.canonicalName.startsWith("net.corda")) "Corda" else "") +
-        (clazz.enclosingClass?.simpleName ?: "") + clazz.simpleName

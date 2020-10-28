@@ -14,8 +14,24 @@ import kotlin.reflect.jvm.javaMethod
  * into a shared components section and what type name to use for it.
  */
 interface StandaloneTypeSerializer {
+  val valueType: SerializerKey
+
+  /** Default implementation uses [valueType] that is also declared in [JsonSerializer] */
   val schemaTypeName: String
+    get() {
+      val baseName = generateSchemaTypeBaseName(valueType.rawType)
+      return if (!valueType.isParameterized) {
+        baseName
+      } else {
+        "${baseName}_${valueType.typeParameters.map { it.rawType.simpleName }.joinToString("_")}"
+      }
+    }
 }
+
+fun generateSchemaTypeBaseName(clazz: Class<*>): String =
+    (if (clazz.canonicalName.startsWith("net.corda")) "Corda" else "") +
+        (clazz.enclosingClass?.simpleName ?: "") + clazz.simpleName
+
 
 /**
  * Base class for creating serializers of structured JSON object,
@@ -106,16 +122,6 @@ abstract class StructuredObjectSerializer<T: Any>(
       }
     }
   }
-
-  override val schemaTypeName: String
-    get() {
-      val baseName = generateSchemaTypeBaseName(valueType.rawType)
-      return if (!valueType.isParameterized) {
-        baseName
-      } else {
-        "${baseName}_${valueType.typeParameters.map { it.rawType.simpleName }.joinToString("_")}"
-      }
-    }
 
   override fun generateSchema(generator: JsonSchemaGenerator): JsonObject {
     return Json.createObjectBuilder()
