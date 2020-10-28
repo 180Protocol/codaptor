@@ -349,7 +349,11 @@ data class SerializerKey(val typeIdentifier: TypeIdentifier) {
   /**
    * Reconstitutes a parameterised type from the associated raw type and given type parameters
    */
-  val localType: Type get() = typeIdentifier.getLocalType()
+  val localType: Type get() {
+    // for embedded deployment it's important to use classloader which has Cordaptor classes,
+    // otherwise a system classloader will be used, which would only have Corda classes
+    return typeIdentifier.getLocalType(javaClass.classLoader)
+  }
 
   val erased: SerializerKey get() = SerializerKey(typeIdentifier.erased)
 
