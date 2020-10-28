@@ -62,7 +62,7 @@ class ComposableTypeJsonSerializer<T: Any>(
 
   override val properties: Map<String, IntrospectedProperty>
     get() {
-      logger.debug("Creating composable object serializer for type {}", valueType.typeIdentifier)
+      logger.debug("Initializing composable object serializer for type {}", valueType.typeIdentifier)
 
       return typeInfo.properties
           .filter { (name, prop) ->
