@@ -1,7 +1,6 @@
 package tech.b180.cordaptor.rest
 
-import net.corda.core.contracts.ContractState
-import net.corda.core.contracts.TransactionState
+import net.corda.core.contracts.*
 import net.corda.core.crypto.SecureHash
 import net.corda.core.crypto.TransactionSignature
 import net.corda.core.flows.FlowLogic
@@ -314,4 +313,18 @@ class CordaFlowInstructionSerializerFactory(
       }
     }
   }
+}
+
+/**
+ * Serializer for various subtypes of [AttachmentConstraint], some of which are singletons.
+ */
+class CordaAttachmentConstraintSerializer(factory: SerializationFactory)
+  : CustomAbstractClassSerializer<AttachmentConstraint>(factory, deserialize = false) {
+
+  override val subclassesMap = mapOf(
+      "alwaysAccept" to AlwaysAcceptAttachmentConstraint::class,
+      "hash" to HashAttachmentConstraint::class,
+      "signature" to SignatureAttachmentConstraint::class,
+      "whitelistedByZone" to WhitelistedByZoneAttachmentConstraint::class
+  )
 }

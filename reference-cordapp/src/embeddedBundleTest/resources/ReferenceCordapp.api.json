@@ -124,6 +124,17 @@
           "startedAt"
         ]
       },
+      "CordaHashAttachmentConstraint": {
+        "type": "object",
+        "properties": {
+          "attachmentId": {
+            "$ref": "#/components/schemas/CordaTransactionHash"
+          }
+        },
+        "required": [
+          "attachmentId"
+        ]
+      },
       "CordaNetworkHostAndPort": {
         "type": "object",
         "properties": {
@@ -215,6 +226,17 @@
         },
         "required": [
           "party"
+        ]
+      },
+      "CordaSignatureAttachmentConstraint": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/PublicKey"
+          }
+        },
+        "required": [
+          "key"
         ]
       },
       "CordaSignatureMetadata": {
@@ -385,9 +407,81 @@
         "type": "object",
         "properties": {
           "constraint": {
-            "type": "object",
-            "description": "Dynamic container for subclasses of net.corda.core.contracts.AttachmentConstraint",
-            "additionalProperties": "true"
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "alwaysAccept"
+                    ]
+                  }
+                },
+                "required": [
+                  "type"
+                ]
+              },
+              {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/CordaHashAttachmentConstraint"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "hash"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "type"
+                    ]
+                  }
+                ]
+              },
+              {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/CordaSignatureAttachmentConstraint"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "signature"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "type"
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "whitelistedByZone"
+                    ]
+                  }
+                },
+                "required": [
+                  "type"
+                ]
+              }
+            ],
+            "discriminator": {
+              "propertyName": "type"
+            }
           }
         },
         "required": [
