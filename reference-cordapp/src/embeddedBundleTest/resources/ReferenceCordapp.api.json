@@ -21,6 +21,34 @@
           "value"
         ]
       },
+      "CordaCoreTransaction": {
+        "oneOf": [
+          {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CordaWireTransaction"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "wireTransaction"
+                    ]
+                  }
+                },
+                "required": [
+                  "type"
+                ]
+              }
+            ]
+          }
+        ],
+        "discriminator": {
+          "propertyName": "type"
+        }
+      },
       "CordaFlowInstructionOptions": {
         "type": "object",
         "properties": {
@@ -269,32 +297,7 @@
             "$ref": "#/components/schemas/CordaSecureHash"
           },
           "content": {
-            "oneOf": [
-              {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/CordaWireTransaction"
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "type": {
-                        "type": "string",
-                        "enum": [
-                          "wireTransaction"
-                        ]
-                      }
-                    },
-                    "required": [
-                      "type"
-                    ]
-                  }
-                ]
-              }
-            ],
-            "discriminator": {
-              "propertyName": "type"
-            }
+            "$ref": "#/components/schemas/CordaCoreTransaction"
           },
           "sigs": {
             "type": "array",

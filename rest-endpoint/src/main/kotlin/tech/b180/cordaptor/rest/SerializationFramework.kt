@@ -265,7 +265,7 @@ abstract class AbstractClassSerializer<T: Any>(
 
     /** Must be selected not to clash with any of the properties in subclasses */
     private val discriminatorKey: String = DEFAULT_DISCRIMINATOR_KEY
-) : JsonSerializer<T> {
+) : JsonSerializer<T>, StandaloneTypeSerializer {
 
   companion object {
     const val DEFAULT_DISCRIMINATOR_KEY = "type"
