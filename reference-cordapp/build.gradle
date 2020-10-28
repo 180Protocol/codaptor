@@ -23,17 +23,24 @@ repositories {
 }
 
 sourceSets {
-    embeddedBundleTest {
+    genericApiTest {
         kotlin {
             compileClasspath += main.output
             runtimeClasspath += main.output
+            srcDir file('src/genericApiTest/kotlin')
+        }
+    }
+    embeddedBundleTest {
+        kotlin {
+            compileClasspath += main.output + genericApiTest.output
+            runtimeClasspath += main.output + genericApiTest.output
             srcDir file('src/embeddedBundleTest/kotlin')
         }
     }
     standaloneBundleTest {
         kotlin {
-            compileClasspath += main.output
-            runtimeClasspath += main.output
+            compileClasspath += main.output + genericApiTest.output
+            runtimeClasspath += main.output + genericApiTest.output
             srcDir file('src/standaloneBundleTest/kotlin')
         }
     }
@@ -46,8 +53,9 @@ configurations {
     // and they interfere with glassfish javax.json impl, which has more recent version
     embeddedBundleTestRuntime.exclude module: 'geronimo-json_1.0_spec'
     embeddedBundleTestRuntime.exclude module: 'johnzon-core'
-    standaloneBundleTestRuntime.exclude module: 'geronimo-json_1.0_spec'
-    standaloneBundleTestRuntime.exclude module: 'johnzon-core'
+
+    embeddedBundleTestImplementation.extendsFrom genericApiTestImplementation
+    standaloneBundleTestRuntimeImplementation.extendsFrom genericApiTestImplementation
 }
 
 tasks.withType(Test) {
@@ -103,14 +111,11 @@ dependencies {
     testImplementation 'org.jetbrains.kotlin:kotlin-test'
     testImplementation 'org.jetbrains.kotlin:kotlin-test-junit'
 
-    // Embedded bundle is deployed as a fat CorDapp JAR to make it possible to use Corda's node test driver
-    // This interferes with Cordaptor's defaul module resolution mechanism based on java.util.ServiceLoader
-    // As a workaround embedded bundle tests are adding Cordaptor bundle JAR to the classpath at task launch
-    embeddedBundleTestImplementation 'org.jetbrains.kotlin:kotlin-test'
-    embeddedBundleTestImplementation 'org.jetbrains.kotlin:kotlin-test-junit'
-    embeddedBundleTestImplementation "net.corda:corda-node-driver:$corda_core_release_version"
-    embeddedBundleTestImplementation "org.eclipse.jetty:jetty-client:$jetty_version"
-    embeddedBundleTestImplementation "org.glassfish:javax.json:$glassfish_json_version"
+    genericApiTestImplementation "org.jetbrains.kotlin:kotlin-test"
+    genericApiTestImplementation "org.jetbrains.kotlin:kotlin-test-junit"
+    genericApiTestImplementation "net.corda:corda-node-driver:$corda_core_release_version"
+    genericApiTestImplementation "org.eclipse.jetty:jetty-client:$jetty_version"
+    genericApiTestImplementation "org.glassfish:javax.json:$glassfish_json_version"
 
     // Cordaptor running standalone mode can rely on its default module resolution mechanism,
     // so it's enough to add relevant modules as dependencies
@@ -118,9 +123,6 @@ dependencies {
     standaloneBundleTestImplementation project(":rest-endpoint")
     standaloneBundleTestImplementation project(":local-cache")
     standaloneBundleTestImplementation project(":corda-rpc-client")
-    standaloneBundleTestImplementation 'org.jetbrains.kotlin:kotlin-test'
-    standaloneBundleTestImplementation 'org.jetbrains.kotlin:kotlin-test-junit'
-    standaloneBundleTestImplementation "net.corda:corda-node-driver:$corda_core_release_version"
 }
 
 // Use this task to deploy local Corda network with embedded Cordaptor bundle
