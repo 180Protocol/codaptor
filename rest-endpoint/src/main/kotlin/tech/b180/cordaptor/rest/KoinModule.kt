@@ -34,8 +34,17 @@ class RestEndpointModuleProvider : ModuleProvider {
     single { NodeVersionEndpoint("/node/version") } bind QueryEndpoint::class
     single { TransactionQueryEndpoint("/node/tx") } bind QueryEndpoint::class
 
-    single { APISpecificationEndpointHandler("/api.json") } bind ContextMappedHandler::class
-    single { SwaggerUIHandler("/swagger") } bind ContextMappedHandler::class
+    // allow OpenAPI specification and SwaggerUI to be disabled
+    if (settings.getOptionalFlag("disableOpenAPISpecification") != true) {
+      single { APISpecificationEndpointHandler("/api.json") } binds
+          arrayOf(ContextMappedHandler::class, LifecycleAware::class)
+
+      // if OpenAPI specification is disabled, SwaggerUI will not show regardless of the flag
+      if (settings.getOptionalFlag("disableSwaggerUI") != true) {
+        single { SwaggerUIHandler("/swagger") } binds
+            arrayOf(ContextMappedHandler::class, LifecycleAware::class)
+      }
+    }
 
     // parameterized accessor for obtaining handler instances allowing them to have dependencies managed by Koin
     factory<QueryEndpointHandler<*>> { (endpoint: QueryEndpoint<*>) -> QueryEndpointHandler(endpoint) }
