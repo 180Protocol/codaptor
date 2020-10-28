@@ -11,8 +11,6 @@ import tech.b180.cordaptor.shaded.javax.json.*
 import tech.b180.cordaptor.shaded.javax.json.stream.JsonGenerator
 import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
-import java.lang.reflect.TypeVariable
-import java.lang.reflect.WildcardType
 import java.net.URL
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
@@ -297,13 +295,13 @@ class SerializationFactory(
 
     return when (type) {
       is LocalTypeInformation.Composable -> ComposableTypeJsonSerializer(type, this)
-      is LocalTypeInformation.Abstract -> DynamicObjectSerializer(SerializerKey.forType(type.observedType), this)
-      is LocalTypeInformation.AnInterface -> DynamicObjectSerializer(SerializerKey.forType(type.observedType), this)
+      is LocalTypeInformation.Abstract -> DynamicObjectSerializer(SerializerKey(type.typeIdentifier), this)
+      is LocalTypeInformation.AnInterface -> DynamicObjectSerializer(SerializerKey(type.typeIdentifier), this)
       is LocalTypeInformation.AnArray -> ListSerializer(type, this)
       is LocalTypeInformation.ACollection -> ListSerializer(type, this)
       is LocalTypeInformation.AnEnum -> EnumSerializer(type) as JsonSerializer<Any>
       is LocalTypeInformation.AMap -> MapSerializer(type, this) as JsonSerializer<Any>
-      is LocalTypeInformation.Top -> DynamicObjectSerializer(SerializerKey.forType(type.observedType), this)
+      is LocalTypeInformation.Top -> DynamicObjectSerializer(SerializerKey(type.typeIdentifier), this)
       is LocalTypeInformation.NonComposable ->
         throw SerializationException("Cannot create a serializer for type $key introspected as non-composable for " +
             "the following reason: ${type.reason}")
@@ -326,6 +324,9 @@ class SerializationFactory(
  * A wrapper for a type, which is potentially parameterized, alongside with a specific
  * set of parameters. This structure is used as a key to obtain a serializer from
  * the [SerializationFactory].
+ *
+ * The implementation is heavily reliant on Corda's [TypeIdentifier] hierarchy because it contains
+ * necessary logic, but we wrap it into our own class to adapt the API to our needs.
  */
 data class SerializerKey(val typeIdentifier: TypeIdentifier) {
 

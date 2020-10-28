@@ -17,7 +17,7 @@ import java.lang.reflect.ParameterizedType
 class ComposableTypeJsonSerializer<T: Any>(
     private val typeInfo: LocalTypeInformation.Composable,
     factory: SerializationFactory
-) : StructuredObjectSerializer<T>(factory = factory, explicitValueType = SerializerKey.forType(typeInfo.observedType)) {
+) : StructuredObjectSerializer<T>(factory = factory, explicitValueType = SerializerKey(typeInfo.typeIdentifier)) {
 
   companion object {
     private val logger = loggerFor<ComposableTypeJsonSerializer<*>>()
