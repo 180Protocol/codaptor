@@ -43,7 +43,7 @@ class JettyServerTest : KoinTest {
       single<JettyConfigurator> { ConnectorFactory(JettyConnectorConfiguration(
           HostAndPort("localhost", 9000), false)) }
 
-      single<ContextMappedHandler> { EchoHandler("/test") }
+      single { EchoHandler("/test") } bind ContextMappedHandler::class
 
       single { EchoQueryEndpoint("/echo-query") } bind QueryEndpoint::class
       single { MisconfiguredEchoQueryEndpoint("/echo-query-wrong-type") } bind QueryEndpoint::class
