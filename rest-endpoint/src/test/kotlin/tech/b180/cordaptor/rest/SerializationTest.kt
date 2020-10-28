@@ -375,11 +375,17 @@ class SerializationTest {
     assertEquals("""{"stringValue":{"type":"string"}}""".asJsonObject(),
         schema1.getValue("/properties/map/additionalProperties/properties/value/properties"))
 
+    assertEquals("""{"stringValue":{"type":"string"}}""".asJsonObject(),
+        schema1.getValue("/properties/nestedSingle/properties/value/properties/value/properties"))
+
     assertEquals("""{"intValue":{"type":"number","format":"int32"}}""".asJsonObject(),
         schema2.getValue("/properties/list/items/properties/value/properties"))
 
     assertEquals("""{"intValue":{"type":"number","format":"int32"}}""".asJsonObject(),
         schema2.getValue("/properties/map/additionalProperties/properties/value/properties"))
+
+    assertEquals("""{"intValue":{"type":"number","format":"int32"}}""".asJsonObject(),
+        schema2.getValue("/properties/nestedSingle/properties/value/properties/value/properties"))
   }
 }
 
@@ -490,8 +496,9 @@ data class DerivedObjectOne(val stringValue: String) : BaseObject()
 data class DerivedObjectTwo(val intValue: Int) : BaseObject()
 object DerivedSingleton : BaseObject()
 
-data class ParameterizedObject<T: BaseObject>(val value: T)
+data class ParameterizedObject<T: BaseObject>(val value: T) : BaseObject()
 data class ParameterizedObjectsContainer<T: BaseObject>(
     val list: List<ParameterizedObject<T>>,
-    val map: Map<String, ParameterizedObject<T>>
+    val map: Map<String, ParameterizedObject<T>>,
+    val nestedSingle: ParameterizedObject<ParameterizedObject<T>>
 )
