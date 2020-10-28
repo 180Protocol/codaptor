@@ -54,7 +54,7 @@ class CordaSecureHashSerializer : CustomSerializer<SecureHash>, StandaloneTypeSe
   }
 
   override val schemaTypeName: String
-    get() = "CordaTransactionHash"
+    get() = "CordaSecureHash"
 }
 
 /**

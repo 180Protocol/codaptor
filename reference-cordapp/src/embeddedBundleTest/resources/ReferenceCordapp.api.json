@@ -128,7 +128,7 @@
         "type": "object",
         "properties": {
           "attachmentId": {
-            "$ref": "#/components/schemas/CordaTransactionHash"
+            "$ref": "#/components/schemas/CordaSecureHash"
           }
         },
         "required": [
@@ -228,6 +228,12 @@
           "party"
         ]
       },
+      "CordaSecureHash": {
+        "type": "string",
+        "minLength": 64,
+        "maxLength": 64,
+        "pattern": "^[A-Z0-9]{64}"
+      },
       "CordaSignatureAttachmentConstraint": {
         "type": "object",
         "properties": {
@@ -260,7 +266,7 @@
         "type": "object",
         "properties": {
           "id": {
-            "$ref": "#/components/schemas/CordaTransactionHash"
+            "$ref": "#/components/schemas/CordaSecureHash"
           },
           "content": {
             "oneOf": [
@@ -333,19 +339,13 @@
             "format": "int32"
           },
           "txhash": {
-            "$ref": "#/components/schemas/CordaTransactionHash"
+            "$ref": "#/components/schemas/CordaSecureHash"
           }
         },
         "required": [
           "index",
           "txhash"
         ]
-      },
-      "CordaTransactionHash": {
-        "type": "string",
-        "minLength": 64,
-        "maxLength": 64,
-        "pattern": "^[A-Z0-9]{64}"
       },
       "CordaTransactionSignature": {
         "type": "object",
@@ -1069,7 +1069,7 @@
             "name": "hash",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/CordaTransactionHash"
+              "$ref": "#/components/schemas/CordaSecureHash"
             }
           }
         ],
@@ -1104,7 +1104,7 @@
             "name": "hash",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/CordaTransactionHash"
+              "$ref": "#/components/schemas/CordaSecureHash"
             }
           }
         ],
