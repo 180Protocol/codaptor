@@ -42,13 +42,22 @@ interface Config {
 
   fun getBoolean(path: ConfigPath): Boolean
 
-  fun getOptionalString(path: ConfigPath): String? = if (pathExists(path)) getString(path) else null
+  fun getOptionalString(path: ConfigPath) = if (pathExists(path)) getString(path) else null
 
-  fun getOptionalInt(path: ConfigPath): Int? = if (pathExists(path)) getInt(path) else null
+  fun getOptionalInt(path: ConfigPath) = if (pathExists(path)) getInt(path) else null
+  fun getOptionalLong(path: ConfigPath) = if (pathExists(path)) getLong(path) else null
+  fun getOptionalBoolean(path: ConfigPath) = if (pathExists(path)) getBoolean(path) else null
+  fun getOptionalDuration(path: ConfigPath) = if (pathExists(path)) getDuration(path) else null
+  fun getOptionalDouble(path: ConfigPath) = if (pathExists(path)) getDouble(path) else null
+  fun getOptionalBytesSize(path: ConfigPath) = if (pathExists(path)) getBytesSize(path) else null
 
-  fun getOptionalLong(path: ConfigPath): Long? = if (pathExists(path)) getLong(path) else null
-
-  fun getOptionalBoolean(path: ConfigPath): Boolean? = if (pathExists(path)) getBoolean(path) else null
+  fun getOptionalString(path: ConfigPath, default: String) = getOptionalString(path) ?: default
+  fun getOptionalInt(path: ConfigPath, default: Int) = getOptionalInt(path) ?: default
+  fun getOptionalLong(path: ConfigPath, default: Long) = getOptionalLong(path) ?: default
+  fun getOptionalBoolean(path: ConfigPath, default: Boolean) = getOptionalBoolean(path) ?: default
+  fun getOptionalDuration(path: ConfigPath, default: Duration) = getOptionalDuration(path) ?: default
+  fun getOptionalDouble(path: ConfigPath, default: Double) = getOptionalDouble(path) ?: default
+  fun getOptionalBytesSize(path: ConfigPath, default: Long) = getOptionalBytesSize(path) ?: default
 }
 
 /**

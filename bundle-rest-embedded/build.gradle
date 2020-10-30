@@ -19,20 +19,21 @@ task bundleReferenceConf {
     outputs.file "${buildDir}/bundled-reference.conf"
 
     doFirst {
-        println("Processing occurences of reference.conf across all bundled modules")
+        def moduleReferenceFilename = 'module-reference.conf'
+        def bundledReferenceFilename = 'bundled-reference.conf'
+
+        println("Processing occurences of $moduleReferenceFilename across all bundled modules")
         def bundledProjects = configurations.compile.dependencies.withType(ProjectDependency).collect {
             it.dependencyProject
         }
 
         def referenceConfFiles = (bundledProjects + project).collect {
-            new Tuple(it, it.sourceSets.main.resources.matching { include 'reference.conf' }.files.first())
+            new Tuple(it, it.sourceSets.main.resources.matching { include moduleReferenceFilename }.files.first())
         }
         println("The following files will be combined:\n${referenceConfFiles.collect { it[1] }.join("\n")}")
 
-        file("${buildDir}/bundled-reference.conf").text = "# Combined for the embedded Corda JAR\n" + referenceConfFiles.collect {
-            "# START OF ${it[0].name}/reference.conf\n" +
-                    "${it[1].text}\n" +
-                    "# END OF ${it[0].name}/reference.conf"
+        file("${buildDir}/$bundledReferenceFilename").text = "# Combined for the embedded Corda JAR\n" + referenceConfFiles.collect {
+            "# START OF ${it[0].name}/${it[1].name}\n${it[1].text}\n# END OF ${it[0].name}/${it[1].name}"
         }.join("\n\n")
     }
 }

@@ -15,16 +15,25 @@ class TypesafeConfig private constructor(private val config: _Config) : Config {
   companion object {
 
     /**
-     * Loads root configuration object using standard conventions.
+     * Loads root configuration object using Cordaptor's standard conventions.
+     * Each module should have it's own module-reference.conf file at the root of the classpath.
+     * This is introduced because Corda has it's own reference.conf, which causes a clash
      */
-    fun loadDefault() = TypesafeConfig(ConfigFactory.load())
+    fun loadDefault(): TypesafeConfig {
+      val reference = loadFrom("module-reference.conf")
+      return TypesafeConfig(ConfigFactory
+          .defaultOverrides()
+          .withFallback(ConfigFactory.defaultApplication())
+          .withFallback(reference.config)
+          .resolve(ConfigResolveOptions.defaults().setAllowUnresolved(false)))
+    }
 
     /**
      * Loads root configuration object using given resource name.
      */
     fun loadFrom(resourceName: String) = TypesafeConfig(
         ConfigFactory.parseResources(resourceName).resolve(
-            ConfigResolveOptions.defaults()
+            ConfigResolveOptions.defaults().setAllowUnresolved(false)
         )
     )
   }
@@ -63,5 +72,12 @@ class TypesafeConfig private constructor(private val config: _Config) : Config {
 
   override fun getBoolean(path: ConfigPath): Boolean {
     return config.getBoolean(path)
+  }
+
+  /**
+   * This method is intended to be used in integration tests programmatically instantiating the kernel.
+   */
+  fun withOverrides(newConfig: _Config): TypesafeConfig {
+    return TypesafeConfig(newConfig.withFallback(config))
   }
 }
