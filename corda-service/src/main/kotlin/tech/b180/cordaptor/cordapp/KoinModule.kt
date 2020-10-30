@@ -9,21 +9,23 @@ import tech.b180.cordaptor.corda.CordaNodeCatalog
 import tech.b180.cordaptor.corda.CordaNodeCatalogInner
 import tech.b180.cordaptor.corda.CordaNodeState
 import tech.b180.cordaptor.corda.CordaNodeStateInner
-import tech.b180.cordaptor.kernel.BootstrapSettings
-import tech.b180.cordaptor.kernel.ModuleProvider
+import tech.b180.cordaptor.kernel.*
 
 /**
  * Single point of access for various APIs available within the Corda node.
  * Implementation is injected during the bootstrap process, and may be version-specific
  * where internal node APIs are being exposed.
+ *
+ * Note that even through this module is part of module API, other modules should
+ * exercise caution because this definition will only be available when Cordaptor
+ * is deployed as an embedded Corda service.
  */
+@ModuleAPI
 interface NodeServicesLocator {
   val appServiceHub: AppServiceHub
   val serviceHubInternal: ServiceHubInternal
   val localTypeModel: LocalTypeModel
 }
-
-const val BUNDLE_CORDAPP_NAME_PROPERTY = "bundle.cordapp.name"
 
 /**
  * Implementation of the microkernel module provider that makes the components
@@ -38,8 +40,13 @@ const val BUNDLE_CORDAPP_NAME_PROPERTY = "bundle.cordapp.name"
 class CordaServiceModuleProvider : ModuleProvider {
   override val salience = ModuleProvider.INNER_MODULE_SALIENCE
 
-  override fun provideModule(settings: BootstrapSettings) = module {
-    single<CordaNodeCatalog> { CordaNodeCatalogImpl(get(), getProperty(BUNDLE_CORDAPP_NAME_PROPERTY)) } bind CordaNodeCatalogInner::class
+  override val configPath: ConfigPath = "cordaService"
+
+  override fun provideModule(moduleConfig: Config) = module {
+    val settings = Settings(moduleConfig)
+    single { settings }
+
+    single<CordaNodeCatalog> { CordaNodeCatalogImpl(get(), settings.bundleCordappName) } bind CordaNodeCatalogInner::class
     single<CordaNodeState> { CordaNodeStateImpl() } bind CordaNodeStateInner::class
     single { CordaFlowDispatcher() }
 
@@ -51,4 +58,16 @@ class CordaServiceModuleProvider : ModuleProvider {
     single { get<NodeServicesLocator>().appServiceHub.vaultService }
     single { get<NodeServicesLocator>().appServiceHub.identityService }
   }
+}
+
+/**
+ * Eagerly-initialized typesafe wrapper for module's configuration.
+ */
+class Settings private constructor(
+    /** Name of the CorDapp for the Cordaptor bundle to explicitly ignore in CorDapp scanning */
+    val bundleCordappName: String
+) {
+  constructor(ourConfig: Config) : this(
+      bundleCordappName = ourConfig.getString("bundleCordappName")
+  )
 }

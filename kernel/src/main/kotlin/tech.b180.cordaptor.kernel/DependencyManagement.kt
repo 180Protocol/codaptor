@@ -5,6 +5,16 @@ import org.koin.core.KoinComponent
 import org.koin.core.scope.Scope
 
 /**
+ * Marks classes and interfaces that are intended to be used as a public API for a module.
+ * Documentation should make clarify how to interact with Koin to access instances where
+ * applicable (e.g. are injection parameters or qualifiers required).
+ *
+ * All classes and interfaces within a module that are not annotated as [ModuleAPI],
+ * are considered internal and are subject to change.
+ */
+annotation class ModuleAPI
+
+/**
  * Base mixin interface for Cordaptor component classes which need to use Koin API.
  */
 interface CordaptorComponent : KoinComponent {

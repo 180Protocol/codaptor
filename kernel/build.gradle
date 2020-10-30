@@ -3,6 +3,8 @@ apply plugin: 'org.jetbrains.kotlin.jvm'
 dependencies {
     api "org.koin:koin-core:$koin_version"
 
+    compile "com.typesafe:config:$typesafe_config_version"
+
     // not bundling in, as it is available in the embedded mode
     compileOnly "org.slf4j:slf4j-api:$slf4j_version"
 

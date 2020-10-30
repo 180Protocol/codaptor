@@ -1321,7 +1321,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost:8500"
+      "url": "http://127.0.0.1:8500"
     }
   ]
 }

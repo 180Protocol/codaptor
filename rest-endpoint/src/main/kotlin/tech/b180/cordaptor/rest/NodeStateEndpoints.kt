@@ -75,12 +75,10 @@ class FlowInitiationEndpoint<FlowReturnType: Any>(
 
   companion object {
     private val logger = loggerFor<FlowInitiationEndpoint<*>>()
-
-    /** Absolute maximum timeout for the request to avoid wasting server resources */
-    const val MAX_SECONDS_TIMEOUT = 15 /* minutes */ * 60
   }
 
   private val cordaNodeState: CordaNodeState by inject()
+  private val settings: Settings by inject()
 
   override val responseType = SerializerKey(CordaFlowSnapshot::class, flowResultClass)
   override val requestType = SerializerKey(CordaFlowInstruction::class, flowClass)
@@ -106,7 +104,7 @@ class FlowInitiationEndpoint<FlowReturnType: Any>(
 
       return Single.just(Response(snapshot, statusCode = HttpServletResponse.SC_ACCEPTED))
     } else {
-      val effectiveTimeout = min(waitTimeout, MAX_SECONDS_TIMEOUT)
+      val effectiveTimeout = min(waitTimeout, settings.maxFlowInitiationTimeout.seconds.toInt())
       logger.debug("Effective timeout for the flow {}", effectiveTimeout)
 
       val resultPromise = handle.flowResultPromise.map {
@@ -290,6 +288,7 @@ class ContractStateVaultQueryEndpoint<StateType: ContractState>(
     ).asJsonObject()
   }
 
+  private val settings: Settings by inject()
   private val nodeState: CordaNodeState by inject()
 
   override val requestType = SerializerKey(CordaVaultQuery::class.java, contractStateClass.java)
@@ -328,7 +327,9 @@ class ContractStateVaultQueryEndpoint<StateType: ContractState>(
     logger.debug("Building vault query from HTTP GET query parameters: {}", request.queryParameters)
 
     val pageNumber = request.getPositiveIntParameterValue(PARAMETER_NAME_PAGE_NUMBER, 0)
-    val pageSize = request.getPositiveIntParameterValue(PARAMETER_NAME_PAGE_SIZE, DEFAULT_PAGE_SIZE)
+    val pageSize = min(
+        request.getPositiveIntParameterValue(PARAMETER_NAME_PAGE_SIZE, DEFAULT_PAGE_SIZE),
+        settings.maxVaultQueryPageSize)
 
     val stateStatus = when (request.getParameterValue(PARAMETER_NAME_CONSUMED)?.toLowerCase()) {
       null -> Vault.StateStatus.UNCONSUMED    // default value

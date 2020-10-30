@@ -152,7 +152,9 @@ task deployNodes(type: net.corda.plugins.Cordform, dependsOn: ['jar']) {
         }
         cordapp(project(':bundle-rest-embedded')) {
             config '''\
-                useLocalCache=false
+                localCache {
+                  enabled = false
+                }
             '''.stripIndent()
         }
     }

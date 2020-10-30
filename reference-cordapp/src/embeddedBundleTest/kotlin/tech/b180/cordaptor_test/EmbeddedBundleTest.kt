@@ -1,5 +1,6 @@
 package tech.b180.cordaptor_test
 
+import com.typesafe.config.ConfigValueFactory
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.utilities.getOrThrow
 import net.corda.core.utilities.loggerFor
@@ -37,7 +38,13 @@ class EmbeddedBundleTest {
         defaultParameters = NodeParameters(
             providedName = name,
             additionalCordapps = listOf(
-                TestCordapp.findCordapp("tech.b180.cordaptor").withConfig(mapOf("useLocalCache" to false)),
+                TestCordapp.findCordapp("tech.b180.cordaptor").withConfig(
+                    mapOf(
+                        // this is undocumented, but works because the actual implementation
+                        // uses Typesafe's ConfigValueFactory.fromMap, which can process nested maps
+                        "localCache" to mapOf("enabled" to false)
+                    )
+                ),
                 TestCordapp.findCordapp("tech.b180.ref_cordapp")
             ),
             rpcUsers = listOf(

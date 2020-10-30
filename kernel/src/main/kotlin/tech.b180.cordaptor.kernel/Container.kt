@@ -1,5 +1,6 @@
 package tech.b180.cordaptor.kernel
 
+import com.typesafe.config.ConfigFactory
 import org.koin.core.Koin
 import org.koin.core.KoinApplication
 import org.koin.core.context.KoinContextHandler
@@ -25,7 +26,7 @@ import org.koin.core.logger.Logger as KoinLogger
  * Koin does not like its Module DSL used outside of Koin instantiation flow.
  */
 class Container(
-    bootstrapSettings: BootstrapSettings,
+    bootstrapConfig: Config,
     contextModuleFactory: () -> Module = { module {  } }
 ) : LifecycleControl {
 
@@ -47,8 +48,6 @@ class Container(
 
     koinApp = koinApplication {
       logger(KoinLoggerAdapter(logger))
-      fileProperties()
-      environmentProperties()
 
       val providers = ServiceLoader.load(ModuleProvider::class.java).iterator().asSequence().toList()
       logger.info("Found ${providers.size} Cordaptor module provider(s) in classpath:")
@@ -58,14 +57,26 @@ class Container(
 
       // mapping modules to a list of pairs with salience being the first item
       // sorting by salience in the ascending order, so the higher values are applied later
-      val modules = providers.map { it.salience to it.provideModule(bootstrapSettings) } +
-          (ModuleProvider.CONTEXT_MODULE_SALIENCE to contextModuleFactory())
+      val modules = providers.mapNotNull {
+        val moduleConfig = bootstrapConfig.getSubtree(it.configPath)
+        if (moduleConfig.getBoolean("enabled")) {
+          logger.debug("Module provider {} is enabled", it.javaClass.canonicalName)
+          it.salience to it.provideModule(moduleConfig)
+        } else {
+          logger.warn("Module provider {} is present in the classpath, but is disabled " +
+              "-- set property {} to true to enable it", it.javaClass.canonicalName, "${it.configPath}.enabled")
+          null
+        }
+      } + (ModuleProvider.CONTEXT_MODULE_SALIENCE to contextModuleFactory())
 
       val sortedModules = modules.sortedBy { it.first }
 
       modules(sortedModules.map { it.second } + module {
         // expose container instance as a component itself using narrowly defined interfaces
         single { this@Container as LifecycleControl }
+
+        // expose root configuration object
+        single { bootstrapConfig }
       })
     }
     logger.info("Initialized Koin application $koinApp")
@@ -113,22 +124,12 @@ class KoinLoggerAdapter(private val delegate: Logger) : KoinLogger() {
 }
 
 /**
- * Implementation delegating all properties to [System.getProperty]
- */
-class SystemPropertiesBootstrapSettings : BootstrapSettings {
-
-  override fun getOptionalString(name: String): String? = System.getProperty(name)
-
-  override fun getOptionalFlag(name: String): Boolean? = getOptionalString(name)?.toBoolean()
-}
-
-/**
  * Entry point for Cordaptor when it is running as a standalone JVM.
  */
 fun main(args: Array<String>) {
   println("Cordaptor is starting up")
 
-  val containerInstance = Container(SystemPropertiesBootstrapSettings())
+  val containerInstance = Container(TypesafeConfig.loadDefault())
 
   containerInstance.initialize();
 

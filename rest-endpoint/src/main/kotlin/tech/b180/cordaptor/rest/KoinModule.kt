@@ -6,6 +6,7 @@ import org.koin.dsl.bind
 import org.koin.dsl.binds
 import org.koin.dsl.module
 import tech.b180.cordaptor.kernel.*
+import java.time.Duration
 import kotlin.reflect.KClass
 
 /**
@@ -18,15 +19,16 @@ import kotlin.reflect.KClass
 class RestEndpointModuleProvider : ModuleProvider {
   override val salience = 100
 
-  override fun provideModule(settings: BootstrapSettings) = module {
-    single {
-      JettyConnectorConfiguration(
-          bindAddress = getHostAndPortProperty("listenAddress"),
-          secure = getBooleanProperty("secureEndpoint")
-      )
-    }
-    single { JettyServer() } bind LifecycleAware::class
+  override val configPath = "openAPI"
 
+  override fun provideModule(moduleConfig: Config) = module {
+    // initializing our settings and making them available to definitions in this module
+    val settings = Settings(moduleConfig)
+    single { settings }
+
+    // embedded Jetty server and its configuration
+    single { settings.connectorConfiguration }
+    single { JettyServer() } bind LifecycleAware::class
     single { ConnectorFactory(get(), get()) } bind JettyConfigurator::class
 
     // definitions for Cordaptor API endpoints handlers
@@ -35,12 +37,12 @@ class RestEndpointModuleProvider : ModuleProvider {
     single { TransactionQueryEndpoint("/node/tx") } bind QueryEndpoint::class
 
     // allow OpenAPI specification and SwaggerUI to be disabled
-    if (settings.getOptionalFlag("disableOpenAPISpecification") != true) {
+    if (settings.isOpenAPISpecificationEnabled) {
       single { APISpecificationEndpointHandler("/api.json") } binds
           arrayOf(ContextMappedHandler::class, LifecycleAware::class)
 
       // if OpenAPI specification is disabled, SwaggerUI will not show regardless of the flag
-      if (settings.getOptionalFlag("disableSwaggerUI") != true) {
+      if (settings.isSwaggerUIEnabled) {
         single { SwaggerUIHandler("/swagger") } binds
             arrayOf(ContextMappedHandler::class, LifecycleAware::class)
       }
@@ -79,6 +81,30 @@ class RestEndpointModuleProvider : ModuleProvider {
 
     single { NodeNotifications() }
   }
+}
+
+/**
+ * Eagerly-initialized typesafe wrapper for module's configuration.
+ */
+class Settings private constructor(
+    val isOpenAPISpecificationEnabled: Boolean,
+    val isSwaggerUIEnabled: Boolean,
+    val isUsingSecureEndpoint: Boolean,
+    val listenAddress: HostAndPort,
+    val maxFlowInitiationTimeout: Duration,
+    val maxVaultQueryPageSize: Int
+) {
+  constructor(ourConfig: Config) : this(
+      isOpenAPISpecificationEnabled = ourConfig.getBoolean("spec.enabled"),
+      isSwaggerUIEnabled = ourConfig.getBoolean("swaggerUI.enabled"),
+      isUsingSecureEndpoint = ourConfig.getBoolean("tls.enabled"),
+      listenAddress = ourConfig.getHostAndPort("listenAddress"),
+      maxFlowInitiationTimeout = ourConfig.getDuration("flowInitiation.maxTimeout"),
+      maxVaultQueryPageSize = ourConfig.getInt("vaultQueries.maxPageSize")
+  )
+
+  val connectorConfiguration = JettyConnectorConfiguration(
+      bindAddress = listenAddress, secure = isUsingSecureEndpoint)
 }
 
 /**

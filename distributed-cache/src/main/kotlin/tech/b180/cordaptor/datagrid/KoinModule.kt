@@ -1,6 +1,5 @@
 package tech.b180.cordaptor.datagrid
 
-import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import tech.b180.cordaptor.corda.CordaNodeCatalog
@@ -17,7 +16,9 @@ import tech.b180.cordaptor.kernel.*
 class DataGridModuleProvider : ModuleProvider {
   override val salience = ModuleProvider.INNER_MODULE_SALIENCE + 100
 
-  override fun provideModule(settings: BootstrapSettings) = module(override = true) {
+  override val configPath = "dataGrid"
+
+  override fun provideModule(moduleConfig: Config) = module(override = true) {
     single<CordaNodeCatalog> { ClusteredNodeCatalog(get()) } bind LifecycleAware::class
     single<CordaNodeState> { ClusteredNodeState(get()) } bind LifecycleAware::class
   }

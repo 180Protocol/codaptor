@@ -1,1 +1,2 @@
 tech.b180.cordaptor.kernel.ContainerTestModuleProvider
+tech.b180.cordaptor.kernel.DisabledTestModuleProvider

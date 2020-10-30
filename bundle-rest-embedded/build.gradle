@@ -15,7 +15,34 @@ cordapp {
     }
 }
 
+task bundleReferenceConf {
+    outputs.file "${buildDir}/bundled-reference.conf"
+
+    doFirst {
+        println("Processing occurences of reference.conf across all bundled modules")
+        def bundledProjects = configurations.compile.dependencies.withType(ProjectDependency).collect {
+            it.dependencyProject
+        }
+
+        def referenceConfFiles = (bundledProjects + project).collect {
+            new Tuple(it, it.sourceSets.main.resources.matching { include 'reference.conf' }.files.first())
+        }
+        println("The following files will be combined:\n${referenceConfFiles.collect { it[1] }.join("\n")}")
+
+        file("${buildDir}/bundled-reference.conf").text = "# Combined for the embedded Corda JAR\n" + referenceConfFiles.collect {
+            "# START OF ${it[0].name}/reference.conf\n" +
+                    "${it[1].text}\n" +
+                    "# END OF ${it[0].name}/reference.conf"
+        }.join("\n\n")
+    }
+}
+
+jar.dependsOn(bundleReferenceConf)
 jar {
+    exclude "reference.conf"
+
+    from "${buildDir}/bundled-reference.conf"
+
     // Otherwise there will be multiple entries for ModuleProvider in /META-INF/services
     // Because java.util.ServiceLoader will notice only one of the entries, not all modules will be loaded
     // Instead, we provide one overriding entry as part of the bundle JAR (see main/resources)

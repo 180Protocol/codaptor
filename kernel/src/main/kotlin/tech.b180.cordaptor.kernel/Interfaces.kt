@@ -25,10 +25,11 @@ interface ModuleProvider {
    * Returns a Koin module construct, which may declare types to be made available
    * for other modules and/or dependencies to be resolved.
    *
-   * @param settings parameters available during container instantiation
-   * that may affect the way module definition is created
+   * Note that this method will not be called if 'enabled' key under [configPath] is not set to a truthy value.
+   *
+   * @param moduleConfig configuration subtree for the module at the path identified by [configPath]
    */
-  fun provideModule(settings: BootstrapSettings): Module
+  fun provideModule(moduleConfig: Config): Module
 
   /**
    * A number that is used to order module declarations when initializing the container.
@@ -41,6 +42,11 @@ interface ModuleProvider {
    * Salience does not play a role in dependency resolution.
    */
   val salience: Int
+
+  /**
+   * Path to the root of the configuration tree that will be passed into [provideModule] call.
+   */
+  val configPath: ConfigPath
 }
 
 /**
