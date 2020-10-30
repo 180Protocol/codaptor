@@ -27,7 +27,7 @@ fun <T: ContractState> DataFeed<Vault.Page<T>, Vault.Update<T>>.toCordaptorFeed(
 // Interop logic from Cordaptor types to Corda types
 // ==================================================
 
-fun <T: ContractState> CordaVaultQuery<T>.toCordaQueryCriteria(identityService: IdentityService): QueryCriteria {
+fun <T: ContractState> CordaVaultQuery<T>.toCordaQueryCriteria(locator: PartyLocator): QueryCriteria {
 
   // construct a list of criteria for non-empty fields and then reduce them using AND composition
   // for multi-valued fields use collection criteria fields which imply OR composition
@@ -39,11 +39,11 @@ fun <T: ContractState> CordaVaultQuery<T>.toCordaQueryCriteria(identityService: 
           status = stateStatus ?: Vault.StateStatus.UNCONSUMED,
           relevancyStatus = relevancyStatus ?: Vault.RelevancyStatus.ALL,
           notary = notaryNames?.map {
-            identityService.wellKnownPartyFromX500Name(it)
+            locator.wellKnownPartyFromX500Name(it)
                 ?: throw IllegalArgumentException("Cannot find notary with name $it")
           },
           participants = participantNames?.map {
-            identityService.wellKnownPartyFromX500Name(it)
+            locator.wellKnownPartyFromX500Name(it)
                 ?: throw IllegalArgumentException("Cannot find party with name $it")
           },
           timeCondition = when {
@@ -67,7 +67,7 @@ fun <T: ContractState> CordaVaultQuery<T>.toCordaQueryCriteria(identityService: 
   if (ownerNames?.isNotEmpty() == true) {
     criteria.add(QueryCriteria.FungibleAssetQueryCriteria(
         owner = ownerNames.map {
-          identityService.wellKnownPartyFromX500Name(it)
+          locator.wellKnownPartyFromX500Name(it)
               ?: throw IllegalArgumentException("Cannot find party with name $it")
         }
     ))

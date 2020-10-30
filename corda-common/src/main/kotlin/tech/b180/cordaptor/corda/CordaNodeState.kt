@@ -22,23 +22,10 @@ import java.util.*
 import kotlin.reflect.KClass
 
 /**
- * Single access point for all state of a particular Corda node that is exposed
- * via an API endpoint by Cordaptor.
- *
- * Different modules implement this interface in a different way depending
- * on the nature of their interaction with the underlying node. Different caching
- * strategies also change the way the implementation behaves.
- *
- * We use rxjava3 for forward compatibility. At the moment Corda still uses rxjava1,
- * so the implementation needs to convert between different versions of the API.
- * Assumption is that Corda will be upgraded to more recent version soon.
+ * Common functions used to establish identity of a party.
  */
 @ModuleAPI
-interface CordaNodeState {
-
-  val nodeInfo: NodeInfo
-
-  val nodeVersionInfo: NodeVersionInfo
+interface PartyLocator {
 
   /**
    * @see net.corda.core.node.services.IdentityService.wellKnownPartyFromX500Name
@@ -51,6 +38,27 @@ interface CordaNodeState {
    * @see net.corda.core.messaging.CordaRPCOps.partyFromKey
    */
   fun partyFromKey(publicKey: PublicKey): Party?
+}
+
+/**
+ * Single access point for all state of a particular Corda node that is exposed
+ * via an API endpoint by Cordaptor.
+ *
+ * Different modules implement this interface in a different way depending
+ * on the nature of their interaction with the underlying node. Different caching
+ * strategies also change the way the implementation behaves.
+ *
+ * We use rxjava3 for forward compatibility. At the moment Corda still uses rxjava1,
+ * so the implementation needs to convert between different versions of the API.
+ * Assumption is that Corda will be upgraded to more recent version soon.
+ */
+@ModuleAPI
+interface CordaNodeState : PartyLocator {
+
+  val nodeInfo: NodeInfo
+
+  val nodeVersionInfo: NodeVersionInfo
+
 
   /**
    * FIXME Corda RPC implementation uses a deprecated API method, may be removed in future

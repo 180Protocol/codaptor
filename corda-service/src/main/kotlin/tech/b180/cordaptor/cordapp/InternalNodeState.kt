@@ -68,7 +68,7 @@ class CordaNodeStateImpl : CordaNodeStateInner, CordaptorComponent {
 
   override fun <T : ContractState> queryStates(query: CordaVaultQuery<T>): CordaVaultPage<T> {
     val page = vaultService.queryBy(query.contractStateClass.java,
-        query.toCordaQueryCriteria(appServiceHub.identityService),
+        query.toCordaQueryCriteria(this),
         query.toCordaPageSpecification(), query.toCordaSort())
 
     return page.toCordaptorPage()
@@ -80,7 +80,7 @@ class CordaNodeStateImpl : CordaNodeStateInner, CordaptorComponent {
 
   override fun <T : ContractState> trackStates(query: CordaVaultQuery<T>): CordaDataFeed<T> {
     val feed = vaultService.trackBy(query.contractStateClass.java,
-        query.toCordaQueryCriteria(appServiceHub.identityService),
+        query.toCordaQueryCriteria(this),
         query.toCordaPageSpecification(), query.toCordaSort())
 
     return feed.toCordaptorFeed()

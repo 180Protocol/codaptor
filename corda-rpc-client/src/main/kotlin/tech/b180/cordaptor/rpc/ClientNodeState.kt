@@ -59,7 +59,13 @@ class ClientNodeStateImpl : CordaNodeStateInner, CordaptorComponent {
     ).states.singleOrNull()
 
   override fun <T : ContractState> queryStates(query: CordaVaultQuery<T>): CordaVaultPage<T> {
-    TODO("Not yet implemented")
+    val page = rpc.vaultQueryBy(
+        query.toCordaQueryCriteria(this),
+        query.toCordaPageSpecification(),
+        query.toCordaSort(),
+        query.contractStateClass.java)
+
+    return page.toCordaptorPage()
   }
 
   override fun <T : ContractState> countStates(query: CordaVaultQuery<T>): Int {
@@ -67,7 +73,13 @@ class ClientNodeStateImpl : CordaNodeStateInner, CordaptorComponent {
   }
 
   override fun <T : ContractState> trackStates(query: CordaVaultQuery<T>): CordaDataFeed<T> {
-    TODO("Not yet implemented")
+    val updates = rpc.vaultTrackBy(
+        query.toCordaQueryCriteria(this),
+        query.toCordaPageSpecification(),
+        query.toCordaSort(),
+        query.contractStateClass.java)
+
+    return updates.toCordaptorFeed()
   }
 
   override fun <ReturnType : Any> initiateFlow(
