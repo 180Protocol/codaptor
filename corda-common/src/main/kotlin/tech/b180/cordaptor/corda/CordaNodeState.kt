@@ -80,17 +80,6 @@ interface CordaNodeState : PartyLocator {
   fun <T : ContractState> trackStates(query: CordaVaultQuery<T>): CordaDataFeed<T>
 
   fun <ReturnType: Any> initiateFlow(instruction: CordaFlowInstruction<FlowLogic<ReturnType>>): CordaFlowHandle<ReturnType>
-
-  /**
-   * Allows to observe the execution of a flow that was started earlier.
-   *
-   * Throws [NoSuchElementException] if the flow does not exist or is no longer running.
-   * There is no way of telling these conditions apart in Corda API.
-   *
-   * See [CordaFlowCache] for ways of accessing details about completed/failed flows.
-   */
-  fun <ReturnType: Any> trackRunningFlow(
-      flowClass: KClass<out FlowLogic<ReturnType>>, runId: StateMachineRunId): CordaFlowHandle<ReturnType>
 }
 
 /**
@@ -112,8 +101,11 @@ interface CordaNodeStateInner : CordaNodeState
 @ModuleAPI
 interface CordaFlowCache {
 
+  /**
+   * Allows to retrieve information about a flow that was initiated earlier.
+   */
   fun <ReturnType: Any> getFlowInstance(
-      flowClass: KClass<FlowLogic<ReturnType>>, flowRunId: StateMachineRunId): CordaFlowSnapshot<ReturnType>
+      flowClass: KClass<FlowLogic<ReturnType>>, flowRunId: StateMachineRunId): CordaFlowSnapshot<ReturnType>?
 }
 
 /**

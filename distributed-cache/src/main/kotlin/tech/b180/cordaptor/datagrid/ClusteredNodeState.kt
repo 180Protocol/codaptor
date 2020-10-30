@@ -60,10 +60,6 @@ class ClusteredNodeState(private val delegate: CordaNodeStateInner)
     TODO("Not yet implemented")
   }
 
-  override fun <ReturnType : Any> trackRunningFlow(flowClass: KClass<out FlowLogic<ReturnType>>, runId: StateMachineRunId): CordaFlowHandle<ReturnType> {
-    TODO("Not yet implemented")
-  }
-
   override fun onInitialize() {
     TODO("Not yet implemented")
   }

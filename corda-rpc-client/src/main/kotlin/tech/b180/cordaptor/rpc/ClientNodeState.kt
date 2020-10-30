@@ -5,7 +5,6 @@ import net.corda.core.contracts.StateAndRef
 import net.corda.core.contracts.StateRef
 import net.corda.core.crypto.SecureHash
 import net.corda.core.flows.FlowLogic
-import net.corda.core.flows.StateMachineRunId
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.identity.Party
 import net.corda.core.messaging.CordaRPCOps
@@ -18,7 +17,6 @@ import org.koin.core.inject
 import tech.b180.cordaptor.corda.*
 import tech.b180.cordaptor.kernel.CordaptorComponent
 import java.security.PublicKey
-import kotlin.reflect.KClass
 
 /**
  * Implementation of [CordaNodeState] interface providing access to a state
@@ -88,9 +86,4 @@ class ClientNodeStateImpl : CordaNodeStateInner, CordaptorComponent {
 
     return flowInitiator.initiateFlow(instruction)
   }
-
-  override fun <ReturnType : Any> trackRunningFlow(flowClass: KClass<out FlowLogic<ReturnType>>, runId: StateMachineRunId): CordaFlowHandle<ReturnType> {
-    TODO("Not yet implemented")
-  }
-
 }

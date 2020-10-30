@@ -27,7 +27,6 @@ import tech.b180.cordaptor.kernel.loggerFor
 import java.security.PublicKey
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.reflect.KClass
 
 /**
  * Implementation of [CordaNodeState] interface providing access to a state
@@ -92,16 +91,6 @@ class CordaNodeStateImpl : CordaNodeStateInner, CordaptorComponent {
   ): CordaFlowHandle<ReturnType> {
 
     return flowDispatcher.initiateFlow(instruction)
-  }
-
-  @Suppress("UNCHECKED_CAST")
-  override fun <ReturnType: Any> trackRunningFlow(
-      flowClass: KClass<out FlowLogic<ReturnType>>, runId: StateMachineRunId): CordaFlowHandle<ReturnType> {
-
-    val handle = flowDispatcher.findFlowHandle(runId)
-        ?: throw NoSuchElementException("Unknown run id $runId -- flow may have already completed")
-
-    return handle as CordaFlowHandle<ReturnType>
   }
 }
 
