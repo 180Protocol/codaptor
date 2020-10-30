@@ -10,6 +10,7 @@ import tech.b180.cordaptor.corda.CordaNodeState
 import tech.b180.cordaptor.corda.CordaNodeStateInner
 import tech.b180.cordaptor.kernel.*
 import java.io.File
+import java.nio.file.Path
 
 /**
  * Implementation of the microkernel module provider that makes the components
@@ -44,13 +45,34 @@ class Settings private constructor(
     val nodeAddress: HostAndPort,
     val rpcUsername: String,
     val rpcPassword: String,
+    val cordappDir: Path,
     val rpcClientConfiguration: CordaRPCClientConfiguration,
     val rpcSslOptions: ClientRpcSslOptions?
 ) {
+  companion object {
+    var logger = loggerFor<Settings>()
+
+    private fun validateCordappDir(dirName: String): Path {
+      val dir = File(dirName)
+      val absoluteDir = if (dir.isAbsolute) dir else dir.absoluteFile
+
+      logger.debug("CordappDir property value $dirName resolved to absolute path $absoluteDir")
+
+      if (!absoluteDir.exists()) {
+        throw IllegalArgumentException("Cordapp directory does not exist: $absoluteDir")
+      }
+      if (!absoluteDir.isDirectory) {
+        throw IllegalArgumentException("Cordapp directory is not a directory: $absoluteDir")
+      }
+      return absoluteDir.toPath()
+    }
+  }
+
   constructor(ourConfig: Config) : this(
       nodeAddress = ourConfig.getHostAndPort("nodeAddress"),
       rpcUsername = ourConfig.getString("rpcUsername"),
       rpcPassword = ourConfig.getString("rpcPassword"),
+      cordappDir = validateCordappDir(ourConfig.getString("cordappDir")),
       rpcClientConfiguration = ourConfig.getSubtree("clientConfig").let { clientConfig ->
         val conf = CordaRPCClientConfiguration.DEFAULT
         conf.copy(

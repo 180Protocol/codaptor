@@ -1,10 +1,12 @@
 package tech.b180.cordaptor.rpc
 
+import net.corda.node.internal.cordapp.JarScanningCordappLoader
 import net.corda.node.services.api.ServiceHubInternal
 import org.koin.core.inject
 import tech.b180.cordaptor.corda.CordaNodeCatalog
 import tech.b180.cordaptor.corda.CordaNodeCatalogInner
 import tech.b180.cordaptor.corda.CordappInfo
+import tech.b180.cordaptor.corda.CordappInfoBuilder
 import tech.b180.cordaptor.kernel.CordaptorComponent
 import tech.b180.cordaptor.kernel.loggerFor
 
@@ -20,5 +22,12 @@ class ClientNodeCatalogImpl : CordaNodeCatalogInner, CordaptorComponent {
 
   private val settings: Settings by inject()
 
-  override val cordapps: Collection<CordappInfo> = emptyList()
+  override val cordapps: Collection<CordappInfo>
+
+  init {
+    val scanner = JarScanningCordappLoader.fromDirectories(
+        cordappDirs = listOf(settings.cordappDir))
+
+    cordapps = CordappInfoBuilder(cordapps = scanner.cordapps).build()
+  }
 }

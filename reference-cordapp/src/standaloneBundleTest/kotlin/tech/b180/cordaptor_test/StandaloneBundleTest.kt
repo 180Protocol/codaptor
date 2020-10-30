@@ -34,8 +34,13 @@ class StandaloneBundleTest {
     val address = handle.rpcAddress
 
     val containerInstance = Container(TypesafeConfig.loadDefault().withOverrides(ConfigValueFactory.fromMap(
-        mapOf("rpcClient" to mapOf("nodeAddress" to address.host + ":" + address.port)),
-        "programmatic overrides in ${javaClass.simpleName}"
+        mapOf(
+            "rpcClient" to mapOf(
+                "cordappDir" to handle.baseDirectory.toFile().resolve("cordapps").absolutePath,
+                "nodeAddress" to address.host + ":" + address.port
+            )
+        ),
+        StandaloneBundleTest::class.simpleName
     ).toConfig()))
     containerInstance.initialize();
 
