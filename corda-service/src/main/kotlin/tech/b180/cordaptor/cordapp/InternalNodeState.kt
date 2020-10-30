@@ -135,7 +135,7 @@ class CordaFlowDispatcher : CordaptorComponent {
         logger.debug("Flow {} returned {}", cordaHandle.id, flowResult)
         resultSubject.onSuccess(CordaFlowResult.forValue(flowResult))
       } catch (e: Throwable) {
-        logger.debug("Flow {} threw error {}", cordaHandle.id, e)
+        logger.debug("Flow {} threw an error:", cordaHandle.id, e)
         resultSubject.onSuccess(CordaFlowResult.forError(e))
       }
     }

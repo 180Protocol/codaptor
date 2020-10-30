@@ -5,6 +5,7 @@ import net.corda.core.contracts.*
 import net.corda.core.flows.*
 import net.corda.core.identity.AbstractParty
 import net.corda.core.identity.Party
+import net.corda.core.serialization.CordaSerializable
 import net.corda.core.transactions.LedgerTransaction
 import net.corda.core.transactions.TransactionBuilder
 import net.corda.core.utilities.ProgressTracker
@@ -109,6 +110,7 @@ open class DelayedProgressFlow(
   }
 }
 
+@CordaSerializable
 data class SimpleFlowResult(
     val output: StateAndRef<SimpleLinearState>
 )

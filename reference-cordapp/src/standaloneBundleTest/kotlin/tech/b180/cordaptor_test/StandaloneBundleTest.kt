@@ -44,12 +44,12 @@ class StandaloneBundleTest {
     ).toConfig()))
     containerInstance.initialize();
 
-    val client = HttpClient()
-    client.isFollowRedirects = false
+    val suite = CordaptorAPITestSuite(
+        baseUrl = "http://localhost:8500",
+        nodeName = NODE_NAME
+    )
 
-    client.start()
-
-    testNodeInfoRequest(client)
+    suite.runTests()
   }
 
   private fun testNodeInfoRequest(client: HttpClient) {

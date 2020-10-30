@@ -26,6 +26,7 @@ import kotlin.reflect.KClass
  */
 class ClientNodeStateImpl : CordaNodeStateInner, CordaptorComponent {
 
+  private val flowInitiator: FlowInitiator by inject()
   private val rpc: CordaRPCOps by inject()
 
   override val nodeInfo: NodeInfo
@@ -73,8 +74,7 @@ class ClientNodeStateImpl : CordaNodeStateInner, CordaptorComponent {
       instruction: CordaFlowInstruction<FlowLogic<ReturnType>>
   ): CordaFlowHandle<ReturnType> {
 
-//    rpc.startFlowDynamic(instruction.flowClass, )
-    TODO("Not yet implemented")
+    return flowInitiator.initiateFlow(instruction)
   }
 
   override fun <ReturnType : Any> trackRunningFlow(flowClass: KClass<out FlowLogic<ReturnType>>, runId: StateMachineRunId): CordaFlowHandle<ReturnType> {
