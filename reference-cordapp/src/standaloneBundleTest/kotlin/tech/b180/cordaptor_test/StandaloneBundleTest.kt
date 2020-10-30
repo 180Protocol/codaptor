@@ -1,5 +1,6 @@
 package tech.b180.cordaptor_test
 
+import com.typesafe.config.ConfigValueFactory
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.utilities.getOrThrow
 import net.corda.core.utilities.loggerFor
@@ -11,7 +12,10 @@ import net.corda.testing.node.User
 import org.eclipse.jetty.client.HttpClient
 import org.junit.Test
 import tech.b180.cordaptor.kernel.Container
-import tech.b180.cordaptor.kernel.SystemPropertiesBootstrapSettings
+import tech.b180.cordaptor.kernel.TypesafeConfig
+import javax.json.JsonValue
+import javax.servlet.http.HttpServletResponse
+import kotlin.test.assertEquals
 
 const val NODE_NAME = "O=Bank, L=London, C=GB"
 
@@ -29,9 +33,10 @@ class StandaloneBundleTest {
 
     val address = handle.rpcAddress
 
-    System.setProperty("useLocalCache", "false")
-
-    val containerInstance = Container(SystemPropertiesBootstrapSettings())
+    val containerInstance = Container(TypesafeConfig.loadDefault().withOverrides(ConfigValueFactory.fromMap(
+        mapOf("rpcClient" to mapOf("nodeAddress" to address.host + ":" + address.port)),
+        "programmatic overrides in ${javaClass.simpleName}"
+    ).toConfig()))
     containerInstance.initialize();
 
     val client = HttpClient()
@@ -43,7 +48,15 @@ class StandaloneBundleTest {
   }
 
   private fun testNodeInfoRequest(client: HttpClient) {
+    val response = client.GET("http://localhost:8500/node/info")
+    assertEquals(HttpServletResponse.SC_OK, response.status)
+    assertEquals("application/json", response.mediaType)
 
+    val nodeInfo = response.contentAsString.asJsonObject()
+    assertEquals("localhost".asJsonValue(), nodeInfo.getValue("/addresses/0/host"))
+    assertEquals(NODE_NAME.asJsonValue(), nodeInfo.getValue("/legalIdentitiesAndCerts/0/party/name"))
+    assertEquals(7.asJsonValue(), nodeInfo.getValue("/platformVersion"))
+    assertEquals(JsonValue.ValueType.NUMBER, nodeInfo.getValue("/serial").valueType)
   }
 
   private fun DriverDSL.startNode(name: CordaX500Name): NodeHandle {

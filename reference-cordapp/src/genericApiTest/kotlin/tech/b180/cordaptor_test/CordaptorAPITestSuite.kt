@@ -199,9 +199,9 @@ class CordaptorAPITestSuite(
   }
 }
 
-private fun String.asJsonObject() = Json.createReader(StringReader(this)).readObject()
-private fun String.asJsonValue() = Json.createValue(this)
-private fun Int.asJsonValue() = Json.createValue(this)
+fun String.asJsonObject() = Json.createReader(StringReader(this)).readObject()
+fun String.asJsonValue() = Json.createValue(this)
+fun Int.asJsonValue() = Json.createValue(this)
 
-private fun JsonValue.asString() = (this as JsonString).string
-private fun JsonValue.asInt() = (this as JsonNumber).intValue()
+fun JsonValue.asString() = (this as JsonString).string
+fun JsonValue.asInt() = (this as JsonNumber).intValue()

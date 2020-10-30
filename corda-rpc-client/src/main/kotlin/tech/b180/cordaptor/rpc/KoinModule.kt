@@ -1,11 +1,15 @@
 package tech.b180.cordaptor.rpc
 
+import net.corda.client.rpc.CordaRPCClientConfiguration
+import net.corda.core.messaging.ClientRpcSslOptions
 import org.koin.dsl.bind
 import org.koin.dsl.module
-import tech.b180.cordaptor.kernel.BootstrapSettings
-import tech.b180.cordaptor.kernel.LifecycleAware
-import tech.b180.cordaptor.kernel.ModuleProvider
-import tech.b180.cordaptor.kernel.getHostAndPortProperty
+import tech.b180.cordaptor.corda.CordaNodeCatalog
+import tech.b180.cordaptor.corda.CordaNodeCatalogInner
+import tech.b180.cordaptor.corda.CordaNodeState
+import tech.b180.cordaptor.corda.CordaNodeStateInner
+import tech.b180.cordaptor.kernel.*
+import java.io.File
 
 /**
  * Implementation of the microkernel module provider that makes the components
@@ -17,11 +21,61 @@ import tech.b180.cordaptor.kernel.getHostAndPortProperty
 class CordaRpcClientModuleProvider : ModuleProvider {
   override val salience = ModuleProvider.INNER_MODULE_SALIENCE
 
-  override fun provideModule(settings: BootstrapSettings) = module {
-    single {
-      NodeConnection(
-          getHostAndPortProperty("node.address")
-      )
-    } bind LifecycleAware::class
+  override val configPath = "rpcClient"
+
+  override fun provideModule(moduleConfig: Config) = module {
+    val settings = Settings(moduleConfig)
+    single { settings }
+
+    // RPC connection to the node
+    single { NodeConnection(get()) } bind LifecycleAware::class
+    single { get<NodeConnection>().rpcProxy }
+
+    single<CordaNodeCatalog> { ClientNodeCatalogImpl() } bind CordaNodeCatalogInner::class
+    single<CordaNodeState> { ClientNodeStateImpl() } bind CordaNodeStateInner::class
   }
+}
+
+/**
+ * Eagerly-initialized typesafe wrapper for module's configuration.
+ * FIXME move RPC credentials management to a secrets score
+ */
+class Settings private constructor(
+    val nodeAddress: HostAndPort,
+    val rpcUsername: String,
+    val rpcPassword: String,
+    val rpcClientConfiguration: CordaRPCClientConfiguration,
+    val rpcSslOptions: ClientRpcSslOptions?
+) {
+  constructor(ourConfig: Config) : this(
+      nodeAddress = ourConfig.getHostAndPort("nodeAddress"),
+      rpcUsername = ourConfig.getString("rpcUsername"),
+      rpcPassword = ourConfig.getString("rpcPassword"),
+      rpcClientConfiguration = ourConfig.getSubtree("clientConfig").let { clientConfig ->
+        val conf = CordaRPCClientConfiguration.DEFAULT
+        conf.copy(
+            connectionMaxRetryInterval = clientConfig.getOptionalDuration("connectionMaxRetryInterval", conf.connectionMaxRetryInterval),
+            minimumServerProtocolVersion = clientConfig.getOptionalInt("minimumServerProtocolVersion", conf.minimumServerProtocolVersion),
+            trackRpcCallSites = clientConfig.getOptionalBoolean("trackRpcCallSites", conf.trackRpcCallSites),
+            reapInterval = clientConfig.getOptionalDuration("reapInterval", conf.reapInterval),
+            observationExecutorPoolSize = clientConfig.getOptionalInt("observationExecutorPoolSize", conf.observationExecutorPoolSize),
+            connectionRetryInterval = clientConfig.getOptionalDuration("connectionRetryInterval", conf.connectionRetryInterval),
+            connectionRetryIntervalMultiplier = clientConfig.getOptionalDouble("connectionRetryIntervalMultiplier", conf.connectionRetryIntervalMultiplier),
+            maxReconnectAttempts = clientConfig.getOptionalInt("maxReconnectAttempts", conf.maxReconnectAttempts),
+            maxFileSize = clientConfig.getOptionalBytesSize("maxFileSize")?.coerceAtMost(Int.MAX_VALUE.toLong())?.toInt() ?: conf.maxFileSize,
+            deduplicationCacheExpiry = clientConfig.getOptionalDuration("deduplicationCacheExpiry", conf.deduplicationCacheExpiry)
+        )
+      },
+      rpcSslOptions = ourConfig.getSubtree("tls").let { sslConfig ->
+        if (sslConfig.getBoolean("enabled")) {
+          ClientRpcSslOptions(
+              trustStorePath = File(sslConfig.getString("trustStorePath")).toPath(),
+              trustStorePassword = sslConfig.getString("trustStorePassword"),
+              trustStoreProvider = sslConfig.getString("trustStoreProvider")
+          )
+        } else {
+          null
+        }
+      }
+  )
 }

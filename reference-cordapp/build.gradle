@@ -53,9 +53,11 @@ configurations {
     // and they interfere with glassfish javax.json impl, which has more recent version
     embeddedBundleTestRuntime.exclude module: 'geronimo-json_1.0_spec'
     embeddedBundleTestRuntime.exclude module: 'johnzon-core'
+    standaloneBundleTestRuntime.exclude module: 'geronimo-json_1.0_spec'
+    standaloneBundleTestRuntime.exclude module: 'johnzon-core'
 
     embeddedBundleTestImplementation.extendsFrom genericApiTestImplementation
-    standaloneBundleTestRuntimeImplementation.extendsFrom genericApiTestImplementation
+    standaloneBundleTestImplementation.extendsFrom genericApiTestImplementation
 }
 
 tasks.withType(Test) {
