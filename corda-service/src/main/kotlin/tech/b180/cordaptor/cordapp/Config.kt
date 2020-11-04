@@ -1,5 +1,6 @@
 package tech.b180.cordaptor.cordapp
 
+import com.typesafe.config.ConfigException
 import net.corda.core.cordapp.CordappConfig
 import tech.b180.cordaptor.kernel.Config
 import tech.b180.cordaptor.kernel.ConfigPath
@@ -11,7 +12,7 @@ import java.time.Duration
  */
 class CordappConfigWithFallback(
     private val cordappConfig: CordappConfig,
-    private val fallback: Config,
+    private val fallback: Config?,
     private val pathPrefix: String = ""
 ) : Config {
 
@@ -30,17 +31,18 @@ class CordappConfigWithFallback(
     return if (cordappConfig.exists(pathPrefix + path)) {
       true
     } else {
-      fallback.pathExists(path)
+      fallback?.pathExists(path) ?: false
     }
   }
 
   override fun getSubtree(path: ConfigPath): Config {
     val prefixedPath = pathPrefix + path
     return if (cordappConfig.exists(prefixedPath)) {
-      return CordappConfigWithFallback(cordappConfig, fallback.getSubtree(prefixedPath), "$prefixedPath.")
+      val subtreeFallback = if (fallback?.pathExists(path) == true) fallback.getSubtree(path) else null
+      return CordappConfigWithFallback(cordappConfig, subtreeFallback, "$prefixedPath.")
     } else {
       // nothing in the CorDapp config, so the subtree would be provided entirely by the fallback
-      fallback.getSubtree(path)
+      fallback?.getSubtree(path) ?: throw ConfigException.Missing(path)
     }
   }
 
@@ -48,7 +50,7 @@ class CordappConfigWithFallback(
     return if (cordappConfig.exists(pathPrefix + path)) {
       return cordappConfig.getString(pathPrefix + path)
     } else {
-      fallback.getString(path)
+      fallback?.getString(path) ?: throw ConfigException.Missing(path)
     }
   }
 
@@ -56,7 +58,7 @@ class CordappConfigWithFallback(
     return if (cordappConfig.exists(pathPrefix + path)) {
       parseDuration(cordappConfig.getString(pathPrefix + path))
     } else {
-      fallback.getDuration(path)
+      fallback?.getDuration(path) ?: throw ConfigException.Missing(path)
     }
   }
 
@@ -64,7 +66,7 @@ class CordappConfigWithFallback(
     return if (cordappConfig.exists(pathPrefix + path)) {
       return cordappConfig.getInt(pathPrefix + path)
     } else {
-      fallback.getInt(path)
+      fallback?.getInt(path) ?: throw ConfigException.Missing(path)
     }
   }
 
@@ -72,7 +74,7 @@ class CordappConfigWithFallback(
     return if (cordappConfig.exists(pathPrefix + path)) {
       return cordappConfig.getLong(pathPrefix + path)
     } else {
-      fallback.getLong(path)
+      fallback?.getLong(path) ?: throw ConfigException.Missing(path)
     }
   }
 
@@ -80,7 +82,7 @@ class CordappConfigWithFallback(
     return if (cordappConfig.exists(pathPrefix + path)) {
       return cordappConfig.getDouble(pathPrefix + path)
     } else {
-      fallback.getDouble(path)
+      fallback?.getDouble(path) ?: throw ConfigException.Missing(path)
     }
   }
 
@@ -88,7 +90,7 @@ class CordappConfigWithFallback(
     return if (cordappConfig.exists(pathPrefix + path)) {
       return parseBytesSize(cordappConfig.getString(pathPrefix + path))
     } else {
-      fallback.getBytesSize(path)
+      fallback?.getBytesSize(path) ?: throw ConfigException.Missing(path)
     }
   }
 
@@ -96,7 +98,7 @@ class CordappConfigWithFallback(
     return if (cordappConfig.exists(pathPrefix + path)) {
       return cordappConfig.getBoolean(pathPrefix + path)
     } else {
-      fallback.getBoolean(path)
+      fallback?.getBoolean(path) ?: throw ConfigException.Missing(path)
     }
   }
 }
