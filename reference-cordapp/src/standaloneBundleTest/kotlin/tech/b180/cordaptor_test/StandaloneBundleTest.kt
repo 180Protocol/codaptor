@@ -45,8 +45,9 @@ class StandaloneBundleTest {
     containerInstance.initialize();
 
     val suite = CordaptorAPITestSuite(
-        baseUrl = "http://localhost:8500",
-        nodeName = NODE_NAME
+        baseUrl = "http://127.0.0.1:8500",
+        nodeName = NODE_NAME,
+        localCacheEnabled = true
     )
 
     suite.runTests()

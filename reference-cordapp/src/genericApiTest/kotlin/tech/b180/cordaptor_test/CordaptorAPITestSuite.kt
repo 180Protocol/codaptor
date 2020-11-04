@@ -4,6 +4,7 @@ import net.corda.core.contracts.StateRef
 import net.corda.core.crypto.SecureHash
 import org.eclipse.jetty.client.HttpClient
 import org.eclipse.jetty.client.util.StringContentProvider
+import org.eclipse.jetty.http.HttpHeader
 import tech.b180.ref_cordapp.DelayedProgressFlow
 import tech.b180.ref_cordapp.SimpleFlow
 import java.io.StringReader
@@ -20,7 +21,9 @@ import kotlin.test.assertTrue
 
 class CordaptorAPITestSuite(
     private val nodeName: String,
-    private val baseUrl: String) {
+    private val baseUrl: String,
+    private val localCacheEnabled: Boolean
+) {
 
   fun runTests() {
     val client = HttpClient()
@@ -30,10 +33,10 @@ class CordaptorAPITestSuite(
 
     testOpenAPISpecification(client)
     testNodeInfoRequest(client)
-    testFlowFireAndForget(client)
-    testFlowWaitWithTimeout(client, true)
-    testFlowWaitWithTimeout(client, false)
-    val stateRef = testFlowWaitForCompletion(client)
+    testFlowFireAndForget(client, localCacheEnabled)
+    testFlowWaitWithTimeout(client, true, localCacheEnabled)
+    testFlowWaitWithTimeout(client, false, localCacheEnabled)
+    val stateRef = testFlowWaitForCompletion(client, localCacheEnabled)
     testTransactionQuery(client, stateRef.txhash)
     testStateQuery(client, stateRef)
     testVaultQueryViaGET(client)
@@ -65,7 +68,7 @@ class CordaptorAPITestSuite(
     assertEquals(JsonValue.ValueType.NUMBER, nodeInfo.getValue("/serial").valueType)
   }
 
-  private fun testFlowFireAndForget(client: HttpClient) {
+  private fun testFlowFireAndForget(client: HttpClient, localCacheEnabled: Boolean) {
     val req = client.POST("$baseUrl/node/reference/SimpleFlow")
 
     val content = """{
@@ -80,14 +83,24 @@ class CordaptorAPITestSuite(
     assertEquals(SimpleFlow::class.qualifiedName!!.asJsonValue(), handle.getValue("/flowClass"))
     assertEquals(JsonValue.ValueType.STRING, handle.getValue("/flowRunId").valueType)
     assertFalse(handle.containsKey("result"))
+
+    if (localCacheEnabled) {
+      assertTrue(response.headers.contains(HttpHeader.LOCATION))
+
+      val flowSnapshotUrl = response.headers.get(HttpHeader.LOCATION)!!
+      val flowRunId = handle.getValue("/flowRunId").asString()
+      assertEquals("$baseUrl/node/reference/SimpleFlow/snapshot/$flowRunId", flowSnapshotUrl)
+    } else {
+      assertFalse(response.headers.contains(HttpHeader.LOCATION))
+    }
   }
 
-  private fun testFlowWaitWithTimeout(client: HttpClient, trackProgress: Boolean) {
+  private fun testFlowWaitWithTimeout(client: HttpClient, trackProgress: Boolean, localCacheEnabled: Boolean) {
     val maxRequestTime = Duration.ofSeconds(4)    // more than wait parameter, less than delay
     val req = client.POST("$baseUrl/node/reference/DelayedProgressFlow?wait=2")
 
     val content = """{
-      |"externalId":"TEST-111",
+      |"externalId":"TEST-222",
       |"delay":5,
       |"options":{"trackProgress":$trackProgress}}""".trimMargin()
 
@@ -100,28 +113,39 @@ class CordaptorAPITestSuite(
     assertEquals(HttpServletResponse.SC_ACCEPTED, response.status)
     assertEquals("application/json", response.mediaType)
 
-    val handle = response.contentAsString.asJsonObject()
-    assertEquals(DelayedProgressFlow::class.qualifiedName, handle.getValue("/flowClass").asString())
-    assertFalse(handle.containsKey("result"))
+    val snapshot = response.contentAsString.asJsonObject()
+    assertEquals(DelayedProgressFlow::class.qualifiedName, snapshot.getValue("/flowClass").asString())
+    assertFalse(snapshot.containsKey("result"))
     if (trackProgress) {
-      assertEquals(JsonValue.ValueType.OBJECT, handle.getValue("/currentProgress").valueType)
-      assertEquals("Sleeping", handle.getValue("/currentProgress/currentStepName").asString())
+      assertEquals(JsonValue.ValueType.OBJECT, snapshot.getValue("/currentProgress").valueType)
+      assertEquals("Sleeping", snapshot.getValue("/currentProgress/currentStepName").asString())
 
-      val lastProgressTimestamp = Instant.parse(handle.getValue("/currentProgress/timestamp").asString())
+      val lastProgressTimestamp = Instant.parse(snapshot.getValue("/currentProgress/timestamp").asString())
       assertTrue(lastProgressTimestamp > requestTimestamp)
       assertTrue(lastProgressTimestamp < Instant.now())
 
     } else {
-      assertFalse(handle.containsKey("currentProgress"))
+      assertFalse(snapshot.containsKey("currentProgress"))
+    }
+
+    if (localCacheEnabled) {
+      val flowSnapshotUrl = response.headers.get(HttpHeader.LOCATION)
+      val snapshotResponse = client.GET(flowSnapshotUrl)
+      assertEquals(HttpServletResponse.SC_OK, snapshotResponse.status)
+      assertEquals("application/json", snapshotResponse.mediaType)
+
+      val cachedSnapshot = snapshotResponse.contentAsString.asJsonObject()
+      assertEquals(snapshot, cachedSnapshot)
     }
   }
 
-  private fun testFlowWaitForCompletion(client: HttpClient): StateRef {
+  private fun testFlowWaitForCompletion(client: HttpClient, localCacheEnabled: Boolean): StateRef {
     val maxRequestTime = Duration.ofSeconds(5)
-    val req = client.POST("$baseUrl/node/reference/SimpleFlow?wait=100")
+    val req = client.POST("$baseUrl/node/reference/DelayedProgressFlow?wait=100")
 
     val content = """{
-      |"externalId":"TEST-111"}""".trimMargin()
+      |"externalId":"TEST-333",
+      |"delay":1}""".trimMargin()
 
     req.content(StringContentProvider("application/json", content, Charsets.UTF_8))
     val requestTimestamp = Instant.now()
@@ -132,18 +156,25 @@ class CordaptorAPITestSuite(
         "Request should have completed before the flow, " +
             "took ${Duration.between(requestTimestamp, Instant.now()).toMillis()}ms")
 
-    val handle = response.contentAsString.asJsonObject()
-    assertEquals(SimpleFlow::class.qualifiedName!!.asJsonValue(), handle.getValue("/flowClass"))
-    assertEquals(JsonValue.ValueType.STRING, handle.getValue("/flowRunId").valueType)
-    assertEquals(JsonValue.ValueType.OBJECT, handle.getValue("/result").valueType)
-    assertFalse(handle.containsKey("currentProgress"))
+    val snapshot = response.contentAsString.asJsonObject()
+    assertEquals(DelayedProgressFlow::class.qualifiedName!!.asJsonValue(), snapshot.getValue("/flowClass"))
+    assertEquals(JsonValue.ValueType.STRING, snapshot.getValue("/flowRunId").valueType)
+    assertEquals(JsonValue.ValueType.OBJECT, snapshot.getValue("/result").valueType)
+    assertFalse(snapshot.containsKey("currentProgress"))
 
-    val state = handle.getValue("/result/value/output/state/data").asJsonObject()
-    assertEquals("TEST-111", state.getValue("/linearId/externalId").asString())
+    val state = snapshot.getValue("/result/value/output/state/data").asJsonObject()
+    assertEquals("TEST-333", state.getValue("/linearId/externalId").asString())
     assertEquals(nodeName, state.getValue("/participant/name").asString())
 
-    return StateRef(SecureHash.parse(handle.getValue("/result/value/output/ref/txhash").asString()),
-        handle.getValue("/result/value/output/ref/index").asInt())
+    if (localCacheEnabled) {
+      val flowSnapshotUrl = response.headers.get(HttpHeader.LOCATION)
+      val snapshotResponse = client.GET(flowSnapshotUrl)
+      assertEquals(HttpServletResponse.SC_NOT_FOUND, snapshotResponse.status,
+          "Flow snapshot should have been evicted after flow completion")
+    }
+
+    return StateRef(SecureHash.parse(snapshot.getValue("/result/value/output/ref/txhash").asString()),
+        snapshot.getValue("/result/value/output/ref/index").asInt())
   }
 
   private fun testTransactionQuery(client: HttpClient, txid: SecureHash) {
@@ -153,7 +184,7 @@ class CordaptorAPITestSuite(
     assertEquals(txid.toString(), tx.getString("id"))
     assertEquals("wireTransaction",
         tx.getValue("/content/type").asString())
-    assertEquals("TEST-111",
+    assertEquals("TEST-333",
         tx.getValue("/content/outputs/0/data/linearId/externalId").asString())
   }
 
@@ -165,19 +196,19 @@ class CordaptorAPITestSuite(
     assertEquals("application/json", response.mediaType)
 
     val state = response.contentAsString.asJsonObject()
-    assertEquals("TEST-111",
+    assertEquals("TEST-333",
         state.getValue("/linearId/externalId").asString())
   }
 
   private fun testVaultQueryViaGET(client: HttpClient) {
     val response = client.GET(
-        "$baseUrl/node/reference/SimpleLinearState/query?externalId=TEST-111")
+        "$baseUrl/node/reference/SimpleLinearState/query?externalId=TEST-333")
 
     assertEquals(HttpServletResponse.SC_OK, response.status)
     assertEquals("application/json", response.mediaType)
 
     val page = response.contentAsString.asJsonObject()
-    assertEquals(2, page.getInt("totalStatesAvailable"))
+    assertEquals(1, page.getInt("totalStatesAvailable"))
   }
 
   private fun testVaultQueryViaPOST(client: HttpClient) {
@@ -186,7 +217,7 @@ class CordaptorAPITestSuite(
 
     val content = """{
       |"contractStateClass":"tech.b180.ref_cordapp.SimpleLinearState",
-      |"linearStateExternalIds":["TEST-111"]}""".trimMargin()
+      |"linearStateExternalIds":["TEST-333"]}""".trimMargin()
 
     req.content(StringContentProvider("application/json", content, Charsets.UTF_8))
     val response = req.send()
@@ -195,7 +226,7 @@ class CordaptorAPITestSuite(
     assertEquals("application/json", response.mediaType)
 
     val page = response.contentAsString.asJsonObject()
-    assertEquals(2, page.getInt("totalStatesAvailable"))
+    assertEquals(1, page.getInt("totalStatesAvailable"))
   }
 }
 

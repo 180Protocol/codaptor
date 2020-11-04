@@ -46,9 +46,16 @@ class CordaServiceModuleProvider : ModuleProvider {
     val settings = Settings(moduleConfig)
     single { settings }
 
-    single<CordaNodeCatalog> { CordaNodeCatalogImpl(get(), settings.bundleCordappName) } bind CordaNodeCatalogInner::class
-    single<CordaNodeState> { CordaNodeStateImpl() } bind CordaNodeStateInner::class
+    // actual components implementing Corda API access layer
+    // these 'inner' definitions may be accessed by other modules to use as delegates
     // when overriding 'outer' definitions, e.g. by the caching layer
+    single<CordaNodeCatalogInner> { CordaNodeCatalogImpl(get(), settings.bundleCordappName) }
+    single<CordaNodeStateInner> { CordaNodeStateImpl() }
+
+    // outward-facing definitions for the Corda API access layer components
+    // which may be overridden by higher-tier modules augmenting the functionality
+    single<CordaNodeCatalog> { get<CordaNodeCatalogInner>() }
+    single<CordaNodeState> { get<CordaNodeStateInner>() }
 
     single { LocalFlowInitiator<Any>() }
 

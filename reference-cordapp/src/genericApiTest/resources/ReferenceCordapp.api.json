@@ -984,7 +984,16 @@
                 }
               }
             },
-            "description": "Flow execution completed successfully and its result is available"
+            "description": "Flow execution completed successfully and its result is available",
+            "headers": {
+              "Location": {
+                "description": "URL from which to obtain latest snapshot of the flow",
+                "schema": {
+                  "type": "string",
+                  "format": "url"
+                }
+              }
+            }
           },
           "202": {
             "content": {
@@ -994,7 +1003,16 @@
                 }
               }
             },
-            "description": "Flow execution stared and its outcome is not yet available"
+            "description": "Flow execution stared and its outcome is not yet available",
+            "headers": {
+              "Location": {
+                "description": "URL from which to obtain latest snapshot of the flow",
+                "schema": {
+                  "type": "string",
+                  "format": "url"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -1004,10 +1022,55 @@
                 }
               }
             },
-            "description": "Flow execution failed and error information is available"
+            "description": "Flow execution failed and error information is available",
+            "headers": {
+              "Location": {
+                "description": "URL from which to obtain latest snapshot of the flow",
+                "schema": {
+                  "type": "string",
+                  "format": "url"
+                }
+              }
+            }
           }
         },
         "summary": "Initiates and tracks execution of Corda flow DelayedProgressFlow with given parameters",
+        "tags": [
+          "flowInitiation"
+        ]
+      }
+    },
+    "/node/reference/DelayedProgressFlow/snapshot/{flowRunId}": {
+      "get": {
+        "operationId": "getLatestSnapshotForDelayedProgressFlow",
+        "parameters": [
+          {
+            "description": "Flow run id returned by a flow initiation operation",
+            "in": "path",
+            "name": "flowRunId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CordaFlowSnapshot_SimpleFlowResult"
+                }
+              }
+            },
+            "description": "Latest snapshot of the flow with given run id"
+          },
+          "404": {
+            "description": "Snapshot of a flow with given run id was not found, which may mean it was already evicted"
+          }
+        },
+        "summary": "Returns latest snapshot for a flow of type DelayedProgressFlow initiated with given run id",
         "tags": [
           "flowInitiation"
         ]
@@ -1047,7 +1110,16 @@
                 }
               }
             },
-            "description": "Flow execution completed successfully and its result is available"
+            "description": "Flow execution completed successfully and its result is available",
+            "headers": {
+              "Location": {
+                "description": "URL from which to obtain latest snapshot of the flow",
+                "schema": {
+                  "type": "string",
+                  "format": "url"
+                }
+              }
+            }
           },
           "202": {
             "content": {
@@ -1057,7 +1129,16 @@
                 }
               }
             },
-            "description": "Flow execution stared and its outcome is not yet available"
+            "description": "Flow execution stared and its outcome is not yet available",
+            "headers": {
+              "Location": {
+                "description": "URL from which to obtain latest snapshot of the flow",
+                "schema": {
+                  "type": "string",
+                  "format": "url"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -1067,10 +1148,55 @@
                 }
               }
             },
-            "description": "Flow execution failed and error information is available"
+            "description": "Flow execution failed and error information is available",
+            "headers": {
+              "Location": {
+                "description": "URL from which to obtain latest snapshot of the flow",
+                "schema": {
+                  "type": "string",
+                  "format": "url"
+                }
+              }
+            }
           }
         },
         "summary": "Initiates and tracks execution of Corda flow SimpleFlow with given parameters",
+        "tags": [
+          "flowInitiation"
+        ]
+      }
+    },
+    "/node/reference/SimpleFlow/snapshot/{flowRunId}": {
+      "get": {
+        "operationId": "getLatestSnapshotForSimpleFlow",
+        "parameters": [
+          {
+            "description": "Flow run id returned by a flow initiation operation",
+            "in": "path",
+            "name": "flowRunId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CordaFlowSnapshot_SimpleFlowResult"
+                }
+              }
+            },
+            "description": "Latest snapshot of the flow with given run id"
+          },
+          "404": {
+            "description": "Snapshot of a flow with given run id was not found, which may mean it was already evicted"
+          }
+        },
+        "summary": "Returns latest snapshot for a flow of type SimpleFlow initiated with given run id",
         "tags": [
           "flowInitiation"
         ]

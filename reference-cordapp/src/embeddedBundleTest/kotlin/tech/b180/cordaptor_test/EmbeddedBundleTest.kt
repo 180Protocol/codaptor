@@ -26,8 +26,9 @@ class EmbeddedBundleTest {
     logger.info("Started node $handle")
 
     val suite = CordaptorAPITestSuite(
-        baseUrl = "http://localhost:8500",
-        nodeName = NODE_NAME
+        baseUrl = "http://127.0.0.1:8500",
+        nodeName = NODE_NAME,
+        localCacheEnabled = true
     )
 
     suite.runTests()
@@ -40,9 +41,17 @@ class EmbeddedBundleTest {
             additionalCordapps = listOf(
                 TestCordapp.findCordapp("tech.b180.cordaptor").withConfig(
                     mapOf(
-                        // this is undocumented, but works because the actual implementation
-                        // uses Typesafe's ConfigValueFactory.fromMap, which can process nested maps
-                        "localCache" to mapOf("enabled" to false)
+                        // disabling snapshots cache for one flow class to test the eviction
+                        "localCache" to mapOf(
+                            "flowSnapshots" to mapOf(
+                                "default" to mapOf(
+                                    "enabled" to false
+                                ),
+                                "SimpleFlow" to mapOf(
+                                    "enabled" to true
+                                )
+                            )
+                        )
                     )
                 ),
                 TestCordapp.findCordapp("tech.b180.ref_cordapp")

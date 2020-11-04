@@ -89,6 +89,7 @@ class RestEndpointModuleProvider : ModuleProvider {
 class Settings private constructor(
     val isOpenAPISpecificationEnabled: Boolean,
     val isSwaggerUIEnabled: Boolean,
+    val isFlowSnapshotsEndpointEnabled: Boolean,
     val isUsingSecureEndpoint: Boolean,
     val listenAddress: HostAndPort,
     val maxFlowInitiationTimeout: Duration,
@@ -97,6 +98,7 @@ class Settings private constructor(
   constructor(ourConfig: Config) : this(
       isOpenAPISpecificationEnabled = ourConfig.getBoolean("spec.enabled"),
       isSwaggerUIEnabled = ourConfig.getBoolean("swaggerUI.enabled"),
+      isFlowSnapshotsEndpointEnabled = ourConfig.getBoolean("flowSnapshots.enabled"),
       isUsingSecureEndpoint = ourConfig.getBoolean("tls.enabled"),
       listenAddress = ourConfig.getHostAndPort("listenAddress"),
       maxFlowInitiationTimeout = ourConfig.getDuration("flowInitiation.maxTimeout"),

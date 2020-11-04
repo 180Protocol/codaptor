@@ -7,7 +7,6 @@ import net.corda.core.contracts.StateAndRef
 import net.corda.core.contracts.StateRef
 import net.corda.core.crypto.SecureHash
 import net.corda.core.flows.FlowLogic
-import net.corda.core.flows.StateMachineRunId
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.identity.Party
 import net.corda.core.node.NodeInfo
@@ -99,13 +98,24 @@ interface CordaNodeStateInner : CordaNodeState
  * and make them available for polling for a period of time through a configurable cache.
  */
 @ModuleAPI
-interface CordaFlowCache {
+interface CordaFlowSnapshotsCache {
 
   /**
-   * Allows to retrieve information about a flow that was initiated earlier.
+   * Allows to retrieve most recent snapshot of flow that was initiated earlier, or indication that such snapshot
+   * is no longer available in the cache because of the eviction.
+   *
+   * Note that there is a low probability of a false positive owing to the fact that a memory-efficient
+   * probabilistic data structure like a bloom filter is used.
+   *
+   * @return most recent snapshot, or null if flow information is no longer available because it was evicted
+   * from the cache, or cache is not configured to retain snapshots of completed flows.
+   *
+   * @throws NoSuchElementException when there was no record of such run id. Note that there is a possibility
+   * of a false negative if underlying implementation uses in-memory data structures and the JVM was restarted.
+   * Only clustered implementation is guaranteed to never return a false negative.
    */
-  fun <ReturnType: Any> getFlowInstance(
-      flowClass: KClass<FlowLogic<ReturnType>>, flowRunId: StateMachineRunId): CordaFlowSnapshot<ReturnType>?
+  fun <ReturnType: Any> getFlowSnapshot(
+      flowClass: KClass<out FlowLogic<ReturnType>>, flowRunId: UUID): CordaFlowSnapshot<ReturnType>?
 }
 
 /**

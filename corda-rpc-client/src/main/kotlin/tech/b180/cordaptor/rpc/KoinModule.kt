@@ -4,10 +4,7 @@ import net.corda.client.rpc.CordaRPCClientConfiguration
 import net.corda.core.messaging.ClientRpcSslOptions
 import org.koin.dsl.bind
 import org.koin.dsl.module
-import tech.b180.cordaptor.corda.CordaNodeCatalog
-import tech.b180.cordaptor.corda.CordaNodeCatalogInner
-import tech.b180.cordaptor.corda.CordaNodeState
-import tech.b180.cordaptor.corda.CordaNodeStateInner
+import tech.b180.cordaptor.corda.*
 import tech.b180.cordaptor.kernel.*
 import java.io.File
 import java.nio.file.Path
@@ -32,8 +29,16 @@ class CordaRpcClientModuleProvider : ModuleProvider {
     single { NodeConnection(get()) } bind LifecycleAware::class
     single { get<NodeConnection>().rpcProxy }
 
-    single<CordaNodeCatalog> { ClientNodeCatalogImpl() } bind CordaNodeCatalogInner::class
-    single<CordaNodeState> { ClientNodeStateImpl() } bind CordaNodeStateInner::class
+    // actual components implementing Corda API access layer
+    // these 'inner' definitions may be accessed by other modules to use as delegates
+    // when overriding 'outer' definitions, e.g. by the caching layer
+    single<CordaNodeCatalogInner> { ClientNodeCatalogImpl() }
+    single<CordaNodeStateInner> { ClientNodeStateImpl() }
+
+    // outward-facing definitions for the Corda API access layer components
+    // which may be overridden by higher-tier modules augmenting the functionality
+    single<CordaNodeCatalog> { get<CordaNodeCatalogInner>() }
+    single<CordaNodeState> { get<CordaNodeStateInner>() }
 
     single { RPCFlowInitiator<Any>() }
   }

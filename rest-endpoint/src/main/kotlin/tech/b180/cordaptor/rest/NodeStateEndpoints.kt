@@ -1,5 +1,6 @@
 package tech.b180.cordaptor.rest
 
+import com.google.common.net.HttpHeaders
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.subjects.ReplaySubject
 import net.corda.core.contracts.ContractState
@@ -18,6 +19,7 @@ import tech.b180.cordaptor.shaded.javax.json.JsonObject
 import java.util.*
 import java.util.concurrent.TimeUnit
 import javax.servlet.http.HttpServletResponse
+import kotlin.NoSuchElementException
 import kotlin.math.min
 import kotlin.reflect.KClass
 
@@ -29,23 +31,35 @@ const val VAULT_QUERY_TAG = "vaultQuery"
  */
 class NodeStateAPIProvider(contextPath: String) : EndpointProvider, CordaptorComponent {
 
+  companion object {
+    private val logger = loggerFor<NodeStateAPIProvider>()
+  }
+
   private val nodeCatalog by inject<CordaNodeCatalog>()
+  private val settings by inject<Settings>()
 
   override val operationEndpoints: List<OperationEndpoint<*, *>>
   override val queryEndpoints: List<QueryEndpoint<*>>
 
   init {
+    val flowSnapshotsEnabled = settings.isFlowSnapshotsEndpointEnabled
+    if (!flowSnapshotsEnabled) {
+      logger.info("Flow snapshots endpoint is disabled. Flow initiation operations will never return a Location header")
+    }
+
     operationEndpoints = mutableListOf()
     queryEndpoints = mutableListOf()
 
     for (cordapp in nodeCatalog.cordapps) {
       for (flowInfo in cordapp.flows) {
         val handlerPath = "$contextPath/${cordapp.shortName}/${flowInfo.flowClass.simpleName}"
-        @Suppress("UNCHECKED_CAST")
-        val endpoint = FlowInitiationEndpoint(
-            handlerPath, flowInfo.flowClass, flowInfo.flowResultClass as KClass<Any>)
 
-        operationEndpoints.add(endpoint)
+        operationEndpoints.add(FlowInitiationEndpoint<Any>(handlerPath, flowInfo.flowClass, flowInfo.flowResultClass))
+
+        if (settings.isFlowSnapshotsEndpointEnabled) {
+          queryEndpoints.add(FlowSnapshotsEndpoint(
+              "$handlerPath/snapshot", flowInfo.flowClass, flowInfo.flowResultClass))
+        }
       }
 
       for (stateInfo in cordapp.contractStates) {
@@ -68,8 +82,8 @@ class NodeStateAPIProvider(contextPath: String) : EndpointProvider, CordaptorCom
  */
 class FlowInitiationEndpoint<FlowReturnType: Any>(
     contextPath: String,
-    private val flowClass: KClass<out FlowLogic<FlowReturnType>>,
-    flowResultClass: KClass<FlowReturnType>
+    private val flowClass: KClass<out FlowLogic<Any>>,
+    flowResultClass: KClass<out Any>
 ) : OperationEndpoint<CordaFlowInstruction<FlowLogic<FlowReturnType>>, CordaFlowSnapshot<FlowReturnType>>, CordaptorComponent,
     ContextMappedResourceEndpoint(contextPath, allowNullPathInfo = true) {
 
@@ -79,6 +93,7 @@ class FlowInitiationEndpoint<FlowReturnType: Any>(
 
   private val cordaNodeState: CordaNodeState by inject()
   private val settings: Settings by inject()
+  private val connectorConfiguration: JettyConnectorConfiguration by inject()
 
   override val responseType = SerializerKey(CordaFlowSnapshot::class, flowResultClass)
   override val requestType = SerializerKey(CordaFlowInstruction::class, flowClass)
@@ -97,12 +112,19 @@ class FlowInitiationEndpoint<FlowReturnType: Any>(
     logger.debug("Started flow {} with run id {} at {}",
         flowInstruction.flowClass.qualifiedName, handle.flowRunId, handle.startedAt)
 
+    val headers = if (settings.isFlowSnapshotsEndpointEnabled) {
+      listOf(Response.Header(HttpHeaders.LOCATION,
+          connectorConfiguration.toAbsoluteUrl("$contextPath/snapshot/${handle.flowRunId}")))
+    } else {
+      emptyList()
+    }
+
     if (waitTimeout == 0) {
       logger.debug("Zero timeout specified, returning result straight away")
 
       val snapshot = handle.asInitialSnapshot()
 
-      return Single.just(Response(snapshot, statusCode = HttpServletResponse.SC_ACCEPTED))
+      return Single.just(Response(snapshot, HttpServletResponse.SC_ACCEPTED, headers))
     } else {
       val effectiveTimeout = min(waitTimeout, settings.maxFlowInitiationTimeout.seconds.toInt())
       logger.debug("Effective timeout for the flow {}", effectiveTimeout)
@@ -152,7 +174,7 @@ class FlowInitiationEndpoint<FlowReturnType: Any>(
             HttpServletResponse.SC_OK
           }
         }
-        Response(snapshot, statusCode)
+        Response(snapshot, statusCode, headers)
       }
     }
   }
@@ -173,19 +195,106 @@ class FlowInitiationEndpoint<FlowReturnType: Any>(
               OpenAPI.HttpStatusCode.OK,
               OpenAPI.Response.createJsonResponse(
                   description = "Flow execution completed successfully and its result is available",
-                  schema = schemaGenerator.generateSchema(responseType))
+                  schema = schemaGenerator.generateSchema(responseType)
+              ).withHeader(
+                  HttpHeaders.LOCATION to OpenAPI.Header(
+                      description = "URL from which to obtain latest snapshot of the flow",
+                      schema = OpenAPI.PrimitiveTypes.URL_STRING)
+              )
           ).withResponse(
               OpenAPI.HttpStatusCode.ACCEPTED,
               OpenAPI.Response.createJsonResponse(
                   description = "Flow execution stared and its outcome is not yet available",
-                  schema = schemaGenerator.generateSchema(responseType))
+                  schema = schemaGenerator.generateSchema(responseType)
+              ).withHeader(
+                  HttpHeaders.LOCATION to OpenAPI.Header(
+                      description = "URL from which to obtain latest snapshot of the flow",
+                      schema = OpenAPI.PrimitiveTypes.URL_STRING)
+              )
           ).withResponse(
               OpenAPI.HttpStatusCode.INTERNAL_SERVER_ERROR,
               OpenAPI.Response.createJsonResponse(
                   description = "Flow execution failed and error information is available",
-                  schema = schemaGenerator.generateSchema(responseType))
+                  schema = schemaGenerator.generateSchema(responseType)
+              ).withHeader(
+                  HttpHeaders.LOCATION to OpenAPI.Header(
+                      description = "URL from which to obtain latest snapshot of the flow",
+                      schema = OpenAPI.PrimitiveTypes.URL_STRING)
+              )
           ).withTags(FLOW_INITIATION_TAG)
       )
+}
+
+/**
+ * API endpoint handler allowing to retrieve latest snapshot of a flow by its run id.
+ * This call will fail to instantiate if no module implementing flow results cache is present.
+ *
+ * This class uses type parameters to reduce the chance of introducing any type-related bugs
+ * in the implementation code. However, this class is not instantiated with type parameters.
+ */
+class FlowSnapshotsEndpoint<FlowReturnType: Any>(
+    contextPath: String,
+    private val flowClass: KClass<out FlowLogic<FlowReturnType>>,
+    flowResultClass: KClass<out FlowReturnType>
+) : QueryEndpoint<CordaFlowSnapshot<FlowReturnType>>, CordaptorComponent,
+    ContextMappedResourceEndpoint(contextPath, allowNullPathInfo = false) {
+
+  companion object {
+    private val pathInfoPattern = Regex("""^/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$""")
+
+    private val logger = loggerFor<FlowSnapshotsEndpoint<*>>()
+  }
+
+  private val snapshotsCache: CordaFlowSnapshotsCache by inject()
+
+  override val resourcePath = "$contextPath/{flowRunId}"
+  override val responseType = SerializerKey(CordaFlowSnapshot::class, flowResultClass)
+
+  override fun executeQuery(request: Request): Response<CordaFlowSnapshot<FlowReturnType>> {
+    logger.debug("Parsing pathInfo {}", request.pathInfo)
+
+    val match = pathInfoPattern.matchEntire(request.pathInfo!!.toLowerCase())
+        ?: throw BadOperationRequestException("Malformed pathInfo ${request.pathInfo}")
+
+    val runId = UUID.fromString(match.groupValues[1])
+
+    logger.debug("Parsed flowRunId parameter is {}", runId)
+
+    return try {
+      val snapshot = snapshotsCache.getFlowSnapshot(flowClass, runId)
+      if (snapshot == null) {
+        // this will not happen in the current local cache implementation
+        logger.debug("Flow snapshots for run id {} is no longer available", runId)
+        Response(null, HttpServletResponse.SC_GONE)
+      } else {
+        logger.debug("Flow snapshots for run id {} was found: {}", runId, snapshot)
+        Response(snapshot, HttpServletResponse.SC_OK)
+      }
+    } catch (e: NoSuchElementException) {
+      logger.debug("Flow id {} was not found in the snapshots cache", runId)
+      Response(null, HttpServletResponse.SC_NOT_FOUND)
+    }
+  }
+
+  override fun generatePathInfoSpecification(schemaGenerator: JsonSchemaGenerator): OpenAPI.PathItem =
+    OpenAPI.PathItem(
+        get = OpenAPI.Operation(
+            summary = "Returns latest snapshot for a flow of type ${flowClass.simpleName} initiated with given run id",
+            operationId = "getLatestSnapshotFor${flowClass.simpleName}"
+        ).withParameter(OpenAPI.Parameter(name = "flowRunId", `in` = OpenAPI.ParameterLocation.PATH,
+            description = "Flow run id returned by a flow initiation operation", required = true,
+            schema = OpenAPI.PrimitiveTypes.UUID_STRING)
+        ).withResponse(
+            OpenAPI.HttpStatusCode.OK,
+            OpenAPI.Response.createJsonResponse(
+                description = "Latest snapshot of the flow with given run id",
+                schema = schemaGenerator.generateSchema(responseType))
+        ).withResponse(
+            OpenAPI.HttpStatusCode.NOT_FOUND,
+            OpenAPI.Response("Snapshot of a flow with given run id was not found, " +
+                "which may mean it was already evicted")
+        ).withTags(FLOW_INITIATION_TAG)
+    )
 }
 
 /**
