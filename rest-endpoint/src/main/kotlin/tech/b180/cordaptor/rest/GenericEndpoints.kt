@@ -92,15 +92,22 @@ interface RequestWithPayload<PayloadType: Any> : Request {
 
 /**
  * Wrapper type for an API response payload able to configure the details of the protocol response.
+ * Payload may be optional if a particular endpoint does not require it.
  */
 data class Response<PayloadType: Any>(
-    val payload: PayloadType,
-    val statusCode: Int = DEFAULT_STATUS_CODE
+    val payload: PayloadType?,
+    val statusCode: Int = DEFAULT_STATUS_CODE,
+    val headers: List<Header> = emptyList()
 ) {
   companion object {
     /** Assumed by default unless overridden in the constructor */
     const val DEFAULT_STATUS_CODE = HttpServletResponse.SC_OK
   }
+
+  data class Header(
+      val header: HttpHeader,
+      val value: String
+  )
 }
 
 /**
@@ -150,7 +157,7 @@ interface OpenAPIResource {
  * optionally accepting non-path parameters.
  */
 abstract class ContextMappedResourceEndpoint(
-    private val contextPath: String,
+    val contextPath: String,
     allowNullPathInfo: Boolean
 ) : GenericEndpoint, OpenAPIResource {
 
@@ -339,19 +346,26 @@ abstract class AbstractEndpointHandler<ResponseType: Any>(
   fun sendResponse(servletResponse: HttpServletResponse, endpointResponse: Response<ResponseType>) {
     logger.debug("Sending response payload: {}", endpointResponse)
 
-    // validation for correct return type instead of failing to serialize with a cryptic message
-    // this may occur if the endpoint's responseType is incorrectly set
-    if (!responseType.rawType.isAssignableFrom(endpointResponse.payload.javaClass)) {
-      throw EndpointOperationException("Endpoint returned an instance of ${endpointResponse.payload.javaClass}, " +
-          "where an instance of ${responseType.rawType} was expected")
+    servletResponse.status = endpointResponse.statusCode
+    for (header in endpointResponse.headers) {
+      servletResponse.setHeader(header.header, header.value)
     }
 
-    servletResponse.status = endpointResponse.statusCode
-    servletResponse.contentType = JSON_CONTENT_TYPE
+    endpointResponse.payload?.let { payload ->
 
-    Json.createGenerator(servletResponse.writer)
-        .writeSerializedObject(responseSerializer, endpointResponse.payload)
-        .flush()
+      // validation for correct return type instead of failing to serialize with a cryptic message
+      // this may occur if the endpoint's responseType is incorrectly set
+      if (!responseType.rawType.isAssignableFrom(payload.javaClass)) {
+        throw EndpointOperationException("Endpoint returned an instance of ${payload.javaClass}, " +
+            "where an instance of ${responseType.rawType} was expected")
+      }
+
+      servletResponse.contentType = JSON_CONTENT_TYPE
+
+      Json.createGenerator(servletResponse.writer)
+          .writeSerializedObject(responseSerializer, payload)
+          .flush()
+    }
   }
 
   /**

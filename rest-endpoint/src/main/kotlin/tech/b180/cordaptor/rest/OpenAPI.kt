@@ -151,6 +151,9 @@ data class OpenAPI(
       fun createJsonResponse(description: String, schema: JsonObject) =
           Response(description = description, content = sortedMapOf(JSON_CONTENT_TYPE to MediaType(schema)))
     }
+
+    fun withHeader(header: Pair<HttpHeader, Header>): Response =
+        copy(headers = headers?.plus(header)?.toSortedMap() ?: sortedMapOf(header))
   }
 
   /** [https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.3.md#mediaTypeObject] */
@@ -160,8 +163,8 @@ data class OpenAPI(
 
   /** [https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.3.md#headerObject] */
   data class Header(
-      val schema: JsonObject,
-      val description: String? = null
+      val description: String,
+      val schema: JsonObject
   )
 
   /** [https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.3.md#parameterObject] */
@@ -238,6 +241,7 @@ data class OpenAPI(
 
     // 4xx codes
     NOT_FOUND(HttpServletResponse.SC_NOT_FOUND),
+    GONE(HttpServletResponse.SC_GONE),
 
     // 5xx codes
     INTERNAL_SERVER_ERROR(HttpServletResponse.SC_INTERNAL_SERVER_ERROR)
@@ -258,6 +262,11 @@ data class OpenAPI(
     val UUID_STRING: JsonObject = Json.createObjectBuilder()
         .add("type", "string")
         .add("format", "uuid")
+        .build()
+
+    val URL_STRING: JsonObject = Json.createObjectBuilder()
+        .add("type", "string")
+        .add("format", "url")
         .build()
   }
 }
