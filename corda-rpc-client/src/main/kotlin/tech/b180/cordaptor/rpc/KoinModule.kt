@@ -28,14 +28,14 @@ class CordaRpcClientModuleProvider : ModuleProvider {
     val settings = Settings(moduleConfig)
     single { settings }
 
-    single { FlowInitiator() }
-
     // RPC connection to the node
     single { NodeConnection(get()) } bind LifecycleAware::class
     single { get<NodeConnection>().rpcProxy }
 
     single<CordaNodeCatalog> { ClientNodeCatalogImpl() } bind CordaNodeCatalogInner::class
     single<CordaNodeState> { ClientNodeStateImpl() } bind CordaNodeStateInner::class
+
+    single { RPCFlowInitiator<Any>() }
   }
 }
 

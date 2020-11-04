@@ -13,9 +13,18 @@ import net.corda.core.node.services.Vault
 import net.corda.core.node.services.diagnostics.NodeVersionInfo
 import net.corda.core.node.services.vault.QueryCriteria
 import net.corda.core.transactions.SignedTransaction
+import net.corda.serialization.internal.AllWhitelist
+import net.corda.serialization.internal.amqp.CachingCustomSerializerRegistry
+import net.corda.serialization.internal.amqp.DefaultDescriptorBasedSerializerRegistry
+import net.corda.serialization.internal.amqp.WhitelistBasedTypeModelConfiguration
+import net.corda.serialization.internal.model.ConfigurableLocalTypeModel
+import net.corda.serialization.internal.model.LocalTypeInformation
+import org.koin.core.get
 import org.koin.core.inject
+import org.slf4j.Logger
 import tech.b180.cordaptor.corda.*
 import tech.b180.cordaptor.kernel.CordaptorComponent
+import tech.b180.cordaptor.kernel.loggerFor
 import java.security.PublicKey
 
 /**
@@ -24,7 +33,6 @@ import java.security.PublicKey
  */
 class ClientNodeStateImpl : CordaNodeStateInner, CordaptorComponent {
 
-  private val flowInitiator: FlowInitiator by inject()
   private val rpc: CordaRPCOps by inject()
 
   override val nodeInfo: NodeInfo
@@ -84,6 +92,58 @@ class ClientNodeStateImpl : CordaNodeStateInner, CordaptorComponent {
       instruction: CordaFlowInstruction<FlowLogic<ReturnType>>
   ): CordaFlowHandle<ReturnType> {
 
-    return flowInitiator.initiateFlow(instruction)
+    return get<RPCFlowInitiator<ReturnType>>().initiateFlow(instruction)
+  }
+}
+
+/**
+ * Specific extension of the abstract flow initiation logic that uses Corda RPC
+ * to initiate flow execution in the remote Corda node.
+ */
+class RPCFlowInitiator<ReturnType: Any> : FlowInitiator<ReturnType>(), CordaptorComponent {
+
+  companion object {
+    val logger = loggerFor<RPCFlowInitiator<*>>()
+  }
+
+  private val rpc: CordaRPCOps by inject()
+
+  override val instanceLogger: Logger get() = logger
+
+  private val localTypeModel by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+    val customSerializerRegistry = CachingCustomSerializerRegistry(DefaultDescriptorBasedSerializerRegistry())
+    val typeModelConfiguration = WhitelistBasedTypeModelConfiguration(AllWhitelist, customSerializerRegistry)
+    ConfigurableLocalTypeModel(typeModelConfiguration)
+  }
+
+  override fun doInitiateFlow(instruction: CordaFlowInstruction<FlowLogic<ReturnType>>): Handle<ReturnType> {
+    val flowClass = instruction.flowClass.java
+    logger.debug("Preparing to initiate flow {} over Corda RPC connection", flowClass)
+
+    val typeInfo = localTypeModel.inspect(flowClass).let {
+      it as? LocalTypeInformation.Composable
+          ?: throw IllegalArgumentException("Flow $flowClass is introspected as non-composable:\n" +
+              it.prettyPrint(true))
+    }
+
+    val actualArgs = arrayOfNulls<Any?>(typeInfo.constructor.parameters.size)
+    typeInfo.constructor.parameters.forEachIndexed { index, param ->
+      val givenValue = instruction.arguments[param.name]
+      if (givenValue == null && param.isMandatory) {
+        throw IllegalArgumentException("No value provided for mandatory parameter ${param.name}")
+      }
+      actualArgs[index] = givenValue
+      logger.debug("Actual value for argument {}: {}", index, givenValue)
+    }
+
+    return if (instruction.options?.trackProgress == true) {
+      logger.debug("Initiating flow {} with progress updates", flowClass)
+      val handle = rpc.startTrackedFlowDynamic(flowClass, *actualArgs)
+      Handle(handle.id.uuid, handle.returnValue, handle.progress)
+    } else {
+      logger.debug("Initiating flow {} without progress updates", flowClass)
+      val handle = rpc.startFlowDynamic(flowClass, *actualArgs)
+      Handle(handle.id.uuid, handle.returnValue)
+    }
   }
 }

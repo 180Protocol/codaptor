@@ -27,7 +27,7 @@ data class FlowInstanceBuilder<ReturnType: Any>(
         ?: throw IllegalArgumentException("Unable to instantiate flow class ${flowClass.qualifiedName}.\n" +
             "Introspection details: ${typeInfo.prettyPrint()})")
 
-    logger.debug("Instantiating flow class with constructor: ", constructor)
+    logger.debug("Instantiating flow class with constructor: {}", constructor)
 
     val actualArguments = if (constructor.hasParameters) {
       constructor.parameters.map {
@@ -41,7 +41,7 @@ data class FlowInstanceBuilder<ReturnType: Any>(
       emptyList()
     }
 
-    logger.debug("Instantiating flow class with arguments: ", actualArguments)
+    logger.debug("Instantiating flow class with arguments: {}", actualArguments)
 
     @Suppress("UNCHECKED_CAST")
     return constructor.observedMethod.newInstance(*actualArguments.toTypedArray()) as FlowLogic<ReturnType>

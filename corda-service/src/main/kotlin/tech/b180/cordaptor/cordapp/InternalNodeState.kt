@@ -1,14 +1,11 @@
 package tech.b180.cordaptor.cordapp
 
-import hu.akarnokd.rxjava3.interop.RxJavaInterop
-import io.reactivex.rxjava3.subjects.SingleSubject
 import net.corda.core.contracts.ContractState
 import net.corda.core.contracts.StateAndRef
 import net.corda.core.contracts.StateRef
 import net.corda.core.contracts.TransactionResolutionException
 import net.corda.core.crypto.SecureHash
 import net.corda.core.flows.FlowLogic
-import net.corda.core.flows.StateMachineRunId
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.identity.Party
 import net.corda.core.node.AppServiceHub
@@ -18,15 +15,14 @@ import net.corda.core.node.services.Vault
 import net.corda.core.node.services.VaultService
 import net.corda.core.node.services.diagnostics.NodeVersionInfo
 import net.corda.core.transactions.SignedTransaction
-import net.corda.core.utilities.getOrThrow
 import net.corda.serialization.internal.model.LocalTypeModel
+import org.koin.core.get
 import org.koin.core.inject
+import org.slf4j.Logger
 import tech.b180.cordaptor.corda.*
 import tech.b180.cordaptor.kernel.CordaptorComponent
 import tech.b180.cordaptor.kernel.loggerFor
 import java.security.PublicKey
-import java.time.Instant
-import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Implementation of [CordaNodeState] interface providing access to a state
@@ -37,7 +33,6 @@ class CordaNodeStateImpl : CordaNodeStateInner, CordaptorComponent {
   private val appServiceHub: AppServiceHub by inject()
   private val vaultService: VaultService by inject()
   private val transactionStorage: TransactionStorage by inject()
-  private val flowDispatcher: CordaFlowDispatcher by inject()
 
   override val nodeInfo: NodeInfo
     get() = appServiceHub.myInfo
@@ -90,88 +85,38 @@ class CordaNodeStateImpl : CordaNodeStateInner, CordaptorComponent {
       instruction: CordaFlowInstruction<FlowLogic<ReturnType>>
   ): CordaFlowHandle<ReturnType> {
 
-    return flowDispatcher.initiateFlow(instruction)
+    return get<LocalFlowInitiator<ReturnType>>().initiateFlow(instruction)
   }
 }
 
 /**
- * Wrapper for Corda flow initiation API that keeps track of actively running
- * flows and allowing to look them up by run id.
+ * Specific extension of the abstract flow initiation logic that uses Corda API
+ * to initiate flow execution in the Corda node where the service is running.
  */
-class CordaFlowDispatcher : CordaptorComponent {
+class LocalFlowInitiator<ReturnType: Any> : FlowInitiator<ReturnType>(), CordaptorComponent {
+
   companion object {
-    val logger = loggerFor<CordaFlowDispatcher>()
+    val logger = loggerFor<LocalFlowInitiator<*>>()
   }
 
   private val appServiceHub: AppServiceHub by inject()
   private val localTypeModel: LocalTypeModel by inject()
 
-  private val activeHandles = ConcurrentHashMap<StateMachineRunId, CordaFlowHandle<*>>()
+  override val instanceLogger: Logger get() = logger
 
-  fun <ReturnType: Any> initiateFlow(instruction: CordaFlowInstruction<FlowLogic<ReturnType>>): CordaFlowHandle<ReturnType> {
+  override fun doInitiateFlow(instruction: CordaFlowInstruction<FlowLogic<ReturnType>>): Handle<ReturnType> {
     val flowInstance = FlowInstanceBuilder(
         instruction.flowClass, instruction.arguments, localTypeModel).instantiate()
 
     val cordaHandle = appServiceHub.startTrackedFlow(flowInstance)
-    logger.debug("Flow {} started with run id {}", flowInstance.javaClass.canonicalName, cordaHandle.id)
 
-    // asynchronously emit the result when flow result future completes
-    // this will happen on the node's state machine thread
-    val resultSubject = SingleSubject.create<CordaFlowResult<ReturnType>>()
-    cordaHandle.returnValue.then {
-      try {
-        val flowResult = it.getOrThrow()
-        logger.debug("Flow {} returned {}", cordaHandle.id, flowResult)
-        resultSubject.onSuccess(CordaFlowResult.forValue(flowResult))
-      } catch (e: Throwable) {
-        logger.debug("Flow {} threw an error:", cordaHandle.id, e)
-        resultSubject.onSuccess(CordaFlowResult.forError(e))
-      }
-    }
-
-    val progressUpdates = if (
-        instruction.options?.trackProgress == true
-        && flowInstance.progressTracker != null
-    ) {
+    return if (instruction.options?.trackProgress == true) {
       val flowProgressFeed = flowInstance.track()
           ?: throw IllegalStateException("Flow has a progress tracked, but calling track() returned null progress feed")
 
-      RxJavaInterop.toV3Observable(flowProgressFeed.updates).map {
-        logger.debug("Progress update for flow {}: {}", cordaHandle.id, it)
-        CordaFlowProgress(it)
-      }.doOnDispose {
-        logger.debug("Progress observable for flow {} was disposed", cordaHandle.id)
-      }.doOnComplete {
-        logger.debug("Progress observable for flow {} completed", cordaHandle.id)
-      }
+      Handle(cordaHandle.id.uuid, cordaHandle.returnValue, flowProgressFeed.updates)
     } else {
-      if (flowInstance.progressTracker == null) {
-        logger.info("Flow {} does not use progress tracker, no progress feed will be available",
-            flowInstance.javaClass.canonicalName)
-      } else {
-        logger.debug("Progress tracking was not requested for flow {}", cordaHandle.id)
-      }
-      null
+      Handle(cordaHandle.id.uuid, cordaHandle.returnValue)
     }
-
-    val ourHandle = CordaFlowHandle(
-        startedAt = Instant.now(),
-        flowClass = flowInstance::class,
-        flowRunId = cordaHandle.id.uuid,
-        flowResultPromise = resultSubject,
-        flowProgressUpdates = progressUpdates
-    )
-
-    ourHandle.flowResultPromise
-        .subscribe { _, _ -> activeHandles.remove(cordaHandle.id) }
-
-    activeHandles[cordaHandle.id] = ourHandle
-
-    return ourHandle
-  }
-
-  fun findFlowHandle(runId: StateMachineRunId): CordaFlowHandle<Any>? {
-    @Suppress("UNCHECKED_CAST")
-    return activeHandles[runId] as CordaFlowHandle<Any>?
   }
 }

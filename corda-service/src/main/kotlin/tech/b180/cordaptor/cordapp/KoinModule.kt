@@ -48,7 +48,9 @@ class CordaServiceModuleProvider : ModuleProvider {
 
     single<CordaNodeCatalog> { CordaNodeCatalogImpl(get(), settings.bundleCordappName) } bind CordaNodeCatalogInner::class
     single<CordaNodeState> { CordaNodeStateImpl() } bind CordaNodeStateInner::class
-    single { CordaFlowDispatcher() }
+    // when overriding 'outer' definitions, e.g. by the caching layer
+
+    single { LocalFlowInitiator<Any>() }
 
     // expose Corda node APIs to other definitions without the need to traverse the properties
     single { get<NodeServicesLocator>().serviceHubInternal }
