@@ -50,6 +50,10 @@ class TypesafeConfig private constructor(private val config: _Config) : Config {
     return config.getString(path)
   }
 
+  override fun getStringsList(path: ConfigPath): List<String> {
+    return config.getStringList(path)
+  }
+
   override fun getInt(path: ConfigPath): Int {
     return config.getInt(path)
   }

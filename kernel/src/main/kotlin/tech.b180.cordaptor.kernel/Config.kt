@@ -30,6 +30,8 @@ interface Config {
 
   fun getString(path: ConfigPath): String
 
+  fun getStringsList(path: ConfigPath): List<String>
+
   fun getDuration(path: ConfigPath): Duration
 
   fun getInt(path: ConfigPath): Int
@@ -43,7 +45,7 @@ interface Config {
   fun getBoolean(path: ConfigPath): Boolean
 
   fun getOptionalString(path: ConfigPath) = if (pathExists(path)) getString(path) else null
-
+  fun getOptionalStringsList(path: ConfigPath) = if (pathExists(path)) getStringsList(path) else null
   fun getOptionalInt(path: ConfigPath) = if (pathExists(path)) getInt(path) else null
   fun getOptionalLong(path: ConfigPath) = if (pathExists(path)) getLong(path) else null
   fun getOptionalBoolean(path: ConfigPath) = if (pathExists(path)) getBoolean(path) else null
@@ -52,6 +54,7 @@ interface Config {
   fun getOptionalBytesSize(path: ConfigPath) = if (pathExists(path)) getBytesSize(path) else null
 
   fun getOptionalString(path: ConfigPath, default: String) = getOptionalString(path) ?: default
+  fun getOptionalStringsList(path: ConfigPath, default: List<String>) = if (pathExists(path)) getStringsList(path) else default
   fun getOptionalInt(path: ConfigPath, default: Int) = getOptionalInt(path) ?: default
   fun getOptionalLong(path: ConfigPath, default: Long) = getOptionalLong(path) ?: default
   fun getOptionalBoolean(path: ConfigPath, default: Boolean) = getOptionalBoolean(path) ?: default
