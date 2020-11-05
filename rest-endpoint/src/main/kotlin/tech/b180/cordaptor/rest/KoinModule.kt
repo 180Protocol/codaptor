@@ -86,11 +86,11 @@ class RestEndpointModuleProvider : ModuleProvider {
 /**
  * Eagerly-initialized typesafe wrapper for module's configuration.
  */
-class Settings private constructor(
+data class Settings(
     val isOpenAPISpecificationEnabled: Boolean,
     val isSwaggerUIEnabled: Boolean,
     val isFlowSnapshotsEndpointEnabled: Boolean,
-    val isUsingSecureEndpoint: Boolean,
+    val secureEndpointSettings: SecureEndpointSettings,
     val listenAddress: HostAndPort,
     val maxFlowInitiationTimeout: Duration,
     val maxVaultQueryPageSize: Int
@@ -99,14 +99,14 @@ class Settings private constructor(
       isOpenAPISpecificationEnabled = ourConfig.getBoolean("spec.enabled"),
       isSwaggerUIEnabled = ourConfig.getBoolean("swaggerUI.enabled"),
       isFlowSnapshotsEndpointEnabled = ourConfig.getBoolean("flowSnapshots.enabled"),
-      isUsingSecureEndpoint = ourConfig.getBoolean("tls.enabled"),
+      secureEndpointSettings = SecureEndpointSettings(ourConfig.getSubtree("tls")),
       listenAddress = ourConfig.getHostAndPort("listenAddress"),
       maxFlowInitiationTimeout = ourConfig.getDuration("flowInitiation.maxTimeout"),
       maxVaultQueryPageSize = ourConfig.getInt("vaultQueries.maxPageSize")
   )
 
   val connectorConfiguration = JettyConnectorConfiguration(
-      bindAddress = listenAddress, secure = isUsingSecureEndpoint)
+      bindAddress = listenAddress, secureEndpointSettings = secureEndpointSettings)
 }
 
 /**
@@ -129,3 +129,17 @@ fun <T: Any> CordaptorComponent.injectSerializer(clazz: KClass<T>, vararg typePa
  */
 fun <T: Any> CordaptorComponent.injectSerializer(serializerKey: SerializerKey): Lazy<JsonSerializer<T>> =
     lazy { getKoin().get<JsonSerializer<T>> { parametersOf(serializerKey) } }
+
+/**
+ * Wrapper for configuration section that is fed into Jetty connector factory.
+ * We are not eagerly parsing config line by line to reduce the chance of a typo.
+ */
+data class SecureEndpointSettings(
+    val enabled: Boolean,
+    val tlsConfig: Config
+) : Config by tlsConfig {
+  constructor(tlsConfig: Config) : this(
+      enabled = tlsConfig.getBoolean("enabled"),
+      tlsConfig = tlsConfig
+  )
+}
