@@ -221,7 +221,7 @@ class FlowInitiationEndpoint<FlowReturnType: Any>(
                       description = "URL from which to obtain latest snapshot of the flow",
                       schema = OpenAPI.PrimitiveTypes.URL_STRING)
               )
-          ).withTags(FLOW_INITIATION_TAG)
+          ).withUnauthorizedResponse().withTags(FLOW_INITIATION_TAG)
       )
 }
 
@@ -293,7 +293,7 @@ class FlowSnapshotsEndpoint<FlowReturnType: Any>(
             OpenAPI.HttpStatusCode.NOT_FOUND,
             OpenAPI.Response("Snapshot of a flow with given run id was not found, " +
                 "which may mean it was already evicted")
-        ).withTags(FLOW_INITIATION_TAG)
+        ).withUnauthorizedResponse().withTags(FLOW_INITIATION_TAG)
     )
 }
 
@@ -357,7 +357,7 @@ class ContractStateRefQueryEndpoint<StateType: ContractState>(
               schema = schemaGenerator.generateSchema(responseType))
           ).withResponse(OpenAPI.HttpStatusCode.NOT_FOUND, OpenAPI.Response(
               description = "Contract state with given hash and index was not found")
-          ).withTags(VAULT_QUERY_TAG)
+          ).withUnauthorizedResponse().withTags(VAULT_QUERY_TAG)
       )
 }
 
@@ -529,7 +529,7 @@ class ContractStateVaultQueryEndpoint<StateType: ContractState>(
           ).withResponse(OpenAPI.HttpStatusCode.OK, OpenAPI.Response.createJsonResponse(
               description = "Query ran successfully",
               schema = schemaGenerator.generateSchema(responseType))
-          ).withTags(VAULT_QUERY_TAG)
+          ).withUnauthorizedResponse().withTags(VAULT_QUERY_TAG)
       )
 }
 
@@ -579,6 +579,6 @@ class TransactionQueryEndpoint(contextPath: String)
               schema = schemaGenerator.generateSchema(responseType))
           ).withResponse(OpenAPI.HttpStatusCode.NOT_FOUND, OpenAPI.Response(
               description = "Transaction with given hash value was not found")
-          ).withTags(VAULT_QUERY_TAG)
+          ).withUnauthorizedResponse().withTags(VAULT_QUERY_TAG)
       )
 }

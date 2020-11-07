@@ -942,6 +942,9 @@
               }
             },
             "description": "Successful operation"
+          },
+          "401": {
+            "description": "Permission denied"
           }
         },
         "summary": "Returns network map entry for the underlying Corda node",
@@ -1014,6 +1017,9 @@
               }
             }
           },
+          "401": {
+            "description": "Permission denied"
+          },
           "500": {
             "content": {
               "application/json": {
@@ -1065,6 +1071,9 @@
               }
             },
             "description": "Latest snapshot of the flow with given run id"
+          },
+          "401": {
+            "description": "Permission denied"
           },
           "404": {
             "description": "Snapshot of a flow with given run id was not found, which may mean it was already evicted"
@@ -1140,6 +1149,9 @@
               }
             }
           },
+          "401": {
+            "description": "Permission denied"
+          },
           "500": {
             "content": {
               "application/json": {
@@ -1191,6 +1203,9 @@
               }
             },
             "description": "Latest snapshot of the flow with given run id"
+          },
+          "401": {
+            "description": "Permission denied"
           },
           "404": {
             "description": "Snapshot of a flow with given run id was not found, which may mean it was already evicted"
@@ -1306,6 +1321,9 @@
               }
             },
             "description": "Query ran successfully"
+          },
+          "401": {
+            "description": "Permission denied"
           }
         },
         "summary": "Performs a query of the vault of the underlying Corda node with a simplified criteria",
@@ -1378,6 +1396,9 @@
             },
             "description": "Successfully retrieved contract state"
           },
+          "401": {
+            "description": "Permission denied"
+          },
           "404": {
             "description": "Contract state with given hash and index was not found"
           }
@@ -1413,6 +1434,9 @@
             },
             "description": "Successfully retrieved transaction"
           },
+          "401": {
+            "description": "Permission denied"
+          },
           "404": {
             "description": "Transaction with given hash value was not found"
           }
@@ -1436,6 +1460,9 @@
               }
             },
             "description": "Successful operation"
+          },
+          "401": {
+            "description": "Permission denied"
           }
         },
         "summary": "Returns software version information for the underlying Corda node",

@@ -28,7 +28,7 @@ class NodeInfoEndpoint(contextPath: String)
           ).withResponse(OpenAPI.HttpStatusCode.OK, OpenAPI.Response.createJsonResponse(
               description = "Successful operation",
               schema = schemaGenerator.generateSchema(SerializerKey(NodeInfo::class)))
-          ).withTags(NODE_DIAGNOSTIC_TAG)
+          ).withUnauthorizedResponse().withTags(NODE_DIAGNOSTIC_TAG)
       )
 }
 
@@ -52,6 +52,6 @@ class NodeVersionEndpoint(contextPath: String)
           ).withResponse(OpenAPI.HttpStatusCode.OK, OpenAPI.Response.createJsonResponse(
               description = "Successful operation",
               schema = schemaGenerator.generateSchema(SerializerKey(NodeVersionInfo::class)))
-          ).withTags(NODE_DIAGNOSTIC_TAG)
+          ).withUnauthorizedResponse().withTags(NODE_DIAGNOSTIC_TAG)
       )
 }

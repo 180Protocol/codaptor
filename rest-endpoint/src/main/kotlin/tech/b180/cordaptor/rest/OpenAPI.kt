@@ -122,6 +122,10 @@ data class OpenAPI(
     fun withResponse(statusCode: HttpStatusCode, response: Response): Operation =
         copy(responses = (responses.plus(statusCode to response).toSortedMap()))
 
+    fun withUnauthorizedResponse(): Operation =
+        copy(responses = (responses.plus(
+            HttpStatusCode.UNAUTHORIZED to Response("Permission denied")).toSortedMap()))
+
     fun withRequestBody(requestBody: RequestBody): Operation =
         copy(requestBody = requestBody)
 
