@@ -36,6 +36,10 @@ class TypesafeConfig private constructor(private val config: _Config) : Config {
             ConfigResolveOptions.defaults().setAllowUnresolved(false)
         )
     )
+
+    fun empty() = TypesafeConfig(
+        ConfigFactory.parseMap(emptyMap())
+    )
   }
 
   override fun pathExists(path: ConfigPath): Boolean {

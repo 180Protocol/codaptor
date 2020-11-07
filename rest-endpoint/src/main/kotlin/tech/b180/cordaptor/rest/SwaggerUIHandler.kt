@@ -1,7 +1,7 @@
 package tech.b180.cordaptor.rest
 
-import org.eclipse.jetty.server.handler.ResourceHandler
-import org.eclipse.jetty.util.resource.Resource
+import io.undertow.server.handlers.resource.ClassPathResourceManager
+import io.undertow.server.handlers.resource.ResourceHandler
 import org.koin.core.inject
 import tech.b180.cordaptor.kernel.CordaptorComponent
 import tech.b180.cordaptor.kernel.LifecycleAware
@@ -9,23 +9,26 @@ import tech.b180.cordaptor.kernel.LifecycleAware
 /**
  * Simple handler serving static resources required for Swagger UI.
  */
-class SwaggerUIHandler(contextPath: String)
-  : ContextMappedHandler, ResourceHandler(), CordaptorComponent, LifecycleAware {
+class SwaggerUIHandler(
+    contextPath: String
+) : ResourceHandler(resourceManager), ContextMappedHandler, CordaptorComponent, LifecycleAware {
 
-  init {
-    isDirectoriesListed = false
-    isRedirectWelcome = true
-    welcomeFiles = arrayOf("index.html")
-    baseResource = Resource.newClassPathResource("/swagger")
+  companion object {
+    val resourceManager = ClassPathResourceManager(SwaggerUIHandler::class.java.classLoader, "swagger")
   }
 
-  override val mappingParameters = ContextMappingParameters(contextPath, false)
+  init {
+    isDirectoryListingEnabled = false
+    setWelcomeFiles("index.html")
+  }
 
-  private val connectorConfiguration: JettyConnectorConfiguration by inject()
+  override val mappingParameters = ContextMappedHandler.Parameters(contextPath, false)
+
+  private val urlBuilder: URLBuilder by inject()
   private val notifications: NodeNotifications by inject()
 
   override fun onStarted() {
-    val swaggerUrl = connectorConfiguration.toAbsoluteUrl(mappingParameters.contextPath)
+    val swaggerUrl = urlBuilder.toAbsoluteUrl(mappingParameters.path)
     notifications.emitOperatorMessage("Cordaptor: Swagger-UI is available at $swaggerUrl")
   }
 }

@@ -17,6 +17,9 @@ class NodeInfoEndpoint(contextPath: String)
   private val cordaNodeState: CordaNodeState by inject()
 
   override fun executeQuery(request: Request): Response<NodeInfo> {
+    if (!request.subject.isPermitted(OPERATION_GET_NODE_INFO)) {
+      throw UnauthorizedOperationException(OPERATION_GET_NODE_INFO)
+    }
     return Response(cordaNodeState.nodeInfo)
   }
 
@@ -24,7 +27,7 @@ class NodeInfoEndpoint(contextPath: String)
       OpenAPI.PathItem(
           get = OpenAPI.Operation(
               summary = "Returns network map entry for the underlying Corda node",
-              operationId = "getNodeInfo"
+              operationId = OPERATION_GET_NODE_INFO
           ).withResponse(OpenAPI.HttpStatusCode.OK, OpenAPI.Response.createJsonResponse(
               description = "Successful operation",
               schema = schemaGenerator.generateSchema(SerializerKey(NodeInfo::class)))
@@ -41,6 +44,9 @@ class NodeVersionEndpoint(contextPath: String)
   private val cordaNodeState: CordaNodeState by inject()
 
   override fun executeQuery(request: Request): Response<NodeVersionInfo> {
+    if (!request.subject.isPermitted(OPERATION_GET_NODE_VERSION)) {
+      throw UnauthorizedOperationException(OPERATION_GET_NODE_VERSION)
+    }
     return Response(cordaNodeState.nodeVersionInfo)
   }
 
@@ -48,7 +54,7 @@ class NodeVersionEndpoint(contextPath: String)
       OpenAPI.PathItem(
           get = OpenAPI.Operation(
               summary = "Returns software version information for the underlying Corda node",
-              operationId = "getNodeVersion"
+              operationId = OPERATION_GET_NODE_VERSION
           ).withResponse(OpenAPI.HttpStatusCode.OK, OpenAPI.Response.createJsonResponse(
               description = "Successful operation",
               schema = schemaGenerator.generateSchema(SerializerKey(NodeVersionInfo::class)))

@@ -1,7 +1,10 @@
 package tech.b180.cordaptor.rest
 
+import io.undertow.server.handlers.resource.ClassPathResourceManager
+import io.undertow.server.handlers.resource.ResourceHandler
 import org.koin.core.Koin
 import org.koin.core.parameter.parametersOf
+import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.binds
 import org.koin.dsl.module
@@ -26,10 +29,15 @@ class RestEndpointModuleProvider : ModuleProvider {
     val settings = Settings(moduleConfig)
     single { settings }
 
-    // embedded Jetty server and its configuration
-    single { settings.connectorConfiguration }
-    single { JettyServer() } bind LifecycleAware::class
-    single { ConnectorFactory(get(), get()) } bind JettyConfigurator::class
+    // embedded web server and its configuration
+    single { WebServer() } bind LifecycleAware::class
+    single { WebServerSettings(moduleConfig.getSubtree("webServer")) } bind URLBuilder::class
+
+    // built-in configuration contributors are qualified, so they could be overridden in a targeted way,
+    // but other contributors could be created without a qualifier
+    single<UndertowConfigContributor>(named("listeners")) { UndertowListenerContributor(get()) }
+    single<UndertowConfigContributor>(named("handlers")) { UndertowHandlerContributor(get()) }
+    single<UndertowConfigContributor>(named("settings")) { UndertowHandlerContributor(get()) }
 
     // definitions for Cordaptor API endpoints handlers
     single { NodeInfoEndpoint("/node/info") } bind QueryEndpoint::class
@@ -80,18 +88,20 @@ class RestEndpointModuleProvider : ModuleProvider {
     factory<JsonSerializer<*>> { (key: SerializerKey) -> get<SerializationFactory>().getSerializer(key) }
 
     single { NodeNotifications() }
+
+    // supported security engines are qualified by a string, which is taken from the config
+    single<SecurityEngine>(named("noop")) { NoopSecurityEngine() }
+    single<SecurityEngine>(named("apiKey")) { APIKeySecurityEngine() }
   }
 }
 
 /**
- * Eagerly-initialized typesafe wrapper for module's configuration.
+ * Eagerly-initialized typesafe wrapper for top-level module's configuration.
  */
 data class Settings(
     val isOpenAPISpecificationEnabled: Boolean,
     val isSwaggerUIEnabled: Boolean,
     val isFlowSnapshotsEndpointEnabled: Boolean,
-    val secureEndpointSettings: SecureEndpointSettings,
-    val listenAddress: HostAndPort,
     val maxFlowInitiationTimeout: Duration,
     val maxVaultQueryPageSize: Int
 ) {
@@ -99,14 +109,9 @@ data class Settings(
       isOpenAPISpecificationEnabled = ourConfig.getBoolean("spec.enabled"),
       isSwaggerUIEnabled = ourConfig.getBoolean("swaggerUI.enabled"),
       isFlowSnapshotsEndpointEnabled = ourConfig.getBoolean("flowSnapshots.enabled"),
-      secureEndpointSettings = SecureEndpointSettings(ourConfig.getSubtree("tls")),
-      listenAddress = ourConfig.getHostAndPort("listenAddress"),
       maxFlowInitiationTimeout = ourConfig.getDuration("flowInitiation.maxTimeout"),
       maxVaultQueryPageSize = ourConfig.getInt("vaultQueries.maxPageSize")
   )
-
-  val connectorConfiguration = JettyConnectorConfiguration(
-      bindAddress = listenAddress, secureEndpointSettings = secureEndpointSettings)
 }
 
 /**
@@ -129,17 +134,3 @@ fun <T: Any> CordaptorComponent.injectSerializer(clazz: KClass<T>, vararg typePa
  */
 fun <T: Any> CordaptorComponent.injectSerializer(serializerKey: SerializerKey): Lazy<JsonSerializer<T>> =
     lazy { getKoin().get<JsonSerializer<T>> { parametersOf(serializerKey) } }
-
-/**
- * Wrapper for configuration section that is fed into Jetty connector factory.
- * We are not eagerly parsing config line by line to reduce the chance of a typo.
- */
-data class SecureEndpointSettings(
-    val enabled: Boolean,
-    val tlsConfig: Config
-) : Config by tlsConfig {
-  constructor(tlsConfig: Config) : this(
-      enabled = tlsConfig.getBoolean("enabled"),
-      tlsConfig = tlsConfig
-  )
-}

@@ -1,11 +1,11 @@
 package tech.b180.cordaptor.rest
 
+import io.undertow.util.StatusCodes
 import net.corda.core.serialization.SerializableCalculatedProperty
 import tech.b180.cordaptor.shaded.javax.json.Json
 import tech.b180.cordaptor.shaded.javax.json.JsonObject
 import java.net.URL
 import java.util.*
-import javax.servlet.http.HttpServletResponse
 
 typealias SemanticVersion = String
 typealias ResourcePath = String
@@ -237,18 +237,19 @@ data class OpenAPI(
     DEFAULT(jsonValue = "default"),
 
     // 2xx codes
-    OK(HttpServletResponse.SC_OK),
-    ACCEPTED(HttpServletResponse.SC_ACCEPTED),
+    OK(StatusCodes.OK),
+    ACCEPTED(StatusCodes.ACCEPTED),
 
     // 3xx codes
-    SEE_OTHER(HttpServletResponse.SC_SEE_OTHER),
+    SEE_OTHER(StatusCodes.SEE_OTHER),
 
     // 4xx codes
-    NOT_FOUND(HttpServletResponse.SC_NOT_FOUND),
-    GONE(HttpServletResponse.SC_GONE),
+    UNAUTHORIZED(StatusCodes.UNAUTHORIZED),
+    NOT_FOUND(StatusCodes.NOT_FOUND),
+    GONE(StatusCodes.GONE),
 
     // 5xx codes
-    INTERNAL_SERVER_ERROR(HttpServletResponse.SC_INTERNAL_SERVER_ERROR)
+    INTERNAL_SERVER_ERROR(StatusCodes.INTERNAL_SERVER_ERROR)
   }
 
   object PrimitiveTypes {

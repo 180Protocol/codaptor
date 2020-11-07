@@ -3,22 +3,33 @@ package tech.b180.cordaptor.rest
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.internal.operators.single.SingleJust
-import io.reactivex.rxjava3.observers.DisposableSingleObserver
-import org.eclipse.jetty.server.handler.AbstractHandler
+import io.undertow.server.HttpServerExchange
+import io.undertow.util.*
 import tech.b180.cordaptor.kernel.CordaptorComponent
 import tech.b180.cordaptor.kernel.loggerFor
 import tech.b180.cordaptor.shaded.javax.json.Json
 import tech.b180.cordaptor.shaded.javax.json.stream.JsonParsingException
 import java.beans.Transient
-import javax.servlet.http.HttpServletRequest
-import javax.servlet.http.HttpServletResponse
-import org.eclipse.jetty.server.Request as JettyRequest
+import java.io.OutputStreamWriter
+import java.io.StringReader
 
 enum class OperationErrorType(val protocolStatusCode: Int) {
-  GENERIC_ERROR(HttpServletResponse.SC_INTERNAL_SERVER_ERROR),
-  BAD_REQUEST(HttpServletResponse.SC_BAD_REQUEST),
-  NOT_FOUND(HttpServletResponse.SC_NOT_FOUND)
+  GENERIC_ERROR(StatusCodes.INTERNAL_SERVER_ERROR),
+  BAD_REQUEST(StatusCodes.BAD_REQUEST),
+  NOT_FOUND(StatusCodes.NOT_FOUND),
+  UNAUTHORIZED(StatusCodes.UNAUTHORIZED)
 }
+
+/**
+ * Payload structure that is sent to the client when the operation ends with an error.
+ */
+data class EndpointErrorMessage(
+    val message: String,
+    val cause: Throwable? = null,
+    val errorType: OperationErrorType = OperationErrorType.GENERIC_ERROR,
+    /** Not serialized in the payload, but set on the response */
+    @get:Transient val statusCode: Int = errorType.protocolStatusCode
+)
 
 /**
  * Base class for any exceptions that may arise when executing a Cordaptor API operation.
@@ -30,7 +41,15 @@ open class EndpointOperationException(
     cause: Throwable? = null,
     @Suppress("UNUSED_PARAMETER") val errorType: OperationErrorType = OperationErrorType.GENERIC_ERROR,
     @get:Transient val statusCode: Int = errorType.protocolStatusCode
-) : Exception(message, cause)
+) : Exception(message, cause) {
+
+  fun toErrorMessage() = EndpointErrorMessage(
+      message = message ?: "Internal error",
+      cause = cause,
+      errorType = errorType,
+      statusCode = statusCode
+  )
+}
 
 /**
  * Indicates that passed parameters are invalid in the context of a particular operation.
@@ -43,14 +62,32 @@ class BadOperationRequestException(
 ) : EndpointOperationException(message, cause, errorType = OperationErrorType.BAD_REQUEST)
 
 /**
+ * Indicates that the caller is not authorized to perform the operation.
+ * This may indicate that provided caller's credentials are not recognized,
+ * or that the caller's subject does not have sufficient privileges.
+ */
+class UnauthorizedOperationException(
+    message: String = "Not authorized"
+) : EndpointOperationException(message, null, errorType = OperationErrorType.UNAUTHORIZED)
+
+/**
  * Generic protocol request for an API operation,
  * allowing the logic to obtain information about the protocol query.
  */
 interface Request {
-  val pathInfo: String?
+  /** Equivalent of pathInfo in Servlet spec */
+  val relativePath: String
+  /** Equivalent to contextPath in Servlet spec */
+  val resolvedPath: String
+  /** Combination of [resolvedPath] and [relativePath] */
+  val completePath: String get() = resolvedPath + relativePath
+
   val method: String
 
   val queryParameters: Map<String, List<String>>
+
+  /** Caller's security subject associated with the request */
+  val subject: Subject
 
   /**
    * Returns a query string parameter value or null.
@@ -101,7 +138,7 @@ data class Response<PayloadType: Any>(
 ) {
   companion object {
     /** Assumed by default unless overridden in the constructor */
-    const val DEFAULT_STATUS_CODE = HttpServletResponse.SC_OK
+    const val DEFAULT_STATUS_CODE = StatusCodes.OK
   }
 
   data class Header(
@@ -125,7 +162,7 @@ interface GenericEndpoint {
   /**
    * Parameters used to construct an HTTP query handler.
    */
-  val contextMappingParameters: ContextMappingParameters
+  val contextMappingParameters: ContextMappedHandler.Parameters
 
   /**
    * Specification for the resource within OpenAPI specification corresponding to this endpoint.
@@ -157,15 +194,15 @@ interface OpenAPIResource {
  * optionally accepting non-path parameters.
  */
 abstract class ContextMappedResourceEndpoint(
-    val contextPath: String,
-    allowNullPathInfo: Boolean
+    val path: String,
+    exactPathOnly: Boolean
 ) : GenericEndpoint, OpenAPIResource {
 
   /** Default implementation uses the same resource path as context path,
    * but it must be overridden if the endpoint requires path parameters */
   override val resourcePath: String
-    get() = contextPath
-  override val contextMappingParameters = ContextMappingParameters(contextPath, allowNullPathInfo)
+    get() = path
+  override val contextMappingParameters = ContextMappedHandler.Parameters(path, exactPathOnly)
 
   override val resourceSpecification: OpenAPIResource
     get() = this
@@ -231,7 +268,7 @@ interface OperationEndpoint<RequestType: Any, ResponseType: Any> : GenericEndpoi
   val requestType: SerializerKey
 
   /**
-   * HTTP methods supported by the operation
+   * HTTP methods supported by the operation. Must only contain uppercase strings.
    */
   val supportedMethods: Collection<String>
 
@@ -289,112 +326,180 @@ interface EndpointProvider {
  */
 abstract class AbstractEndpointHandler<ResponseType: Any>(
     private val responseType: SerializerKey,
-    override val mappingParameters: ContextMappingParameters
-) : ContextMappedHandler, AbstractHandler(), CordaptorComponent {
+    override val mappingParameters: ContextMappedHandler.Parameters
+) : ContextMappedHandler, CordaptorComponent {
 
-  val responseSerializer by injectSerializer<ResponseType>(responseType)
-  val errorSerializer by injectSerializer(EndpointOperationException::class)
+  companion object {
+    const val JSON_CONTENT_TYPE = "application/json"
 
-  override fun handle(target: String?, baseRequest: JettyRequest?,
-                      request: HttpServletRequest?, response: HttpServletResponse?) {
+    private val logger = loggerFor<AbstractEndpointHandler<*>>()
+  }
 
-    // if context mapping was successful, the request will be handled
-    baseRequest!!.isHandled = true
+  private val responseSerializer by injectSerializer<ResponseType>(responseType)
+  private val errorMessageSerializer by injectSerializer(EndpointErrorMessage::class)
 
-    if (request == null || response == null) {
-      throw AssertionError("Jetty should not pass null request and/or response at this point")
+  override fun handleRequest(exchange: HttpServerExchange) {
+    if (exchange.isInIoThread) {
+      exchange.dispatch(this)
+      return
     }
 
     try {
-      if (!canHandle(request)) {
-        response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED)
+      if (!canHandle(exchange)) {
+        exchange.statusCode = StatusCodes.METHOD_NOT_ALLOWED
+        exchange.endExchange()
         return
       }
 
-      doHandle(request, response)
-
-    } catch (e: EndpointOperationException) {
-      logger.debug("Endpoint operation threw a protocol exception, which will be serialized", e)
-      sendError(response, e)
+      doHandle(exchange, obtainSubject(exchange))
 
     } catch (e: Throwable) {
-      logger.error("Endpoint operation threw an unexpected exception", e)
-      response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR)
+      if (!exchange.isResponseStarted) {
+        logger.debug("Endpoint operation threw an exception", e)
+
+        exchange.statusCode = StatusCodes.INTERNAL_SERVER_ERROR
+
+        val error = (e as? EndpointOperationException)?.toErrorMessage()
+            ?: EndpointErrorMessage("Unknown server error", e)
+
+        sendError(exchange, error)
+      } else {
+        logger.warn("Endpoint operation threw unexpected exception after starting to send back a response", e)
+      }
     }
   }
 
-  abstract fun canHandle(request: HttpServletRequest): Boolean
+  private fun obtainSubject(exchange: HttpServerExchange): Subject {
+    return NoopSecurityEngine.PermissiveSubject
+  }
+
+  protected abstract fun canHandle(exchange: HttpServerExchange): Boolean
 
   /**
-   * Handles request in a way specific to the endpoint type
+   * Handles request in a way specific to the endpoint type.
+   * The hand off will be made in a worker thread, so implementations do not need to deal
+   * with dispatching unless they want to read request payload data in a non-blocking way.
+   *
+   * The implementation may throw an exception, which will be passed into only use [sendResponse] or [sendError] methods
+   * to complete response. Any exceptions thrown by the implementation will be sent to the client via [sendError].
+   * If the implementation invokes asynchronous IO operations, then it is responsible for eventually
+   * calling [sendResponse] or [sendError].
    *
    * @throws EndpointOperationException
    */
-  abstract fun doHandle(request: HttpServletRequest, response: HttpServletResponse)
+  protected abstract fun doHandle(exchange: HttpServerExchange, subject: Subject)
 
-  fun sendError(servletResponse: HttpServletResponse, error: EndpointOperationException) {
+  /**
+   * One of two ways to end the exchange normally, the other one is [sendResponse].
+   * This method will serialize given exception using the [errorMessageSerializer],
+   * and then will end the exchange using [HttpServerExchange.endExchange]
+   */
+  protected fun sendError(exchange: HttpServerExchange, error: EndpointErrorMessage) {
+    if (exchange.isResponseStarted) {
+      logger.warn("Response has already been started, cannot send error: {}", error)
+      return  // nothing can be done, so simply log the error
+    }
     logger.debug("Sending a protocol error to the client: {}", error)
 
-    servletResponse.status = error.statusCode
-    servletResponse.contentType = JSON_CONTENT_TYPE
+    try {
+      exchange.statusCode = error.statusCode
+      exchange.responseHeaders.put(Headers.CONTENT_TYPE, JSON_CONTENT_TYPE)
 
-    Json.createGenerator(servletResponse.writer)
-        .writeSerializedObject(errorSerializer, error)
-        .flush()
+      // we switch to blocking mode to simplify stream handling, because
+      // generation of JSON is presumed to be fast and will not hold the worker thread for long
+      exchange.startBlocking()
+      Json.createGenerator(OutputStreamWriter(exchange.outputStream))
+          .writeSerializedObject(errorMessageSerializer, error)
+          .flush()
+
+    } finally {
+      exchange.endExchange()
+    }
   }
 
-  fun sendResponse(servletResponse: HttpServletResponse, endpointResponse: Response<ResponseType>) {
+  /**
+   * One of two ways to end the exchange normally, the other one is [sendError].
+   * This method will serialize given response payload using the [responseSerializer],
+   * and then will end the exchange using [HttpServerExchange.endExchange]
+   */
+  protected fun sendResponse(exchange: HttpServerExchange, endpointResponse: Response<ResponseType>) {
+    if (exchange.isResponseStarted) {
+      logger.warn("Response has already been started, cannot send the response: {}", endpointResponse)
+      return  // nothing can be done, so simply log the error
+    }
     logger.debug("Sending response payload: {}", endpointResponse)
 
-    servletResponse.status = endpointResponse.statusCode
-    for (header in endpointResponse.headers) {
-      servletResponse.setHeader(header.header, header.value)
+    val payload = endpointResponse.payload
+
+    // validation for correct return type instead of failing to serialize with a cryptic message
+    // this may occur if the endpoint's responseType is incorrectly set
+    if (payload != null && !responseType.rawType.isAssignableFrom(payload.javaClass)) {
+
+      // at this point we have not touched the response, so an error could be sent instead
+      sendError(exchange, EndpointErrorMessage("Endpoint returned an instance of ${payload.javaClass}, " +
+          "where an instance of ${responseType.rawType} was expected"))
+
+      return // sendError will close the exchange
     }
 
-    endpointResponse.payload?.let { payload ->
-
-      // validation for correct return type instead of failing to serialize with a cryptic message
-      // this may occur if the endpoint's responseType is incorrectly set
-      if (!responseType.rawType.isAssignableFrom(payload.javaClass)) {
-        throw EndpointOperationException("Endpoint returned an instance of ${payload.javaClass}, " +
-            "where an instance of ${responseType.rawType} was expected")
+    // in this block we actually send back the response
+    try {
+      exchange.statusCode = endpointResponse.statusCode
+      for (header in endpointResponse.headers) {
+        exchange.responseHeaders.put(HttpString(header.header), header.value)
       }
 
-      servletResponse.contentType = JSON_CONTENT_TYPE
+      payload?.let {
+        exchange.responseHeaders.put(Headers.CONTENT_TYPE, JSON_CONTENT_TYPE)
 
-      Json.createGenerator(servletResponse.writer)
-          .writeSerializedObject(responseSerializer, payload)
-          .flush()
+        // we switch to blocking mode to simplify stream handling, because
+        // generation of JSON is presumed to be fast and will not hold the worker thread for long
+        exchange.startBlocking()
+
+        Json.createGenerator(OutputStreamWriter(exchange.outputStream))
+            .writeSerializedObject(responseSerializer, payload)
+            .flush()
+      }
+    } finally {
+      exchange.endExchange()
     }
   }
 
   /**
    * Implementation for the protocol request wrapping an HTTP request
    */
-  open class HttpRequest(private val request: HttpServletRequest) : Request {
-    override val pathInfo: String?
-      get() = request.pathInfo
+  open class HttpRequest(
+      private val exchange: HttpServerExchange,
+      override val subject: Subject
+  ) : Request {
+    override val relativePath: String
+      get() = exchange.relativePath
     override val method: String
-      get() = request.method
-    override val queryParameters: Map<String, List<String>>
-      get() = request.parameterMap.mapValues { it.value.asList() }
+      get() = exchange.requestMethod.toString()
+    override val resolvedPath: String
+      get() = exchange.resolvedPath
 
-    override fun getParameterValue(name: String): String? = request.getParameter(name)
-    override fun getAllParameterValues(name: String): List<String>? = request.getParameterValues(name)?.asList()
+    override val queryParameters: Map<String, List<String>> = (exchange.pathParameters + exchange.queryParameters)
+        .mapValues { (_, values) -> ArrayList(values) }
+
+    override fun getParameterValue(name: String): String? = queryParameters[name]?.first()
+    override fun getAllParameterValues(name: String): List<String>? = queryParameters[name]
+
+    override fun toString(): String = "HttpRequest(method=$method, relativePath=$relativePath, " +
+        "resolvedPath=$resolvedPath, parameters=$queryParameters)"
   }
 
   /**
    * Implementation for the protocol request wrapper accepting a deserialized payload object.
    */
   class HttpRequestWithPayload<T: Any>(
-      request: HttpServletRequest,
+      exchange: HttpServerExchange,
+      subject: Subject,
       override val payload: T
-  ) : HttpRequest(request), RequestWithPayload<T>
+  ) : HttpRequest(exchange, subject), RequestWithPayload<T> {
 
-  companion object {
-    const val JSON_CONTENT_TYPE = "application/json"
-
-    private val logger = loggerFor<AbstractEndpointHandler<*>>()
+    override fun toString(): String = "HttpRequest(method=$method, relativePath=$relativePath, " +
+        "resolvedPath=$resolvedPath, parameters=$queryParameters, payload=$payload)"
   }
 }
 
@@ -406,18 +511,18 @@ class QueryEndpointHandler<ResponseType: Any>(
     private val endpoint: QueryEndpoint<ResponseType>
 ) : AbstractEndpointHandler<ResponseType>(endpoint.responseType, endpoint.contextMappingParameters) {
 
-  override fun canHandle(request: HttpServletRequest): Boolean {
-    return request.method == "GET"
+  override fun canHandle(exchange: HttpServerExchange): Boolean {
+    return exchange.requestMethod == Methods.GET
   }
 
-  override fun doHandle(request: HttpServletRequest, response: HttpServletResponse) {
-    val endpointRequest = HttpRequest(request)
+  override fun doHandle(exchange: HttpServerExchange, subject: Subject) {
+    val endpointRequest = HttpRequest(exchange, subject)
     val endpointResponse = endpoint.executeQuery(endpointRequest)
-    sendResponse(response, endpointResponse)
+    sendResponse(exchange, endpointResponse)
   }
 
   override fun toString(): String {
-    return "QueryEndpointHandler(responseType=${endpoint.responseType}, endpoint=${endpoint}"
+    return "QueryEndpointHandler(responseType=${endpoint.responseType}, endpoint=${endpoint})"
   }
 }
 
@@ -451,83 +556,98 @@ class OperationEndpointHandler<RequestType: Any, ResponseType: Any>(
   init {
     if (queryEndpoint != null) {
       logger.debug("Operation endpoint at {} will also accept GET queries",
-          endpoint.contextMappingParameters.contextPath)
+          endpoint.contextMappingParameters.path)
     }
   }
 
-  override fun canHandle(request: HttpServletRequest): Boolean {
-    return request.method in endpoint.supportedMethods
+  override fun canHandle(exchange: HttpServerExchange): Boolean {
+    return exchange.requestMethod.toString().toUpperCase() in endpoint.supportedMethods
   }
 
-  override fun doHandle(request: HttpServletRequest, response: HttpServletResponse) {
-    if (tryHandlingAsQuery(request, response)) {
+  override fun doHandle(exchange: HttpServerExchange, subject: Subject) {
+    if (tryHandlingAsQuery(exchange, subject)) {
       return
     }
 
-    if (request.contentLength == 0) {
-      throw BadOperationRequestException("Empty request payload")
-    }
-    val requestPayload = try {
-      val requestJsonPayload = Json.createReader(request.reader).readObject()
-      requestSerializer.fromJson(requestJsonPayload)
-    } catch (e: JsonParsingException) {
-      logger.debug("JSON parsing exception, which will be returned to the client", e)
-      throw BadOperationRequestException("Malformed JSON in the request payload", e)
-    } catch (e: SerializationException) {
-      logger.debug("Exception during payload deserialization, which will be returned to the client", e)
-      throw BadOperationRequestException("Unable to deserialize the request payload", e)
+    // we have to use non-blocking IO to read request payload and not switch to a blocking mode
+    // because API operations are performed asynchronously
+    val asyncReceiver = exchange.requestReceiver
+    asyncReceiver.receiveFullString({ e, s -> receiveRequestPayload(subject, e, s) }, Charsets.UTF_8)
+  }
+
+  private fun receiveRequestPayload(subject: Subject, exchange: HttpServerExchange, payloadString: String) {
+    if (payloadString.isEmpty()) {
+      sendError(exchange, EndpointErrorMessage(
+          "Empty request payload", errorType = OperationErrorType.BAD_REQUEST))
+      return
     }
 
-    val endpointRequest = HttpRequestWithPayload(request, requestPayload)
+    val endpointRequest = try {
+
+      val requestJsonPayload = Json.createReader(StringReader(payloadString)).readObject()
+      val requestPayload = requestSerializer.fromJson(requestJsonPayload)
+
+      HttpRequestWithPayload(exchange, subject, requestPayload)
+
+    } catch (e: JsonParsingException) {
+
+      logger.debug("JSON parsing exception, which will be returned to the client", e)
+      sendError(exchange, EndpointErrorMessage("Malformed JSON in the request payload",
+          cause = e, errorType = OperationErrorType.BAD_REQUEST))
+      return
+    } catch (e: SerializationException) {
+
+      logger.debug("Exception during payload deserialization, which will be returned to the client", e)
+      sendError(exchange, EndpointErrorMessage("Unable to deserialize the request payload",
+          cause = e, errorType = OperationErrorType.BAD_REQUEST))
+      return
+    }
+
+    // invoke operation in the worker thread
+    logger.debug("Invoking operation with request: {}", endpointRequest)
+
     val endpointResponse = endpoint.executeOperation(endpointRequest)
 
     // special handling for operations executed synchronously and using Single.just() to signal this
     if (endpointResponse is SingleJust<*>) {
-      sendResponse(response, endpointResponse.blockingGet())
-      return
-    }
+      logger.debug("Endpoint operation at {} completed synchronously, sending response outright", endpointRequest.completePath)
 
-    // switch into async mode and only return when the result promise returns or times out
-    val async = request.startAsync()
-    endpointResponse.subscribe(object : DisposableSingleObserver<Response<ResponseType>>() {
-      override fun onSuccess(result: Response<ResponseType>?) = sendAndClose {
-        sendResponse(async.response as HttpServletResponse, result!!)
-      }
+      // operation result will be available outright, so we can simply get it and send back the response
+      sendResponse(exchange, endpointResponse.blockingGet())
 
-      override fun onError(error: Throwable?) = sendAndClose {
-        sendError(async.response as HttpServletResponse, error as? EndpointOperationException
-            ?: EndpointOperationException(error?.message ?: "Unknown internal error", error))
-      }
+    } else {
+      logger.debug("Awaiting completion of endpoint operation at {}", endpointRequest.completePath)
 
-      /** Wrapper for the action communicating the outcome of the operation to the client
-       * that makes sure that all necessary resources are disposed correctly */
-      private fun sendAndClose(action: () -> Unit) {
-        try {
-          action()
-        } catch (e: SerializationException) {
-          sendError(async.response as HttpServletResponse,
-              EndpointOperationException("Unable to send response payload", e))
-
-        } finally {
-          async.complete()
-          dispose()
+      // this is poorly documented in Undertow, the suggestion taken from here:
+      // https://stackoverflow.com/questions/25204887/how-to-send-a-asynchronous-response-in-an-undertow-httphandler#25223070
+      exchange.dispatch(SameThreadExecutor.INSTANCE, Runnable {
+        // we need to wait for the result of the operation to become available,
+        // which means we have to subscribe to the promise and send response payload once it's available
+        endpointResponse.subscribe { response, error ->
+          // either one or the other will be null
+          if (response != null) {
+            sendResponse(exchange, response)
+          } else if (error != null) {
+            sendError(exchange, (error as? EndpointOperationException)?.toErrorMessage()
+                ?: EndpointErrorMessage("Unexpected internal error", error))
+          }
         }
-      }
-    })
+      })
+    }
   }
 
-  private fun tryHandlingAsQuery(request: HttpServletRequest, response: HttpServletResponse): Boolean {
-    if (queryEndpoint == null || request.method != "GET") {
+  private fun tryHandlingAsQuery(exchange: HttpServerExchange, subject: Subject): Boolean {
+    if (queryEndpoint == null || exchange.requestMethod != Methods.GET) {
       return false
     }
-    val endpointRequest = HttpRequest(request)
+    val endpointRequest = HttpRequest(exchange, subject)
     val endpointResponse = queryEndpoint.executeQuery(endpointRequest)
-    sendResponse(response, endpointResponse)
+    sendResponse(exchange, endpointResponse)
     return true
   }
 
   override fun toString(): String {
     return "OperationEndpointHandler(requestType=${endpoint.requestType}, " +
-        "responseType=${endpoint.responseType}, endpoint=${endpoint}"
+        "responseType=${endpoint.responseType}, endpoint=${endpoint})"
   }
 }

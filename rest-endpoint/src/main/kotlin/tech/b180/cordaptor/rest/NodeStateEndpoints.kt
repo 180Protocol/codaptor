@@ -3,6 +3,7 @@ package tech.b180.cordaptor.rest
 import com.google.common.net.HttpHeaders
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.subjects.ReplaySubject
+import io.undertow.util.StatusCodes
 import net.corda.core.contracts.ContractState
 import net.corda.core.contracts.StateRef
 import net.corda.core.crypto.SecureHash
@@ -18,8 +19,6 @@ import tech.b180.cordaptor.kernel.loggerFor
 import tech.b180.cordaptor.shaded.javax.json.JsonObject
 import java.util.*
 import java.util.concurrent.TimeUnit
-import javax.servlet.http.HttpServletResponse
-import kotlin.NoSuchElementException
 import kotlin.math.min
 import kotlin.reflect.KClass
 
@@ -85,7 +84,7 @@ class FlowInitiationEndpoint<FlowReturnType: Any>(
     private val flowClass: KClass<out FlowLogic<Any>>,
     flowResultClass: KClass<out Any>
 ) : OperationEndpoint<CordaFlowInstruction<FlowLogic<FlowReturnType>>, CordaFlowSnapshot<FlowReturnType>>, CordaptorComponent,
-    ContextMappedResourceEndpoint(contextPath, allowNullPathInfo = true) {
+    ContextMappedResourceEndpoint(contextPath, true) {
 
   companion object {
     private val logger = loggerFor<FlowInitiationEndpoint<*>>()
@@ -93,7 +92,7 @@ class FlowInitiationEndpoint<FlowReturnType: Any>(
 
   private val cordaNodeState: CordaNodeState by inject()
   private val settings: Settings by inject()
-  private val connectorConfiguration: JettyConnectorConfiguration by inject()
+  private val urlBuilder: URLBuilder by inject()
 
   override val responseType = SerializerKey(CordaFlowSnapshot::class, flowResultClass)
   override val requestType = SerializerKey(CordaFlowInstruction::class, flowClass)
@@ -102,6 +101,10 @@ class FlowInitiationEndpoint<FlowReturnType: Any>(
   override fun executeOperation(
       request: RequestWithPayload<CordaFlowInstruction<FlowLogic<FlowReturnType>>>
   ): Single<Response<CordaFlowSnapshot<FlowReturnType>>> {
+
+    if (!request.subject.isPermitted(OPERATION_INITIATE_FLOW, flowClass.qualifiedName)) {
+      throw UnauthorizedOperationException(OPERATION_INITIATE_FLOW)
+    }
 
     val waitTimeout = request.getPositiveIntParameterValue("wait", 0)
 
@@ -114,7 +117,7 @@ class FlowInitiationEndpoint<FlowReturnType: Any>(
 
     val headers = if (settings.isFlowSnapshotsEndpointEnabled) {
       listOf(Response.Header(HttpHeaders.LOCATION,
-          connectorConfiguration.toAbsoluteUrl("$contextPath/snapshot/${handle.flowRunId}")))
+          urlBuilder.toAbsoluteUrl("$path/snapshot/${handle.flowRunId}")))
     } else {
       emptyList()
     }
@@ -124,7 +127,7 @@ class FlowInitiationEndpoint<FlowReturnType: Any>(
 
       val snapshot = handle.asInitialSnapshot()
 
-      return Single.just(Response(snapshot, HttpServletResponse.SC_ACCEPTED, headers))
+      return Single.just(Response(snapshot, StatusCodes.ACCEPTED, headers))
     } else {
       val effectiveTimeout = min(waitTimeout, settings.maxFlowInitiationTimeout.seconds.toInt())
       logger.debug("Effective timeout for the flow {}", effectiveTimeout)
@@ -163,15 +166,15 @@ class FlowInitiationEndpoint<FlowReturnType: Any>(
         val statusCode = when {
           snapshot.result == null -> {
             // flow is still active
-            HttpServletResponse.SC_ACCEPTED
+            StatusCodes.ACCEPTED
           }
           snapshot.result!!.isError -> {
             // flow terminated with an error
-            HttpServletResponse.SC_INTERNAL_SERVER_ERROR
+            StatusCodes.INTERNAL_SERVER_ERROR
           }
           else -> {
             // flow completed and produced a result
-            HttpServletResponse.SC_OK
+            StatusCodes.OK
           }
         }
         Response(snapshot, statusCode, headers)
@@ -237,7 +240,7 @@ class FlowSnapshotsEndpoint<FlowReturnType: Any>(
     private val flowClass: KClass<out FlowLogic<FlowReturnType>>,
     flowResultClass: KClass<out FlowReturnType>
 ) : QueryEndpoint<CordaFlowSnapshot<FlowReturnType>>, CordaptorComponent,
-    ContextMappedResourceEndpoint(contextPath, allowNullPathInfo = false) {
+    ContextMappedResourceEndpoint(contextPath, false) {
 
   companion object {
     private val pathInfoPattern = Regex("""^/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$""")
@@ -251,10 +254,14 @@ class FlowSnapshotsEndpoint<FlowReturnType: Any>(
   override val responseType = SerializerKey(CordaFlowSnapshot::class, flowResultClass)
 
   override fun executeQuery(request: Request): Response<CordaFlowSnapshot<FlowReturnType>> {
-    logger.debug("Parsing pathInfo {}", request.pathInfo)
+    if (!request.subject.isPermitted(OPERATION_GET_FLOW_SNAPSHOT, flowClass.qualifiedName)) {
+      throw UnauthorizedOperationException(OPERATION_GET_FLOW_SNAPSHOT)
+    }
 
-    val match = pathInfoPattern.matchEntire(request.pathInfo!!.toLowerCase())
-        ?: throw BadOperationRequestException("Malformed pathInfo ${request.pathInfo}")
+    logger.debug("Parsing relativePath {}", request.relativePath)
+
+    val match = pathInfoPattern.matchEntire(request.relativePath.toLowerCase())
+        ?: throw BadOperationRequestException("Malformed relativePath ${request.relativePath}")
 
     val runId = UUID.fromString(match.groupValues[1])
 
@@ -265,14 +272,14 @@ class FlowSnapshotsEndpoint<FlowReturnType: Any>(
       if (snapshot == null) {
         // this will not happen in the current local cache implementation
         logger.debug("Flow snapshots for run id {} is no longer available", runId)
-        Response(null, HttpServletResponse.SC_GONE)
+        Response(null, StatusCodes.GONE)
       } else {
         logger.debug("Flow snapshots for run id {} was found: {}", runId, snapshot)
-        Response(snapshot, HttpServletResponse.SC_OK)
+        Response(snapshot, StatusCodes.OK)
       }
     } catch (e: NoSuchElementException) {
       logger.debug("Flow id {} was not found in the snapshots cache", runId)
-      Response(null, HttpServletResponse.SC_NOT_FOUND)
+      Response(null, StatusCodes.NOT_FOUND)
     }
   }
 
@@ -306,7 +313,7 @@ class FlowSnapshotsEndpoint<FlowReturnType: Any>(
 class ContractStateRefQueryEndpoint<StateType: ContractState>(
     contextPath: String,
     private val contractStateClass: KClass<StateType>
-) : QueryEndpoint<StateType>, ContextMappedResourceEndpoint(contextPath, allowNullPathInfo = false),
+) : QueryEndpoint<StateType>, ContextMappedResourceEndpoint(contextPath, false),
     CordaptorComponent {
 
   private val nodeState: CordaNodeState by inject()
@@ -322,10 +329,14 @@ class ContractStateRefQueryEndpoint<StateType: ContractState>(
   override val resourcePath = "$contextPath/{hash}({index})"
 
   override fun executeQuery(request: Request): Response<StateType> {
-    logger.debug("Parsing pathInfo {}", request.pathInfo)
+    if (!request.subject.isPermitted(OPERATION_GET_STATE_BY_REF, contractStateClass.qualifiedName)) {
+      throw UnauthorizedOperationException(OPERATION_GET_STATE_BY_REF)
+    }
 
-    val match = pathInfoPattern.matchEntire(request.pathInfo!!)
-        ?: throw BadOperationRequestException("Malformed pathInfo ${request.pathInfo}")
+    logger.debug("Parsing relativePath {}", request.relativePath)
+
+    val match = pathInfoPattern.matchEntire(request.relativePath)
+        ?: throw BadOperationRequestException("Malformed pathInfo ${request.relativePath}")
 
     val (hash, index) = match.destructured
     val stateRef = StateRef(SecureHash.parse(hash), index.toInt())
@@ -375,7 +386,7 @@ class ContractStateVaultQueryEndpoint<StateType: ContractState>(
     private val contractStateClass: KClass<StateType>
 ) : QueryEndpoint<CordaVaultPage<StateType>>,
     OperationEndpoint<CordaVaultQuery<StateType>, CordaVaultPage<StateType>>,
-    ContextMappedResourceEndpoint(contextPath, allowNullPathInfo = true),
+    ContextMappedResourceEndpoint(contextPath, true),
     CordaptorComponent {
 
   companion object {
@@ -406,6 +417,10 @@ class ContractStateVaultQueryEndpoint<StateType: ContractState>(
 
   // GET form of query supports a limited subset of criteria
   override fun executeQuery(request: Request): Response<CordaVaultPage<StateType>> {
+    if (!request.subject.isPermitted(OPERATION_QUERY_STATES, contractStateClass.qualifiedName)) {
+      throw UnauthorizedOperationException(OPERATION_QUERY_STATES)
+    }
+
     val query = buildQueryFromRequestParameters(request)
     logger.debug("Performing vault query: {}", query)
 
@@ -420,6 +435,10 @@ class ContractStateVaultQueryEndpoint<StateType: ContractState>(
   override fun executeOperation(
       request: RequestWithPayload<CordaVaultQuery<StateType>>
   ): Single<Response<CordaVaultPage<StateType>>> {
+
+    if (!request.subject.isPermitted(OPERATION_QUERY_STATES, contractStateClass.qualifiedName)) {
+      throw UnauthorizedOperationException(OPERATION_QUERY_STATES)
+    }
 
     val query = request.payload
     logger.debug("Performing vault query: {}", query)
@@ -551,10 +570,14 @@ class TransactionQueryEndpoint(contextPath: String)
   override val resourcePath = "$contextPath/{hash}"
 
   override fun executeQuery(request: Request): Response<SignedTransaction> {
-    logger.debug("Parsing pathInfo {}", request.pathInfo)
+    if (!request.subject.isPermitted(OPERATION_GET_TX_BY_HASH)) {
+      throw UnauthorizedOperationException(OPERATION_GET_TX_BY_HASH)
+    }
 
-    val match = pathInfoPattern.matchEntire(request.pathInfo!!)
-        ?: throw BadOperationRequestException("Malformed pathInfo ${request.pathInfo}")
+    logger.debug("Parsing relativePath {}", request.relativePath)
+
+    val match = pathInfoPattern.matchEntire(request.relativePath)
+        ?: throw BadOperationRequestException("Malformed relativePath ${request.relativePath}")
 
     val (hash) = match.destructured
 

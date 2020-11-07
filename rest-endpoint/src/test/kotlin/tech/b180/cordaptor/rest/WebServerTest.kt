@@ -1,10 +1,10 @@
 package tech.b180.cordaptor.rest
 
 import io.reactivex.rxjava3.core.Single
+import io.undertow.server.HttpServerExchange
+import io.undertow.util.Headers
 import org.eclipse.jetty.client.HttpClient
 import org.eclipse.jetty.client.util.StringContentProvider
-import org.eclipse.jetty.server.Request
-import org.eclipse.jetty.server.handler.AbstractHandler
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -15,16 +15,17 @@ import org.koin.test.KoinTestRule
 import org.koin.test.get
 import tech.b180.cordaptor.kernel.HostAndPort
 import tech.b180.cordaptor.kernel.LifecycleControl
+import tech.b180.cordaptor.kernel.TypesafeConfig
 import tech.b180.cordaptor.shaded.javax.json.Json
+import java.io.StringWriter
 import java.util.concurrent.TimeUnit
-import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 
 
-class JettyServerTest : KoinTest {
+class WebServerTest : KoinTest {
 
   @get:Rule
   val koinTestRule = KoinTestRule.create {
@@ -40,16 +41,14 @@ class JettyServerTest : KoinTest {
       factory<JsonSerializer<*>> { (key: SerializerKey) -> get<SerializationFactory>().getSerializer(key) }
 
       // initialize a server with plain HTTP connection
-      single { JettyServer() }
+      single { WebServer() }
       single { object : LifecycleControl {
         override fun serverStarted() { }
       } as LifecycleControl }
-      single<JettyConfigurator> {
-        ConnectorFactory(
-            JettyConnectorConfiguration(HostAndPort("localhost", 9000), false),
-            NodeNotifications()
-        )
-      }
+      single { WebServerSettings(HostAndPort("localhost", 9000),
+          SecureTransportSettings(false, TypesafeConfig.empty()), 1, 1) }
+      single { UndertowHandlerContributor(get()) } bind UndertowConfigContributor::class
+      single { UndertowListenerContributor(get()) } bind UndertowConfigContributor::class
 
       single { EchoHandler("/test") } bind ContextMappedHandler::class
 
@@ -70,14 +69,14 @@ class JettyServerTest : KoinTest {
 
   @Before
   fun setUp() {
-    get<JettyServer>().onInitialize()
+    get<WebServer>().onInitialize()
     get<HttpClient>().start()
   }
 
   @After
   fun tearDown() {
     get<HttpClient>().stop()
-    get<JettyServer>().onShutdown()
+    get<WebServer>().onShutdown()
   }
 
   @Test
@@ -88,9 +87,8 @@ class JettyServerTest : KoinTest {
       assertEquals(HttpServletResponse.SC_OK, it.status)
 
       val data = it.contentAsString.asJsonObject()
-      assertEquals("/", data.getString("target"))
-      assertEquals("/test", data.getString("contextPath"))
-      assertEquals("", data.getString("pathInfo"))
+      assertEquals("", data.getString("relativePath"))
+      assertEquals("/test", data.getString("resolvedPath"))
       assertEquals("", data.getString("queryString"))
     }
 
@@ -98,9 +96,8 @@ class JettyServerTest : KoinTest {
       assertEquals(HttpServletResponse.SC_OK, it.status)
 
       val data = it.contentAsString.asJsonObject()
-      assertEquals("/info", data.getString("target"))
-      assertEquals("/test", data.getString("contextPath"))
-      assertEquals("/info", data.getString("pathInfo"))
+      assertEquals("/info", data.getString("relativePath"))
+      assertEquals("/test", data.getString("resolvedPath"))
       assertEquals("query", data.getString("queryString"))
     }
   }
@@ -112,7 +109,7 @@ class JettyServerTest : KoinTest {
     httpClient.GET("http://localhost:9000/echo-query").let {
       assertEquals(HttpServletResponse.SC_ACCEPTED, it.status)
       assertEquals(AbstractEndpointHandler.JSON_CONTENT_TYPE, it.mediaType)
-      assertEquals("""{"pathInfo":"/","method":"GET","message":"echo"}""".asJsonObject(), it.contentAsString.asJsonObject())
+      assertEquals("""{"relativePath":"","method":"GET","message":"echo"}""".asJsonObject(), it.contentAsString.asJsonObject())
     }
 
     httpClient.GET("http://localhost:9000/echo-query-wrong-type").let {
@@ -162,7 +159,7 @@ class JettyServerTest : KoinTest {
       assertEquals(HttpServletResponse.SC_ACCEPTED, it.status)
       assertEquals(AbstractEndpointHandler.JSON_CONTENT_TYPE, it.mediaType)
 
-      assertEquals("""{"pathInfo":"","method":"POST","message":"sync"}""".asJsonObject(),
+      assertEquals("""{"relativePath":"","method":"POST","message":"sync"}""".asJsonObject(),
           it.contentAsString.asJsonObject())
     }
 
@@ -171,7 +168,7 @@ class JettyServerTest : KoinTest {
       assertEquals(HttpServletResponse.SC_ACCEPTED, it.status)
       assertEquals(AbstractEndpointHandler.JSON_CONTENT_TYPE, it.mediaType)
 
-      assertEquals("""{"pathInfo":"/pathInfo","method":"GET","message":"sync"}""".asJsonObject(),
+      assertEquals("""{"relativePath":"/pathInfo","method":"GET","message":"sync"}""".asJsonObject(),
           it.contentAsString.asJsonObject())
     }
   }
@@ -184,10 +181,11 @@ class JettyServerTest : KoinTest {
       it.content(StringContentProvider("""{"value":"ABC"}"""), AbstractEndpointHandler.JSON_CONTENT_TYPE)
       it.send()
     }.let {
+      println(it)
       assertEquals(HttpServletResponse.SC_ACCEPTED, it.status)
       assertEquals(AbstractEndpointHandler.JSON_CONTENT_TYPE, it.mediaType)
 
-      assertEquals("""{"pathInfo":"","method":"POST","message":"async"}""".asJsonObject(),
+      assertEquals("""{"relativePath":"","method":"POST","message":"async"}""".asJsonObject(),
           it.contentAsString.asJsonObject())
     }
   }
@@ -208,37 +206,37 @@ class JettyServerTest : KoinTest {
   }
 }
 
-class EchoHandler(contextPath: String) : ContextMappedHandler, AbstractHandler() {
+class EchoHandler(contextPath: String) : ContextMappedHandler {
 
-  override val mappingParameters = ContextMappingParameters(contextPath, true)
+  override val mappingParameters = ContextMappedHandler.Parameters(contextPath, false)
 
-  override fun handle(target: String?, baseRequest: Request?, request: HttpServletRequest?, response: HttpServletResponse?) {
-    response!!.status = HttpServletResponse.SC_OK
-    response.contentType = "text/plain"
+  override fun handleRequest(exchange: HttpServerExchange) {
+    exchange.statusCode = HttpServletResponse.SC_OK
+    exchange.responseHeaders.put(Headers.CONTENT_TYPE, "text/plain")
 
-    Json.createGenerator(response.writer)
+    val w = StringWriter()
+    Json.createGenerator(w)
         .writeStartObject()
-        .write("target", target ?: "")
-        .write("contextPath", request!!.contextPath)
-        .write("pathInfo", request.pathInfo ?: "")
-        .write("queryString", request.queryString ?: "")
+        .write("relativePath", exchange.relativePath)
+        .write("resolvedPath", exchange.resolvedPath)
+        .write("queryString", exchange.queryString)
         .writeEnd()
         .flush()
 
-    baseRequest!!.isHandled = true
+    exchange.responseSender.send(w.toString())
   }
 }
 
 data class SimplePayload(val value: String)
-data class EchoPayload(val pathInfo: String, val method: String, val message: String = "echo")
+data class EchoPayload(val relativePath: String, val method: String, val message: String = "echo")
 
 class EchoQueryEndpoint(contextPath: String) : QueryEndpoint<EchoPayload> {
 
   override val responseType = SerializerKey(EchoPayload::class)
-  override val contextMappingParameters = ContextMappingParameters(contextPath, false)
+  override val contextMappingParameters = ContextMappedHandler.Parameters(contextPath, false)
 
-  override fun executeQuery(request: tech.b180.cordaptor.rest.Request): Response<EchoPayload> {
-    return Response(EchoPayload(request.pathInfo!!, request.method), statusCode = HttpServletResponse.SC_ACCEPTED)
+  override fun executeQuery(request: Request): Response<EchoPayload> {
+    return Response(EchoPayload(request.relativePath, request.method), statusCode = HttpServletResponse.SC_ACCEPTED)
   }
 
   override val resourceSpecification: OpenAPIResource
@@ -249,10 +247,10 @@ class MisconfiguredEchoQueryEndpoint(contextPath: String) : QueryEndpoint<EchoPa
 
   // incorrect response type information specified here
   override val responseType = SerializerKey(String::class)
-  override val contextMappingParameters = ContextMappingParameters(contextPath, false)
+  override val contextMappingParameters = ContextMappedHandler.Parameters(contextPath, false)
 
-  override fun executeQuery(request: tech.b180.cordaptor.rest.Request): Response<EchoPayload> {
-    return Response(EchoPayload(request.pathInfo!!, request.method), statusCode = HttpServletResponse.SC_ACCEPTED)
+  override fun executeQuery(request: Request): Response<EchoPayload> {
+    return Response(EchoPayload(request.relativePath, request.method), statusCode = HttpServletResponse.SC_ACCEPTED)
   }
 
   override val resourceSpecification: OpenAPIResource
@@ -262,7 +260,7 @@ class MisconfiguredEchoQueryEndpoint(contextPath: String) : QueryEndpoint<EchoPa
 class SyncEchoOperationEndpoint(contextPath: String)
   : OperationEndpoint<SimplePayload, EchoPayload>, QueryEndpoint<EchoPayload> {
   override val responseType = SerializerKey(EchoPayload::class)
-  override val contextMappingParameters = ContextMappingParameters(contextPath, true)
+  override val contextMappingParameters = ContextMappedHandler.Parameters(contextPath, false)
   override val requestType = SerializerKey(SimplePayload::class)
   override val supportedMethods: Collection<String> = listOf("POST", "GET")
 
@@ -270,9 +268,9 @@ class SyncEchoOperationEndpoint(contextPath: String)
     return Single.just(executeQuery(request))
   }
 
-  override fun executeQuery(request: tech.b180.cordaptor.rest.Request): Response<EchoPayload> {
+  override fun executeQuery(request: Request): Response<EchoPayload> {
     return Response(
-        payload = EchoPayload(request.pathInfo ?: "", request.method, message = "sync"),
+        payload = EchoPayload(request.relativePath, request.method, message = "sync"),
         statusCode = HttpServletResponse.SC_ACCEPTED)
   }
 
@@ -282,14 +280,14 @@ class SyncEchoOperationEndpoint(contextPath: String)
 
 class AsyncEchoOperationEndpoint(contextPath: String) : OperationEndpoint<SimplePayload, EchoPayload> {
   override val responseType = SerializerKey(EchoPayload::class)
-  override val contextMappingParameters = ContextMappingParameters(contextPath, true)
+  override val contextMappingParameters = ContextMappedHandler.Parameters(contextPath, true)
   override val requestType = SerializerKey(SimplePayload::class)
   override val supportedMethods: Collection<String> = listOf("POST")
 
   override fun executeOperation(request: RequestWithPayload<SimplePayload>): Single<Response<EchoPayload>> {
     // actual amount of delay is irrelevant, anything that wraps SingleJust would trigger the async pathway
     return Single.just(Response(
-        payload = EchoPayload(request.pathInfo ?: "", request.method, message = "async"),
+        payload = EchoPayload(request.relativePath, request.method, message = "async"),
         statusCode = HttpServletResponse.SC_ACCEPTED)).delay(1, TimeUnit.SECONDS)
   }
 
