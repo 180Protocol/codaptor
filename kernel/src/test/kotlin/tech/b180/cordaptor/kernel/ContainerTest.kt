@@ -57,6 +57,9 @@ class ContainerTest {
     assertEquals(1.5, component.doubleValue)
     assertEquals(Duration.ofSeconds(2), component.durationValue)
     assertEquals(10 * 1024 * 1024, component.byteSizeValue)
+
+    assertEquals(listOf("A", "B", "C"), component.listValue)
+    assertEquals(emptyList(), component.emptyListValue)
   }
 
   @Test
@@ -89,7 +92,9 @@ class TestComponent(
     val integerValue: Int,
     val durationValue: Duration,
     val doubleValue: Double,
-    val byteSizeValue: Long
+    val byteSizeValue: Long,
+    val listValue: List<String>,
+    val emptyListValue: List<String>
 ) : CordaptorComponent
 
 class WrapperComponent(val testComponent: TestComponent) : CordaptorComponent
@@ -121,7 +126,9 @@ class ContainerTestModuleProvider : ModuleProvider {
         moduleConfig.getInt("integerValue"),
         moduleConfig.getDuration("durationValue"),
         moduleConfig.getDouble("doubleValue"),
-        moduleConfig.getBytesSize("bytesSizeValue")
+        moduleConfig.getBytesSize("bytesSizeValue"),
+        moduleConfig.getStringsList("listValue"),
+        moduleConfig.getStringsList("emptyListValue")
     ) }
     single<InnerTestService>(named("override")) { InnerTestServiceImpl() } bind TestService::class bind Marker::class
     single<InnerTestService>(named("no-override")) { InnerTestServiceImpl() } bind TestService::class bind Marker::class
