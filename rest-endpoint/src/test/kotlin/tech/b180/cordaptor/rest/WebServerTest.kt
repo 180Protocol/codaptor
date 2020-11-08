@@ -42,11 +42,10 @@ class WebServerTest : KoinTest {
 
       // initialize a server with plain HTTP connection
       single { WebServer() }
-      single { object : LifecycleControl {
-        override fun serverStarted() { }
-      } as LifecycleControl }
+      single { NoopLifecycleControl as LifecycleControl }
       single { WebServerSettings(HostAndPort("localhost", 9000),
           SecureTransportSettings(false, TypesafeConfig.empty()), 1, 1) }
+      single { SecuritySettings(securityHandlerName = SECURITY_CONFIGURATION_NONE) }
       single { UndertowHandlerContributor(get()) } bind UndertowConfigContributor::class
       single { UndertowListenerContributor(get()) } bind UndertowConfigContributor::class
 
@@ -293,4 +292,8 @@ class AsyncEchoOperationEndpoint(contextPath: String) : OperationEndpoint<Simple
 
   override val resourceSpecification: OpenAPIResource
     get() = throw NotImplementedError("Not meant to be called")
+}
+
+object NoopLifecycleControl : LifecycleControl {
+  override fun serverStarted() { }
 }

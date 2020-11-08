@@ -3,11 +3,10 @@ package tech.b180.cordaptor.rest
 import io.undertow.Undertow
 import io.undertow.server.HttpHandler
 import io.undertow.server.handlers.PathHandler
-import io.undertow.server.handlers.ResponseCodeHandler
 import org.koin.core.get
 import org.koin.core.inject
 import org.koin.core.parameter.parametersOf
-import org.pac4j.undertow.handler.SecurityHandler
+import org.koin.core.qualifier.named
 import tech.b180.cordaptor.kernel.*
 import javax.net.ssl.SSLContext
 
@@ -30,40 +29,6 @@ interface ContextMappedHandler : HttpHandler {
 @ModuleAPI
 interface UndertowConfigContributor {
   fun contribute(builder: Undertow.Builder)
-}
-
-/**
- * Utility allowing public URLs for API endpoints to be obtained
- * in a way specific to the configuration of the server.
- */
-@ModuleAPI
-interface URLBuilder {
-  val baseUrl: String
-
-  fun toAbsoluteUrl(contextPath: String): String
-}
-
-/**
- * Wrapper for HTTP connector settings and utility functions helping to construct absolute URLs.
- */
-data class WebServerSettings(
-    val bindAddress: HostAndPort,
-    val secureTransportSettings: SecureTransportSettings,
-    val ioThreads: Int,
-    val workerThreads: Int
-) : URLBuilder {
-  constructor(serverConfig: Config) : this(
-      bindAddress = serverConfig.getHostAndPort("listenAddress"),
-      secureTransportSettings = SecureTransportSettings(serverConfig.getSubtree("tls")),
-      ioThreads = serverConfig.getInt("ioThreads"),
-      workerThreads = serverConfig.getInt("workerThreads")
-  )
-
-  override fun toAbsoluteUrl(contextPath: String) = baseUrl + contextPath
-
-  override val baseUrl = "${if (isSecure) "https" else "http"}://${bindAddress.hostname}:${bindAddress.port}"
-
-  val isSecure: Boolean get() = secureTransportSettings.enabled
 }
 
 /**
@@ -102,7 +67,7 @@ class UndertowListenerContributor(
  * as well as an overarching security handler.
  */
 class UndertowHandlerContributor(
-    private val settings: WebServerSettings
+    private val securitySettings: SecuritySettings
 ) : UndertowConfigContributor, CordaptorComponent {
 
   companion object {
@@ -110,6 +75,15 @@ class UndertowHandlerContributor(
   }
 
   override fun contribute(builder: Undertow.Builder) {
+
+    val factoryName = securitySettings.securityHandlerName
+    logger.debug("Using security configuration: {}", factoryName)
+
+    val factory = if (factoryName != SECURITY_CONFIGURATION_NONE) {
+      get<SecurityHandlerFactory>(named(factoryName))
+    } else {
+      null
+    }
 
     // gather all handlers to construct a path mapping
     val mappedHandlers : List<ContextMappedHandler> =
@@ -140,8 +114,14 @@ class UndertowHandlerContributor(
         pathHandler.addPrefixPath(path, handler)
       }
     }
-//    builder.setHandler(SecurityHandler.build())
-    builder.setHandler(pathHandler)
+
+    if (factory != null) {
+      logger.debug("API endpoints security configuration factory {}", factory)
+      builder.setHandler(factory.createSecurityHandler(pathHandler))
+    } else {
+      logger.warn("API endpoints are not protected by any security configuration")
+      builder.setHandler(pathHandler)
+    }
   }
 }
 

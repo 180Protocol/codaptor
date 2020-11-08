@@ -1,7 +1,5 @@
 package tech.b180.cordaptor.rest
 
-import io.undertow.server.handlers.resource.ClassPathResourceManager
-import io.undertow.server.handlers.resource.ResourceHandler
 import org.koin.core.Koin
 import org.koin.core.parameter.parametersOf
 import org.koin.core.qualifier.named
@@ -30,14 +28,20 @@ class RestEndpointModuleProvider : ModuleProvider {
     single { settings }
 
     // embedded web server and its configuration
-    single { WebServer() } bind LifecycleAware::class
     single { WebServerSettings(moduleConfig.getSubtree("webServer")) } bind URLBuilder::class
+    single { WebServer() } bind LifecycleAware::class
+
+    // supported security configurations are qualified by a string, which is taken from the module config
+    single { SecuritySettings(moduleConfig.getSubtree("security")) }
+    single<SecurityHandlerFactory>(named(SECURITY_CONFIGURATION_API_KEY)) {
+      APIKeySecurityHandlerFactory(moduleConfig.getSubtree("security.apiKey"))
+    }
 
     // built-in configuration contributors are qualified, so they could be overridden in a targeted way,
     // but other contributors could be created without a qualifier
     single<UndertowConfigContributor>(named("listeners")) { UndertowListenerContributor(get()) }
     single<UndertowConfigContributor>(named("handlers")) { UndertowHandlerContributor(get()) }
-    single<UndertowConfigContributor>(named("settings")) { UndertowHandlerContributor(get()) }
+    single<UndertowConfigContributor>(named("settings")) { UndertowSettingsContributor(get()) }
 
     // definitions for Cordaptor API endpoints handlers
     single { NodeInfoEndpoint("/node/info") } bind QueryEndpoint::class
@@ -88,30 +92,7 @@ class RestEndpointModuleProvider : ModuleProvider {
     factory<JsonSerializer<*>> { (key: SerializerKey) -> get<SerializationFactory>().getSerializer(key) }
 
     single { NodeNotifications() }
-
-    // supported security engines are qualified by a string, which is taken from the config
-    single<SecurityEngine>(named("noop")) { NoopSecurityEngine() }
-    single<SecurityEngine>(named("apiKey")) { APIKeySecurityEngine() }
   }
-}
-
-/**
- * Eagerly-initialized typesafe wrapper for top-level module's configuration.
- */
-data class Settings(
-    val isOpenAPISpecificationEnabled: Boolean,
-    val isSwaggerUIEnabled: Boolean,
-    val isFlowSnapshotsEndpointEnabled: Boolean,
-    val maxFlowInitiationTimeout: Duration,
-    val maxVaultQueryPageSize: Int
-) {
-  constructor(ourConfig: Config) : this(
-      isOpenAPISpecificationEnabled = ourConfig.getBoolean("spec.enabled"),
-      isSwaggerUIEnabled = ourConfig.getBoolean("swaggerUI.enabled"),
-      isFlowSnapshotsEndpointEnabled = ourConfig.getBoolean("flowSnapshots.enabled"),
-      maxFlowInitiationTimeout = ourConfig.getDuration("flowInitiation.maxTimeout"),
-      maxVaultQueryPageSize = ourConfig.getInt("vaultQueries.maxPageSize")
-  )
 }
 
 /**

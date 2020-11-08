@@ -8,3 +8,7 @@ const val OPERATION_GET_FLOW_SNAPSHOT = "getFlowSnapshot"
 const val OPERATION_GET_STATE_BY_REF = "getStateByRef"
 const val OPERATION_QUERY_STATES = "queryStates"
 const val OPERATION_GET_TX_BY_HASH = "getTransactionByHash"
+
+// constants used as Koin qualifiers for security configuration factories
+const val SECURITY_CONFIGURATION_NONE = "none"
+const val SECURITY_CONFIGURATION_API_KEY = "apiKey"

@@ -370,7 +370,7 @@ abstract class AbstractEndpointHandler<ResponseType: Any>(
   }
 
   private fun obtainSubject(exchange: HttpServerExchange): Subject {
-    return NoopSecurityEngine.PermissiveSubject
+    return PermissiveSubject
   }
 
   protected abstract fun canHandle(exchange: HttpServerExchange): Boolean

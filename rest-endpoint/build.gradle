@@ -19,6 +19,9 @@ dependencies {
     implementation project(":corda-common")
 
     implementation name: "glassfish-javax-json-$glassfish_json_version-shaded"
+    implementation "org.pac4j:pac4j-core:$pac4j_version"
+    implementation "org.pac4j:pac4j-http:$pac4j_version"
+    implementation "org.pac4j:undertow-pac4j:$pac4j_version"
     implementation "io.undertow:undertow-core:$undertow_version"
 
     implementation "org.koin:koin-core:$koin_version"
