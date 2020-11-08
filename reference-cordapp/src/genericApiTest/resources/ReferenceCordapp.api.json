@@ -943,7 +943,7 @@
             },
             "description": "Successful operation"
           },
-          "401": {
+          "403": {
             "description": "Permission denied"
           }
         },
@@ -1017,7 +1017,7 @@
               }
             }
           },
-          "401": {
+          "403": {
             "description": "Permission denied"
           },
           "500": {
@@ -1072,7 +1072,7 @@
             },
             "description": "Latest snapshot of the flow with given run id"
           },
-          "401": {
+          "403": {
             "description": "Permission denied"
           },
           "404": {
@@ -1149,7 +1149,7 @@
               }
             }
           },
-          "401": {
+          "403": {
             "description": "Permission denied"
           },
           "500": {
@@ -1204,7 +1204,7 @@
             },
             "description": "Latest snapshot of the flow with given run id"
           },
-          "401": {
+          "403": {
             "description": "Permission denied"
           },
           "404": {
@@ -1322,7 +1322,7 @@
             },
             "description": "Query ran successfully"
           },
-          "401": {
+          "403": {
             "description": "Permission denied"
           }
         },
@@ -1396,7 +1396,7 @@
             },
             "description": "Successfully retrieved contract state"
           },
-          "401": {
+          "403": {
             "description": "Permission denied"
           },
           "404": {
@@ -1434,7 +1434,7 @@
             },
             "description": "Successfully retrieved transaction"
           },
-          "401": {
+          "403": {
             "description": "Permission denied"
           },
           "404": {
@@ -1461,7 +1461,7 @@
             },
             "description": "Successful operation"
           },
-          "401": {
+          "403": {
             "description": "Permission denied"
           }
         },

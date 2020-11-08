@@ -122,9 +122,9 @@ data class OpenAPI(
     fun withResponse(statusCode: HttpStatusCode, response: Response): Operation =
         copy(responses = (responses.plus(statusCode to response).toSortedMap()))
 
-    fun withUnauthorizedResponse(): Operation =
+    fun withForbiddenResponse(): Operation =
         copy(responses = (responses.plus(
-            HttpStatusCode.UNAUTHORIZED to Response("Permission denied")).toSortedMap()))
+            HttpStatusCode.FORBIDDEN to Response("Permission denied")).toSortedMap()))
 
     fun withRequestBody(requestBody: RequestBody): Operation =
         copy(requestBody = requestBody)
@@ -244,7 +244,7 @@ data class OpenAPI(
     SEE_OTHER(StatusCodes.SEE_OTHER),
 
     // 4xx codes
-    UNAUTHORIZED(StatusCodes.UNAUTHORIZED),
+    FORBIDDEN(StatusCodes.FORBIDDEN),
     NOT_FOUND(StatusCodes.NOT_FOUND),
     GONE(StatusCodes.GONE),
 
