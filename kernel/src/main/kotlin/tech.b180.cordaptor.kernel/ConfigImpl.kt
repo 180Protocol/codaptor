@@ -40,6 +40,10 @@ class TypesafeConfig private constructor(private val config: _Config) : Config {
     fun empty() = TypesafeConfig(
         ConfigFactory.parseMap(emptyMap())
     )
+
+    fun fromMap(map: Map<String, Any>) = TypesafeConfig(
+        ConfigFactory.parseMap(map)
+    )
   }
 
   override fun pathExists(path: ConfigPath): Boolean {
