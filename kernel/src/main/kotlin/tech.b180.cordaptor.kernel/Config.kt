@@ -44,6 +44,16 @@ interface Config {
 
   fun getBoolean(path: ConfigPath): Boolean
 
+  /**
+   * Returns an instance of a secret associated with the config path.
+   *
+   * Unlike other functions this one does not actually return any value per se,
+   * but rather constructs a handle object using the path. This is necessary,
+   * because config could be accessed during module's bootstrap, where secrets store
+   * has not been made available yet.
+   */
+  fun getStringSecret(path: ConfigPath): StringSecret
+
   fun getOptionalString(path: ConfigPath) = if (pathExists(path)) getString(path) else null
   fun getOptionalStringsList(path: ConfigPath) = if (pathExists(path)) getStringsList(path) else null
   fun getOptionalInt(path: ConfigPath) = if (pathExists(path)) getInt(path) else null
@@ -52,6 +62,7 @@ interface Config {
   fun getOptionalDuration(path: ConfigPath) = if (pathExists(path)) getDuration(path) else null
   fun getOptionalDouble(path: ConfigPath) = if (pathExists(path)) getDouble(path) else null
   fun getOptionalBytesSize(path: ConfigPath) = if (pathExists(path)) getBytesSize(path) else null
+  fun getOptionalStringSecret(path: ConfigPath) = if (pathExists(path)) getStringSecret(path) else null
 
   fun getOptionalString(path: ConfigPath, default: String) = getOptionalString(path) ?: default
   fun getOptionalStringsList(path: ConfigPath, default: List<String>) = if (pathExists(path)) getStringsList(path) else default
@@ -61,6 +72,7 @@ interface Config {
   fun getOptionalDuration(path: ConfigPath, default: Duration) = getOptionalDuration(path) ?: default
   fun getOptionalDouble(path: ConfigPath, default: Double) = getOptionalDouble(path) ?: default
   fun getOptionalBytesSize(path: ConfigPath, default: Long) = getOptionalBytesSize(path) ?: default
+  fun getOptionalStringSecret(path: ConfigPath, default: StringSecret) = if (pathExists(path)) getStringSecret(path) else default
 }
 
 /**

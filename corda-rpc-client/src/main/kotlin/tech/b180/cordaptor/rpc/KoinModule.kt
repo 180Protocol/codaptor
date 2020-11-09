@@ -1,10 +1,12 @@
 package tech.b180.cordaptor.rpc
 
 import net.corda.client.rpc.CordaRPCClientConfiguration
-import net.corda.core.messaging.ClientRpcSslOptions
 import org.koin.dsl.bind
 import org.koin.dsl.module
-import tech.b180.cordaptor.corda.*
+import tech.b180.cordaptor.corda.CordaNodeCatalog
+import tech.b180.cordaptor.corda.CordaNodeCatalogInner
+import tech.b180.cordaptor.corda.CordaNodeState
+import tech.b180.cordaptor.corda.CordaNodeStateInner
 import tech.b180.cordaptor.kernel.*
 import java.io.File
 import java.nio.file.Path
@@ -50,11 +52,11 @@ class CordaRpcClientModuleProvider : ModuleProvider {
  */
 class Settings private constructor(
     val nodeAddress: HostAndPort,
-    val rpcUsername: String,
-    val rpcPassword: String,
+    val rpcUsername: StringSecret,
+    val rpcPassword: StringSecret,
     val cordappDir: Path,
     val rpcClientConfiguration: CordaRPCClientConfiguration,
-    val rpcSslOptions: ClientRpcSslOptions?
+    val rpcSSLSettings: SSLSettings?
 ) {
   companion object {
     var logger = loggerFor<Settings>()
@@ -77,8 +79,8 @@ class Settings private constructor(
 
   constructor(ourConfig: Config) : this(
       nodeAddress = ourConfig.getHostAndPort("nodeAddress"),
-      rpcUsername = ourConfig.getString("rpcUsername"),
-      rpcPassword = ourConfig.getString("rpcPassword"),
+      rpcUsername = ourConfig.getStringSecret("rpcUsername"),
+      rpcPassword = ourConfig.getStringSecret("rpcPassword"),
       cordappDir = validateCordappDir(ourConfig.getString("cordappDir")),
       rpcClientConfiguration = ourConfig.getSubtree("clientConfig").let { clientConfig ->
         val conf = CordaRPCClientConfiguration.DEFAULT
@@ -95,16 +97,24 @@ class Settings private constructor(
             deduplicationCacheExpiry = clientConfig.getOptionalDuration("deduplicationCacheExpiry", conf.deduplicationCacheExpiry)
         )
       },
-      rpcSslOptions = ourConfig.getSubtree("tls").let { sslConfig ->
+      rpcSSLSettings = ourConfig.getSubtree("ssl").let { sslConfig ->
         if (sslConfig.getBoolean("enabled")) {
-          ClientRpcSslOptions(
-              trustStorePath = File(sslConfig.getString("trustStorePath")).toPath(),
-              trustStorePassword = sslConfig.getString("trustStorePassword"),
-              trustStoreProvider = sslConfig.getString("trustStoreProvider")
-          )
+          SSLSettings(sslConfig)
         } else {
           null
         }
       }
   )
+
+  data class SSLSettings(
+      val trustStorePath: Path,
+      val trustStorePassword: StringSecret,
+      val trustStoreProvider: String
+  ) {
+    constructor(sslConfig: Config) : this(
+        trustStoreProvider = sslConfig.getString("trustStoreProvider"),
+        trustStorePassword = sslConfig.getStringSecret("trustStorePassword"),
+        trustStorePath = File(sslConfig.getString("trustStorePath")).toPath()
+    )
+  }
 }

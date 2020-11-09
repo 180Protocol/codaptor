@@ -11,7 +11,10 @@ import com.typesafe.config.Config as _Config
  * unless the module is somehow involved in bootstrapping the container.
  */
 @ModuleAPI(since = "0.1")
-class TypesafeConfig private constructor(private val config: _Config) : Config {
+class TypesafeConfig private constructor(
+    private val config: _Config,
+    private val pathPrefix: String = ""
+) : Config {
   companion object {
 
     /**
@@ -51,7 +54,7 @@ class TypesafeConfig private constructor(private val config: _Config) : Config {
   }
 
   override fun getSubtree(path: ConfigPath): Config {
-    return TypesafeConfig(config.getConfig(path))
+    return TypesafeConfig(config.getConfig(path), if (pathPrefix.isEmpty()) "$path." else "$pathPrefix.$path.")
   }
 
   override fun getString(path: ConfigPath): String {
@@ -84,6 +87,10 @@ class TypesafeConfig private constructor(private val config: _Config) : Config {
 
   override fun getBoolean(path: ConfigPath): Boolean {
     return config.getBoolean(path)
+  }
+
+  override fun getStringSecret(path: ConfigPath): StringSecret {
+    return StringSecret(pathPrefix + path)
   }
 
   /**

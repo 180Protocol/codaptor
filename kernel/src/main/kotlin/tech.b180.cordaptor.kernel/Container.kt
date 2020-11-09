@@ -1,6 +1,5 @@
 package tech.b180.cordaptor.kernel
 
-import com.typesafe.config.ConfigFactory
 import org.koin.core.Koin
 import org.koin.core.KoinApplication
 import org.koin.core.context.KoinContextHandler
@@ -8,6 +7,7 @@ import org.koin.core.logger.Level
 import org.koin.core.logger.MESSAGE
 import org.koin.core.module.Module
 import org.koin.core.qualifier.Qualifier
+import org.koin.dsl.bind
 import org.koin.dsl.koinApplication
 import org.koin.dsl.module
 import org.slf4j.Logger
@@ -71,13 +71,16 @@ class Container(
 
       val sortedModules = modules.sortedBy { it.first }
 
-      modules(sortedModules.map { it.second } + module {
+      // kernel definitions are processed first to allow modules to override them
+      modules(module {
         // expose container instance as a component itself using narrowly defined interfaces
         single { this@Container as LifecycleControl }
 
         // expose root configuration object
         single { bootstrapConfig }
-      })
+
+        single { ConfigSecretsStore(bootstrapConfig) } bind SecretsStore::class
+      } + sortedModules.map { it.second })
     }
     logger.info("Initialized Koin application $koinApp")
   }

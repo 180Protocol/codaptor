@@ -4,6 +4,7 @@ import com.typesafe.config.ConfigException
 import net.corda.core.cordapp.CordappConfig
 import tech.b180.cordaptor.kernel.Config
 import tech.b180.cordaptor.kernel.ConfigPath
+import tech.b180.cordaptor.kernel.StringSecret
 import java.math.BigDecimal
 import java.math.BigInteger
 import java.time.Duration
@@ -241,5 +242,9 @@ class CordappConfigWithFallback(
     } else {
       fallback?.getBoolean(path) ?: throw ConfigException.Missing(path)
     }
+  }
+
+  override fun getStringSecret(path: ConfigPath): StringSecret {
+    return StringSecret(pathPrefix + path)
   }
 }

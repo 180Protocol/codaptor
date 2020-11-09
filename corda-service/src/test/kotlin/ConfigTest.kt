@@ -1,9 +1,9 @@
 import net.corda.core.cordapp.CordappConfig
 import tech.b180.cordaptor.cordapp.CordappConfigWithFallback
+import tech.b180.cordaptor.kernel.ConfigSecretsStore
 import tech.b180.cordaptor.kernel.TypesafeConfig
 import java.time.Duration
 import java.time.temporal.ChronoUnit
-import java.util.concurrent.TimeUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -77,6 +77,14 @@ class ConfigTest {
     assertTrue(testConfig.getSubtree("cordappOverride").pathExists("fallbackDouble"))
     assertEquals("ABC", testConfig.getString("cordappOverride.cordappString"))
     assertEquals(1.2, testConfig.getDouble("cordappOverride.fallbackDouble"))
+  }
+
+  @Test
+  fun `test secrets`() {
+    assertEquals("secrets.string", testConfig.getStringSecret("secrets.string").id)
+    assertEquals("secrets.string", testConfig.getSubtree("secrets").getStringSecret("string").id)
+
+    assertEquals("Secret", ConfigSecretsStore(testConfig).useStringSecret("secrets.string") { String(it) })
   }
 }
 

@@ -82,6 +82,20 @@ class ContainerTest {
     val nonOverridenService = containerInstance.get(TestService::class, named("no-override"))
     assertEquals(2, markers.count { it == nonOverridenService }, "Reexported object is bound twice")
   }
+
+  @Test
+  fun `test secrets`() {
+    val config = containerInstance.get(Config::class)
+    val secret = config.getStringSecret("secrets.string")
+
+    assertEquals("secrets.string", secret.id)
+    assertEquals("secrets.string", config.getSubtree("secrets").getStringSecret("string").id)
+
+    val secretsStore = containerInstance.get(SecretsStore::class)
+
+    val secretValue = secret.use(secretsStore) { String(it) }
+    assertEquals("Secret Value", secretValue)
+  }
 }
 
 interface Marker
