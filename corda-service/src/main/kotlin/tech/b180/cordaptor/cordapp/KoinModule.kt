@@ -3,13 +3,15 @@ package tech.b180.cordaptor.cordapp
 import net.corda.core.node.AppServiceHub
 import net.corda.node.services.api.ServiceHubInternal
 import net.corda.serialization.internal.model.LocalTypeModel
-import org.koin.dsl.bind
 import org.koin.dsl.module
 import tech.b180.cordaptor.corda.CordaNodeCatalog
 import tech.b180.cordaptor.corda.CordaNodeCatalogInner
 import tech.b180.cordaptor.corda.CordaNodeState
 import tech.b180.cordaptor.corda.CordaNodeStateInner
-import tech.b180.cordaptor.kernel.*
+import tech.b180.cordaptor.kernel.Config
+import tech.b180.cordaptor.kernel.ConfigPath
+import tech.b180.cordaptor.kernel.ModuleAPI
+import tech.b180.cordaptor.kernel.ModuleProvider
 
 /**
  * Single point of access for various APIs available within the Corda node.
@@ -20,7 +22,7 @@ import tech.b180.cordaptor.kernel.*
  * exercise caution because this definition will only be available when Cordaptor
  * is deployed as an embedded Corda service.
  */
-@ModuleAPI
+@ModuleAPI(since = "0.1")
 interface NodeServicesLocator {
   val appServiceHub: AppServiceHub
   val serviceHubInternal: ServiceHubInternal

@@ -1,5 +1,6 @@
 package tech.b180.cordaptor.rest
 
+import tech.b180.cordaptor.kernel.ModuleAPI
 import tech.b180.cordaptor.shaded.javax.json.Json
 import tech.b180.cordaptor.shaded.javax.json.JsonObject
 import tech.b180.cordaptor.shaded.javax.json.JsonString
@@ -13,6 +14,7 @@ import kotlin.reflect.jvm.javaMethod
  * Used by JSON Schema generator to determine if serialized type needs to be extracted
  * into a shared components section and what type name to use for it.
  */
+@ModuleAPI(since = "0.1")
 interface StandaloneTypeSerializer {
   val valueType: SerializerKey
 
@@ -40,6 +42,7 @@ fun generateSchemaTypeBaseName(clazz: Class<*>): String =
  * as well as a way to obtain property values from an existing object and/or
  * means initialize a new instance from a set of property values.
  */
+@ModuleAPI(since = "0.1")
 abstract class CustomStructuredObjectSerializer<T: Any>(
     factory: SerializationFactory,
 
@@ -66,6 +69,7 @@ abstract class CustomStructuredObjectSerializer<T: Any>(
  *
  * Subclasses are responsible for providing details of the mapping.
  */
+@ModuleAPI(since = "0.1")
 abstract class CustomAbstractClassSerializer<T: Any>(
     factory: SerializationFactory,
 
@@ -215,6 +219,7 @@ abstract class StructuredObjectSerializer<T: Any>(
  * Describes a property that is part of a JSON object schema,
  * and could be read and/or written by [StructuredObjectSerializer].
  */
+@ModuleAPI(since = "0.1")
 interface ObjectProperty {
   val valueType: SerializerKey
   val deserialize: Boolean
@@ -225,6 +230,7 @@ interface ObjectProperty {
 
 typealias ObjectPropertyValueAccessor = (obj: Any) -> Any?
 
+@ModuleAPI(since = "0.1")
 data class SyntheticObjectProperty(
     override val valueType: SerializerKey,
     override val accessor: ObjectPropertyValueAccessor? = null,
@@ -233,6 +239,7 @@ data class SyntheticObjectProperty(
     override val isMandatory: Boolean = false
 ) : ObjectProperty
 
+@ModuleAPI(since = "0.1")
 data class KotlinObjectProperty<T: Any?>(
     val property: KProperty<T>,
     override val serialize: Boolean = true,

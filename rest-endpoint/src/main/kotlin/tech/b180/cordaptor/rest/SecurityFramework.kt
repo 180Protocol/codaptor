@@ -21,6 +21,7 @@ import org.pac4j.http.client.direct.HeaderClient
 import org.pac4j.undertow.context.UndertowWebContext
 import org.pac4j.undertow.handler.SecurityHandler
 import tech.b180.cordaptor.kernel.Config
+import tech.b180.cordaptor.kernel.ModuleAPI
 import tech.b180.cordaptor.kernel.loggerFor
 import java.util.*
 import kotlin.collections.LinkedHashMap
@@ -29,6 +30,7 @@ import org.pac4j.core.config.Config as PAC4JConfig
 /**
  * This is the entry point for the API security framework.
  */
+@ModuleAPI(since = "0.1")
 interface SecurityHandlerFactory {
 
   fun createSecurityHandler(innerHandler: HttpHandler): HttpHandler
@@ -38,6 +40,7 @@ interface SecurityHandlerFactory {
  * Representation of the security subject associated with the current API invocation.
  * Authorization checks are performed at the level of individual API operations.
  */
+@ModuleAPI(since = "0.1")
 interface Subject {
 
   /**

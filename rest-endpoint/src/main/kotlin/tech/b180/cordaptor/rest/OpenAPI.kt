@@ -2,6 +2,7 @@ package tech.b180.cordaptor.rest
 
 import io.undertow.util.StatusCodes
 import net.corda.core.serialization.SerializableCalculatedProperty
+import tech.b180.cordaptor.kernel.ModuleAPI
 import tech.b180.cordaptor.shaded.javax.json.Json
 import tech.b180.cordaptor.shaded.javax.json.JsonObject
 import java.net.URL
@@ -17,6 +18,7 @@ typealias HttpHeader = String
  * Top level object for OpenAPI specification, and a namespace container for
  * other specification objects.
  */
+@ModuleAPI(since = "0.1")
 data class OpenAPI(
     val info: Info,
     val servers: List<Server>,

@@ -21,7 +21,7 @@ typealias ConfigPath = String
  * that knows how to initialize itself from a [Config] instance. This way, all configuration
  * issues could be detected at container startup time.
  */
-@ModuleAPI
+@ModuleAPI(since = "0.1")
 interface Config {
 
   fun pathExists(path: ConfigPath): Boolean

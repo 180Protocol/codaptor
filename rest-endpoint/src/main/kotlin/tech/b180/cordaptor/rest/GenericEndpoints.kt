@@ -6,6 +6,7 @@ import io.reactivex.rxjava3.internal.operators.single.SingleJust
 import io.undertow.server.HttpServerExchange
 import io.undertow.util.*
 import tech.b180.cordaptor.kernel.CordaptorComponent
+import tech.b180.cordaptor.kernel.ModuleAPI
 import tech.b180.cordaptor.kernel.loggerFor
 import tech.b180.cordaptor.shaded.javax.json.Json
 import tech.b180.cordaptor.shaded.javax.json.stream.JsonParsingException
@@ -13,6 +14,7 @@ import java.beans.Transient
 import java.io.OutputStreamWriter
 import java.io.StringReader
 
+@ModuleAPI(since = "0.1")
 enum class OperationErrorType(val protocolStatusCode: Int) {
   GENERIC_ERROR(StatusCodes.INTERNAL_SERVER_ERROR),
   BAD_REQUEST(StatusCodes.BAD_REQUEST),
@@ -23,6 +25,7 @@ enum class OperationErrorType(val protocolStatusCode: Int) {
 /**
  * Payload structure that is sent to the client when the operation ends with an error.
  */
+@ModuleAPI(since = "0.1")
 data class EndpointErrorMessage(
     val message: String,
     val cause: Throwable? = null,
@@ -36,6 +39,7 @@ data class EndpointErrorMessage(
  * Instances of this exception will be represented in a respective payload.
  * Subclasses may add further fields to be serialized.
  */
+@ModuleAPI(since = "0.1")
 open class EndpointOperationException(
     message: String,
     cause: Throwable? = null,
@@ -55,6 +59,7 @@ open class EndpointOperationException(
  * Indicates that passed parameters are invalid in the context of a particular operation.
  * Optionally may indicate which parameter had invalid value.
  */
+@ModuleAPI(since = "0.1")
 class BadOperationRequestException(
     message: String,
     cause: Throwable? = null,
@@ -66,6 +71,7 @@ class BadOperationRequestException(
  * This may indicate that provided caller's credentials are not recognized,
  * or that the caller's subject does not have sufficient privileges.
  */
+@ModuleAPI(since = "0.1")
 class UnauthorizedOperationException(
     message: String = "Not authorized"
 ) : EndpointOperationException(message, null, errorType = OperationErrorType.UNAUTHORIZED)
@@ -74,6 +80,7 @@ class UnauthorizedOperationException(
  * Generic protocol request for an API operation,
  * allowing the logic to obtain information about the protocol query.
  */
+@ModuleAPI(since = "0.1")
 interface Request {
   /** Equivalent of pathInfo in Servlet spec */
   val relativePath: String
@@ -101,21 +108,25 @@ interface Request {
   fun getAllParameterValues(name: String): List<String>?
 }
 
+@ModuleAPI(since = "0.1")
 fun Request.getIntParameterValue(name: String): Int? =
     getParameterValue(name)?.let {
       it.toIntOrNull() ?: throw BadOperationRequestException(
           "Expected integer value for parameter $name, got [$it]", parameterName = name)
     }
 
+@ModuleAPI(since = "0.1")
 fun Request.getIntParameterValue(name: String, defaultValue: Int): Int =
     getIntParameterValue(name) ?: defaultValue
 
+@ModuleAPI(since = "0.1")
 fun Request.getPositiveIntParameterValue(name: String): Int? =
     getIntParameterValue(name)?.let {
       if (it >= 0) it else throw BadOperationRequestException(
           "Expected positive value for parameter $name, got $it", parameterName = name)
     }
 
+@ModuleAPI(since = "0.1")
 fun Request.getPositiveIntParameterValue(name: String, defaultValue: Int): Int =
     getPositiveIntParameterValue(name) ?: defaultValue
 
@@ -123,6 +134,7 @@ fun Request.getPositiveIntParameterValue(name: String, defaultValue: Int): Int =
  * Extension of the protocol request type for an API operation
  * supporting a payload.
  */
+@ModuleAPI(since = "0.1")
 interface RequestWithPayload<PayloadType: Any> : Request {
   val payload: PayloadType
 }
@@ -131,6 +143,7 @@ interface RequestWithPayload<PayloadType: Any> : Request {
  * Wrapper type for an API response payload able to configure the details of the protocol response.
  * Payload may be optional if a particular endpoint does not require it.
  */
+@ModuleAPI(since = "0.1")
 data class Response<PayloadType: Any>(
     val payload: PayloadType?,
     val statusCode: Int = DEFAULT_STATUS_CODE,
@@ -150,6 +163,7 @@ data class Response<PayloadType: Any>(
 /**
  * Provides basic information about an API endpoint mapped to a URL and generating a JSON response.
  */
+@ModuleAPI(since = "0.1")
 interface GenericEndpoint {
 
   /**
@@ -174,6 +188,7 @@ interface GenericEndpoint {
  * Entry point for creating a section of OpenAPI specification document corresponding
  * to a particular endpoint.
  */
+@ModuleAPI(since = "0.1")
 interface OpenAPIResource {
 
   /** Key for the entry representing an OpenAPI resource endpoint.
@@ -193,6 +208,7 @@ interface OpenAPIResource {
  * Base class applicable for most endpoints that are exposed at a fixed context path
  * optionally accepting non-path parameters.
  */
+@ModuleAPI(since = "0.1")
 abstract class ContextMappedResourceEndpoint(
     val path: String,
     exactPathOnly: Boolean
@@ -213,6 +229,7 @@ abstract class ContextMappedResourceEndpoint(
  * Note that extending this class only makes sense if subclass is giving a meaningful value for [ResponseType],
  * otherwise this base class adds no value and may lead to obscure errors during initialization.
  */
+@ModuleAPI(since = "0.1")
 abstract class ContextMappedQueryEndpoint<ResponseType: Any>(
     contextPath: String,
     allowNullPathInfo: Boolean
@@ -227,6 +244,7 @@ abstract class ContextMappedQueryEndpoint<ResponseType: Any>(
  * [RequestType] and [ResponseType], otherwise this base class adds no value  and may lead to obscure errors
  * during initialization.
  */
+@ModuleAPI(since = "0.1")
 abstract class ContextMappedOperationEndpoint<RequestType: Any, ResponseType: Any>(
     contextPath: String,
     allowNullPathInfo: Boolean
@@ -243,6 +261,7 @@ abstract class ContextMappedOperationEndpoint<RequestType: Any, ResponseType: An
  * Contract of a Cordaptor API endpoint that accepts
  * an HTTP get request and returns a result synchronously.
  */
+@ModuleAPI(since = "0.1")
 interface QueryEndpoint<ResponseType: Any> : GenericEndpoint {
 
   /**
@@ -258,6 +277,7 @@ interface QueryEndpoint<ResponseType: Any> : GenericEndpoint {
  * Note that [OperationEndpointHandler] supports scenario where the endpoint also implements [QueryEndpoint],
  * but for this to work [supportedMethods] property must return GET among its other methods.
  */
+@ModuleAPI(since = "0.1")
 interface OperationEndpoint<RequestType: Any, ResponseType: Any> : GenericEndpoint {
 
   /**
@@ -309,6 +329,7 @@ interface InteractionEndpoint<RequestType: Any, ResponseType: Any> : GenericEndp
  * The expectation for the implementation is to initialize the endpoints upon construction or first use,
  * and then return the same set of endpoints, because it might be called repeatedly
  */
+@ModuleAPI(since = "0.1")
 interface EndpointProvider {
 
   val queryEndpoints: List<QueryEndpoint<*>>

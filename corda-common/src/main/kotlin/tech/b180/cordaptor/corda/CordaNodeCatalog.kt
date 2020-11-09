@@ -14,7 +14,7 @@ import kotlin.reflect.KClass
  * Different modules implement this interface in a different way depending
  * on the nature of their interaction with the underlying node.
  */
-@ModuleAPI
+@ModuleAPI(since = "0.1")
 interface CordaNodeCatalog {
 
   /** Contains descriptions of all available CorDapps */
@@ -25,13 +25,13 @@ interface CordaNodeCatalog {
  * Marker interface allowing decorating implementation of [CordaNodeCatalog] to locate
  * the underlying implementation.
  */
-@ModuleAPI
+@ModuleAPI(since = "0.1")
 interface CordaNodeCatalogInner : CordaNodeCatalog
 
 /**
  * General metadata about a CorDapp obtained from a node and/or available CorDapp JAR files.
  */
-@ModuleAPI
+@ModuleAPI(since = "0.1")
 data class CordappInfo(
     /** Name taken from the CorDapp metadata, which is used to construct API endpoint URLs */
     val shortName: String,
@@ -41,13 +41,13 @@ data class CordappInfo(
     val jarURL: URL
 )
 
-@ModuleAPI
+@ModuleAPI(since = "0.1")
 data class CordappFlowInfo(
     val flowClass: KClass<out FlowLogic<Any>>,
     val flowResultClass: KClass<out Any>
 )
 
-@ModuleAPI
+@ModuleAPI(since = "0.1")
 data class CordappContractStateInfo(
     val stateClass: KClass<out ContractState>
 )

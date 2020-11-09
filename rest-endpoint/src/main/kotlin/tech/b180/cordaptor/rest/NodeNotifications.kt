@@ -1,12 +1,14 @@
 package tech.b180.cordaptor.rest
 
 import org.slf4j.LoggerFactory
+import tech.b180.cordaptor.kernel.ModuleAPI
 
 /**
  * Collection of methods to interact with Corda operational environment.
  *
  * FIXME this is potentially version-dependent, which would require refactoring
  */
+@ModuleAPI(since = "0.1")
 class NodeNotifications {
 
   companion object {

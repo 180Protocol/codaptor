@@ -10,7 +10,7 @@ import com.typesafe.config.Config as _Config
  * Note that for a typical module there is no need to create instances of this class,
  * unless the module is somehow involved in bootstrapping the container.
  */
-@ModuleAPI
+@ModuleAPI(since = "0.1")
 class TypesafeConfig private constructor(private val config: _Config) : Config {
   companion object {
 

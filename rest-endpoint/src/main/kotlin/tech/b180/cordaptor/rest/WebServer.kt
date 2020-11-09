@@ -13,6 +13,7 @@ import javax.net.ssl.SSLContext
 /**
  * Describes a single handler for a particular path prefix used to route API requests.
  */
+@ModuleAPI(since = "0.1")
 interface ContextMappedHandler : HttpHandler {
   val mappingParameters: Parameters
 
@@ -26,7 +27,7 @@ interface ContextMappedHandler : HttpHandler {
 /**
  * Implementations contribute some aspect of configuration to the server.
  */
-@ModuleAPI
+@ModuleAPI(since = "0.1")
 interface UndertowConfigContributor {
   fun contribute(builder: Undertow.Builder)
 }

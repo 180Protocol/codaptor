@@ -10,7 +10,7 @@ import java.time.Duration
  * Utility allowing public URLs for API endpoints to be obtained
  * in a way specific to the configuration of the server.
  */
-@ModuleAPI
+@ModuleAPI(since = "0.1")
 interface URLBuilder {
   val baseUrl: String
 

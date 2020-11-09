@@ -6,6 +6,7 @@ import net.corda.serialization.internal.amqp.CachingCustomSerializerRegistry
 import net.corda.serialization.internal.amqp.DefaultDescriptorBasedSerializerRegistry
 import net.corda.serialization.internal.amqp.WhitelistBasedTypeModelConfiguration
 import net.corda.serialization.internal.model.*
+import tech.b180.cordaptor.kernel.ModuleAPI
 import tech.b180.cordaptor.kernel.loggerFor
 import tech.b180.cordaptor.shaded.javax.json.*
 import tech.b180.cordaptor.shaded.javax.json.stream.JsonGenerator
@@ -328,6 +329,7 @@ class SerializationFactory(
  * The implementation is heavily reliant on Corda's [TypeIdentifier] hierarchy because it contains
  * necessary logic, but we wrap it into our own class to adapt the API to our needs.
  */
+@ModuleAPI(since = "0.1")
 data class SerializerKey(val typeIdentifier: TypeIdentifier) {
 
   constructor(rawType: Class<*>, typeParameters: List<SerializerKey>) : this(
@@ -441,6 +443,7 @@ data class SerializerKey(val typeIdentifier: TypeIdentifier) {
  * For serialization lower level [JsonGenerator] API is used to gain efficiency
  * for larger data sets. It is assumed that outbound data volumes will largely exceed inbound.
  */
+@ModuleAPI(since = "0.1")
 interface JsonSerializer<T> {
 
   /**
@@ -483,6 +486,7 @@ interface JsonSerializer<T> {
  * Depending on the circumstances this may output full object or a reference to relevant schema
  * defined in another part of the document.
  */
+@ModuleAPI(since = "0.1")
 interface JsonSchemaGenerator {
 
   /**
@@ -498,6 +502,7 @@ interface JsonSchemaGenerator {
  * Note that the implementation must not use [SerializationFactory] in the constructor,
  * because a list of
  */
+@ModuleAPI(since = "0.1")
 interface CustomSerializer<T> : JsonSerializer<T>
 
 /**
@@ -505,6 +510,7 @@ interface CustomSerializer<T> : JsonSerializer<T>
  * parameterized types where parameters are determined at runtime and the schema
  * may be dependent on the actual parameters.
  */
+@ModuleAPI(since = "0.1")
 interface CustomSerializerFactory<T: Any> {
   val rawType: Class<*>
 

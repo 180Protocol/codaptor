@@ -23,7 +23,7 @@ import kotlin.reflect.KClass
 /**
  * Common functions used to establish identity of a party.
  */
-@ModuleAPI
+@ModuleAPI(since = "0.1")
 interface PartyLocator {
 
   /**
@@ -51,7 +51,7 @@ interface PartyLocator {
  * so the implementation needs to convert between different versions of the API.
  * Assumption is that Corda will be upgraded to more recent version soon.
  */
-@ModuleAPI
+@ModuleAPI(since = "0.1")
 interface CordaNodeState : PartyLocator {
 
   val nodeInfo: NodeInfo
@@ -85,7 +85,7 @@ interface CordaNodeState : PartyLocator {
  * Marker interface allowing decorating implementation of [CordaNodeState] to locate
  * the underlying implementation.
  */
-@ModuleAPI
+@ModuleAPI(since = "0.1")
 interface CordaNodeStateInner : CordaNodeState
 
 /**
@@ -97,7 +97,7 @@ interface CordaNodeStateInner : CordaNodeState
  * Instead, the implementation is expected to cache the completion state of flows
  * and make them available for polling for a period of time through a configurable cache.
  */
-@ModuleAPI
+@ModuleAPI(since = "0.1")
 interface CordaFlowSnapshotsCache {
 
   /**
@@ -123,7 +123,7 @@ interface CordaFlowSnapshotsCache {
  * This class is expected to be used with the type parameter in order to
  * generate typesafe serialization bindings.
  */
-@ModuleAPI
+@ModuleAPI(since = "0.1")
 data class CordaFlowInstruction<FlowClass: FlowLogic<Any>>(
     val flowClass: KClass<FlowClass>,
     val arguments: Map<String, Any>,
@@ -141,7 +141,7 @@ data class CordaFlowInstruction<FlowClass: FlowLogic<Any>>(
  * Container for a result of executing Corda flow, which may be either
  * an object or an exception, alongside an [Instant] when the result was captured.
  */
-@ModuleAPI
+@ModuleAPI(since = "0.1")
 data class CordaFlowResult<T: Any>(
     val timestamp: Instant,
     val value: T?,
@@ -165,7 +165,7 @@ data class CordaFlowResult<T: Any>(
  * Information bundle describing Corda flow that has been initiated
  * through the node API.
  */
-@ModuleAPI
+@ModuleAPI(since = "0.1")
 data class CordaFlowHandle<ReturnType: Any>(
     val flowClass: KClass<out FlowLogic<ReturnType>>,
 
@@ -215,7 +215,7 @@ data class CordaFlowHandle<ReturnType: Any>(
 /**
  * Description of the current state of a particular flow.
  */
-@ModuleAPI
+@ModuleAPI(since = "0.1")
 data class CordaFlowSnapshot<ReturnType: Any>(
     val flowClass: KClass<out FlowLogic<ReturnType>>,
     val flowRunId: UUID,
@@ -236,7 +236,7 @@ data class CordaFlowSnapshot<ReturnType: Any>(
   fun withProgress(currentProgress: CordaFlowProgress) = copy(currentProgress = currentProgress)
 }
 
-@ModuleAPI
+@ModuleAPI(since = "0.1")
 data class CordaFlowProgress(
     val currentStepName: String,
     val timestamp: Instant = Instant.now())
@@ -247,7 +247,7 @@ data class CordaFlowProgress(
  *
  * FIXME add support for composite queries using boolean operators and complex expressions
  */
-@ModuleAPI
+@ModuleAPI(since = "0.1")
 data class CordaVaultQuery<T: ContractState>(
     val contractStateClass: KClass<T>,
 
@@ -320,7 +320,7 @@ data class CordaVaultQuery<T: ContractState>(
 /**
  * Result for a paged vault query modelled after [Vault.Page]
  */
-@ModuleAPI
+@ModuleAPI(since = "0.1")
 data class CordaVaultPage<T: ContractState>(
     val states: List<StateAndRef<T>>,
     val statesMetadata: List<Vault.StateMetadata>,
@@ -334,7 +334,7 @@ data class CordaVaultPage<T: ContractState>(
  *
  * Actual DataFeed class is not used because of the old version of rxjava Observable.
  */
-@ModuleAPI
+@ModuleAPI(since = "0.1")
 data class CordaDataFeed<T: ContractState>(
     val snapshot: CordaVaultPage<T>,
     val feed: Observable<Vault.Update<T>>
