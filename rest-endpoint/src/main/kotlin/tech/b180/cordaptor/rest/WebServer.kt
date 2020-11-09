@@ -3,12 +3,17 @@ package tech.b180.cordaptor.rest
 import io.undertow.Undertow
 import io.undertow.server.HttpHandler
 import io.undertow.server.handlers.PathHandler
+import io.undertow.server.handlers.SSLHeaderHandler
 import org.koin.core.get
 import org.koin.core.inject
 import org.koin.core.parameter.parametersOf
 import org.koin.core.qualifier.named
 import tech.b180.cordaptor.kernel.*
-import javax.net.ssl.SSLContext
+import java.io.File
+import java.io.FileInputStream
+import java.security.KeyStore
+import javax.net.ssl.*
+
 
 /**
  * Describes a single handler for a particular path prefix used to route API requests.
@@ -33,30 +38,106 @@ interface UndertowConfigContributor {
 }
 
 /**
- * Wrapper for configuration section that is fed into the listener configuration.
- * We are not eagerly parsing config line by line to reduce the chance of a typo.
+ * Contract for the logic that knows how to configure [SSLContext] for Undertow HTTPS listener,
+ * as well as what SSL-specific handlers to add to Undertow handler's chain to
+ * handler SSL-specific request parameters like client certificate and ciphers.
  */
-data class SecureTransportSettings(
-    val enabled: Boolean,
-    val tlsConfig: Config
-) : Config by tlsConfig {
-  constructor(tlsConfig: Config) : this(
-      enabled = tlsConfig.getBoolean("enabled"),
-      tlsConfig = tlsConfig
-  )
+@ModuleAPI(since = "0.1")
+interface SSLConfigurator {
+
+  fun createSSLContext(): SSLContext
+
+  fun createSSLHandler(innerHandler: HttpHandler): HttpHandler
+}
+
+/**
+ * Default implementation of [SSLConfigurator]
+ */
+open class DefaultSSLConfigurator(private val settings: WebServerSettings) : SSLConfigurator, CordaptorComponent {
+
+  companion object {
+    private val logger = loggerFor<UndertowHandlerContributor>()
+  }
+
+  override fun createSSLContext(): SSLContext {
+    val sslContext = instantiateSSLContext()
+    sslContext.init(instantiateKeyManagers(loadKeyStore()), instantiateTrustManagers(loadTrustStore()), null)
+    return sslContext
+  }
+
+  open fun instantiateSSLContext(): SSLContext {
+    return settings.secureTransportSettings.let {
+      if (it.sslContextProvider != null) {
+        logger.info("Using SSLContext ${it.sslContextName} with from ${it.sslContextProvider} provider")
+        SSLContext.getInstance(it.sslContextName, it.sslContextProvider)
+      } else {
+        logger.info("Using SSLContext ${it.sslContextName} with from default provider")
+        SSLContext.getInstance(it.sslContextName)
+      }
+    }
+  }
+
+  open fun loadKeyStore(): KeyStore {
+    return settings.secureTransportSettings.let { s ->
+      logger.debug("Loading {} keystore from {}", s.keyStoreType, s.keyStoreLocation)
+      loadKeystoreFrom(s.keyStoreType, s.keyStoreLocation!!, s.keyStorePassword!!)
+    }
+  }
+
+  open fun loadTrustStore(): KeyStore {
+    return settings.secureTransportSettings.let { s ->
+      logger.debug("Loading {} truststore from {}", s.trustStoreType, s.trustStoreLocation)
+      loadKeystoreFrom(s.trustStoreType, s.trustStoreLocation!!, s.trustStorePassword!!)
+    }
+  }
+
+  private fun loadKeystoreFrom(type: String, file: File, password: StringSecret): KeyStore {
+    val keystore = KeyStore.getInstance(type)
+    FileInputStream(file).use { stream ->
+      useSecret(password) { pwd ->
+        keystore.load(stream, pwd)
+      }
+    }
+    return keystore
+  }
+
+  open fun instantiateKeyManagers(keyStore: KeyStore): Array<KeyManager> {
+    val keyManagerFactory = KeyManagerFactory.getInstance(
+        settings.secureTransportSettings.keyManagerFactoryAlgo)
+
+    useSecret(settings.secureTransportSettings.keyStorePassword!!) {
+      keyManagerFactory.init(keyStore, it)
+    }
+
+    return keyManagerFactory.keyManagers
+  }
+
+  open fun instantiateTrustManagers(keyStore: KeyStore): Array<TrustManager> {
+    val trustManagerFactory = TrustManagerFactory.getInstance(
+        settings.secureTransportSettings.trustManagerFactoryAlgo)
+
+    trustManagerFactory.init(keyStore)
+
+    return trustManagerFactory.trustManagers
+  }
+
+  override fun createSSLHandler(innerHandler: HttpHandler): HttpHandler {
+    return SSLHeaderHandler(innerHandler)
+  }
 }
 
 /**
  * Contains logic for configuring listeners for HTTP connections, optionally with SSL enabled.
  */
 class UndertowListenerContributor(
-    private val settings: WebServerSettings
+    private val settings: WebServerSettings,
+    private val sslConfigurator: SSLConfigurator
 ) : UndertowConfigContributor {
 
   override fun contribute(builder: Undertow.Builder) {
     val address = settings.bindAddress
     if (settings.isSecure) {
-      builder.addHttpsListener(address.port, address.hostname, SSLContext.getDefault())
+      builder.addHttpsListener(address.port, address.hostname, sslConfigurator.createSSLContext())
     } else {
       builder.addHttpListener(address.port, address.hostname)
     }
@@ -68,7 +149,9 @@ class UndertowListenerContributor(
  * as well as an overarching security handler.
  */
 class UndertowHandlerContributor(
-    private val securitySettings: SecuritySettings
+    private val webServerSettings: WebServerSettings,
+    private val securitySettings: SecuritySettings,
+    private val sslConfigurator: SSLConfigurator
 ) : UndertowConfigContributor, CordaptorComponent {
 
   companion object {
@@ -116,13 +199,19 @@ class UndertowHandlerContributor(
       }
     }
 
+    var rootHandler: HttpHandler = pathHandler
     if (factory != null) {
       logger.debug("API endpoints security configuration factory {}", factory)
-      builder.setHandler(factory.createSecurityHandler(pathHandler))
+      rootHandler = factory.createSecurityHandler(pathHandler)
     } else {
       logger.warn("API endpoints are not protected by any security configuration")
-      builder.setHandler(pathHandler)
     }
+
+    if (webServerSettings.isSecure) {
+      rootHandler = sslConfigurator.createSSLHandler(rootHandler)
+    }
+
+    builder.setHandler(rootHandler)
   }
 }
 
@@ -142,7 +231,7 @@ class UndertowSettingsContributor(
 
 /**
  * Wrapper managing the lifecycle of the Undertow webserver in line with the lifecycle of the container.
- * It delegates most of the work to instances of [UndertowConfigurationContributor] defined via Koin.
+ * It delegates most of the work to instances of [UndertowConfigContributor] defined via Koin.
  */
 class WebServer : LifecycleAware, CordaptorComponent {
   companion object {

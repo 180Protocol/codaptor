@@ -27,11 +27,12 @@ class APIKeyTest : KoinTest {
       single { WebServer() }
       single { NoopLifecycleControl as LifecycleControl }
       single { WebServerSettings(HostAndPort("localhost", 9000),
-          SecureTransportSettings(false, TypesafeConfig.empty()),
+          SecureTransportSettings(TypesafeConfig.fromMap(mapOf("enabled" to false))),
           1, 1) } bind URLBuilder::class
       single { SecuritySettings(securityHandlerName = "apiKey") }
-      single { UndertowHandlerContributor(get()) } bind UndertowConfigContributor::class
-      single { UndertowListenerContributor(get()) } bind UndertowConfigContributor::class
+      single { UndertowHandlerContributor(get(), get(), get()) } bind UndertowConfigContributor::class
+      single { UndertowListenerContributor(get(), get()) } bind UndertowConfigContributor::class
+      single { NoopSSLConfigurator as SSLConfigurator }
 
       single<SecurityHandlerFactory>(named(SECURITY_CONFIGURATION_API_KEY)) {
         APIKeySecurityHandlerFactory(TypesafeConfig.fromMap(mapOf(

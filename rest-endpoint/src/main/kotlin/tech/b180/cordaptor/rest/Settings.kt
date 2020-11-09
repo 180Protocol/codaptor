@@ -1,10 +1,10 @@
 package tech.b180.cordaptor.rest
 
-import tech.b180.cordaptor.kernel.Config
-import tech.b180.cordaptor.kernel.HostAndPort
-import tech.b180.cordaptor.kernel.ModuleAPI
-import tech.b180.cordaptor.kernel.getHostAndPort
+import tech.b180.cordaptor.kernel.*
+import java.io.File
 import java.time.Duration
+import javax.net.ssl.KeyManagerFactory
+import javax.net.ssl.TrustManagerFactory
 
 /**
  * Utility allowing public URLs for API endpoints to be obtained
@@ -47,7 +47,7 @@ data class WebServerSettings(
 ) : URLBuilder {
   constructor(serverConfig: Config) : this(
       bindAddress = serverConfig.getHostAndPort("listenAddress"),
-      secureTransportSettings = SecureTransportSettings(serverConfig.getSubtree("tls")),
+      secureTransportSettings = SecureTransportSettings(serverConfig.getSubtree("ssl")),
       ioThreads = serverConfig.getInt("ioThreads"),
       workerThreads = serverConfig.getInt("workerThreads")
   )
@@ -57,6 +57,64 @@ data class WebServerSettings(
   override val baseUrl = "${if (isSecure) "https" else "http"}://${bindAddress.hostname}:${bindAddress.port}"
 
   val isSecure: Boolean get() = secureTransportSettings.enabled
+}
+
+/**
+ * Wrapper for configuration section that is fed into the listener configuration.
+ * We are not eagerly parsing config line by line to reduce the chance of a typo.
+ */
+data class SecureTransportSettings(
+    val enabled: Boolean,
+    val sslContextName: String,
+    val sslContextProvider: String?,
+    val keyManagerFactoryAlgo: String?,
+    val keyStoreProvider: String?,
+    val keyStoreLocation: File?,
+    val keyStorePassword: StringSecret?,
+    val keyStoreType: String,
+    val trustManagerFactoryAlgo: String?,
+    val trustStoreProvider: String?,
+    val trustStoreLocation: File?,
+    val trustStorePassword: StringSecret?,
+    val trustStoreType: String
+) {
+  constructor(sslConfig: Config) : this(
+      enabled = sslConfig.getBoolean("enabled"),
+      sslContextName = sslConfig.getOptionalString("sslContextName", "TLS"),
+      sslContextProvider = sslConfig.getOptionalString("sslContextProvider"),
+      keyManagerFactoryAlgo = sslConfig.getOptionalString("keyManagerFactoryAlgo", KeyManagerFactory.getDefaultAlgorithm()),
+      keyStoreProvider = sslConfig.getOptionalString("keyStoreProvider"),
+      keyStoreLocation = sslConfig.getOptionalString("keyStoreLocation")?.let { resolveAsFile(it) },
+      keyStorePassword = sslConfig.getOptionalStringSecret("keyStorePassword"),
+      keyStoreType = sslConfig.getOptionalString("keyStoreType", "JKS"),
+      trustManagerFactoryAlgo = sslConfig.getOptionalString("trustManagerFactoryAlgo", TrustManagerFactory.getDefaultAlgorithm()),
+      trustStoreProvider = sslConfig.getOptionalString("trustStoreProvider"),
+      trustStoreLocation = sslConfig.getOptionalString("trustStoreLocation")?.let { resolveAsFile(it) },
+      trustStorePassword = sslConfig.getOptionalStringSecret("trustStorePassword"),
+      trustStoreType = sslConfig.getOptionalString("trustStoreType", "JKS")
+  )
+
+  init {
+    if (enabled) {
+      requireNotNull(keyStoreLocation) { "keyStoreLocation is required if SSL is enabled" }
+      requireNotNull(keyStorePassword) { "keyStorePassword is required if SSL is enabled" }
+      requireNotNull(trustStoreLocation) { "trustStoreLocation is required if SSL is enabled" }
+      requireNotNull(trustStorePassword) { "trustStorePassword is required if SSL is enabled" }
+    }
+  }
+
+  companion object {
+    private fun resolveAsFile(location: String): File {
+      return File(location).also {
+        if (!it.exists()) {
+          throw IllegalArgumentException("File does not exist: ${it.absolutePath}")
+        }
+        if (!it.canRead()) {
+          throw IllegalArgumentException("File is not readable: ${it.absolutePath}")
+        }
+      }
+    }
+  }
 }
 
 /**

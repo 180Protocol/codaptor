@@ -1,6 +1,7 @@
 package tech.b180.cordaptor.rest
 
 import io.reactivex.rxjava3.core.Single
+import io.undertow.server.HttpHandler
 import io.undertow.server.HttpServerExchange
 import io.undertow.util.Headers
 import org.eclipse.jetty.client.HttpClient
@@ -19,6 +20,7 @@ import tech.b180.cordaptor.kernel.TypesafeConfig
 import tech.b180.cordaptor.shaded.javax.json.Json
 import java.io.StringWriter
 import java.util.concurrent.TimeUnit
+import javax.net.ssl.SSLContext
 import javax.servlet.http.HttpServletResponse
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -44,10 +46,11 @@ class WebServerTest : KoinTest {
       single { WebServer() }
       single { NoopLifecycleControl as LifecycleControl }
       single { WebServerSettings(HostAndPort("localhost", 9000),
-          SecureTransportSettings(false, TypesafeConfig.empty()), 1, 1) }
+          SecureTransportSettings(TypesafeConfig.fromMap(mapOf("enabled" to false))), 1, 1) }
       single { SecuritySettings(securityHandlerName = SECURITY_CONFIGURATION_NONE) }
-      single { UndertowHandlerContributor(get()) } bind UndertowConfigContributor::class
-      single { UndertowListenerContributor(get()) } bind UndertowConfigContributor::class
+      single { NoopSSLConfigurator as SSLConfigurator }
+      single { UndertowHandlerContributor(get(), get(), get()) } bind UndertowConfigContributor::class
+      single { UndertowListenerContributor(get(), get()) } bind UndertowConfigContributor::class
 
       single { EchoHandler("/test") } bind ContextMappedHandler::class
 
@@ -296,4 +299,14 @@ class AsyncEchoOperationEndpoint(contextPath: String) : OperationEndpoint<Simple
 
 object NoopLifecycleControl : LifecycleControl {
   override fun serverStarted() { }
+}
+
+object NoopSSLConfigurator : SSLConfigurator {
+  override fun createSSLContext(): SSLContext {
+    throw AssertionError("Not expected to be called")
+  }
+
+  override fun createSSLHandler(innerHandler: HttpHandler): HttpHandler {
+    return innerHandler
+  }
 }

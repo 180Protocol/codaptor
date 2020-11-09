@@ -7,7 +7,6 @@ import org.koin.dsl.bind
 import org.koin.dsl.binds
 import org.koin.dsl.module
 import tech.b180.cordaptor.kernel.*
-import java.time.Duration
 import kotlin.reflect.KClass
 
 /**
@@ -39,8 +38,9 @@ class RestEndpointModuleProvider : ModuleProvider {
 
     // built-in configuration contributors are qualified, so they could be overridden in a targeted way,
     // but other contributors could be created without a qualifier
-    single<UndertowConfigContributor>(named("listeners")) { UndertowListenerContributor(get()) }
-    single<UndertowConfigContributor>(named("handlers")) { UndertowHandlerContributor(get()) }
+    single<SSLConfigurator> { DefaultSSLConfigurator(get()) }
+    single<UndertowConfigContributor>(named("listeners")) { UndertowListenerContributor(get(), get()) }
+    single<UndertowConfigContributor>(named("handlers")) { UndertowHandlerContributor(get(), get(), get()) }
     single<UndertowConfigContributor>(named("settings")) { UndertowSettingsContributor(get()) }
 
     // definitions for Cordaptor API endpoints handlers
