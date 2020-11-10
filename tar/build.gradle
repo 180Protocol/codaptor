@@ -1,0 +1,68 @@
+configurations {
+    // trimming down Corda's transitive dependencies not requried for Corda RPC client to work
+    implementation.exclude group: 'org.hibernate'
+    implementation.exclude group: 'co.paralleluniverse'
+    implementation.exclude group: 'de.javakaffee'
+    implementation.exclude group: 'org.liquibase'
+    implementation.exclude group: 'com.h2database'
+    implementation.exclude group: 'org.apache.shiro'
+    implementation.exclude group: 'com.palominolabs.metrics'
+    implementation.exclude group: 'com.fasterxml.jackson.core'
+    implementation.exclude group: 'org.crashub'
+    implementation.exclude group: 'org.jgroups'
+    implementation.exclude group: 'org.fusesource.jansi'
+    implementation.exclude group: 'io.dropwizard.metrics'
+    implementation.exclude group: 'com.zaxxer'
+    implementation.exclude group: 'com.squareup.okhttp3'
+    implementation.exclude group: 'info.picocli'
+    implementation.exclude group: 'com.github.bft-smart'
+    implementation.exclude group: 'org.jolokia'
+    implementation.exclude group: 'io.atomix.copycat'
+    implementation.exclude group: 'io.atomix.catalyst'
+    implementation.exclude group: 'org.apache.activemq', module: 'artemis-server'
+    implementation.exclude group: 'net.corda', module: 'corda-tools-cliutils'
+    implementation.exclude group: 'net.corda', module: 'corda-serialization-djvm'
+    implementation.exclude group: 'net.corda', module: 'corda-node-djvm'
+    implementation.exclude group: 'net.corda', module: 'corda-tools-cliutils'
+    implementation.exclude group: 'net.corda', module: 'corda-shell'
+    implementation.exclude group: 'net.corda', module: 'corda-common-validation'
+    implementation.exclude group: 'net.corda', module: 'corda-common-configuration-parsing'
+    implementation.exclude group: 'net.corda', module: 'corda-confidential-identities'
+    implementation.exclude group: 'io.netty', module: 'netty-tcnative-boringssl-static'
+}
+
+dependencies {
+    implementation project(":kernel")
+    implementation project(":corda-common")
+    implementation project(":corda-rpc-client")
+    implementation project(":local-cache")
+    implementation project(":rest-endpoint")
+
+    implementation "net.corda:corda-core:$corda_core_release_version"
+    implementation "net.corda:corda-node-api:$corda_core_release_version"
+    implementation "net.corda:corda-node:$corda_core_release_version"
+    implementation "net.corda:corda-serialization:$corda_core_release_version"
+}
+
+task dist(type: Tar, dependsOn: [ ':corda-rpc-client:jar', ':local-cache:jar', ':rest-endpoint:jar' ]) {
+    archivesBaseName = 'cordaptor-standalone'
+    compression = 'gzip'
+
+    from "src/main/files", {
+        eachFile { file ->
+            // make sure scripts have execution permission inside the archive
+            if (file.name.endsWith(".sh")) {
+                file.mode = 0755
+            }
+        }
+    }
+
+    into "lib", {
+        from configurations.runtimeClasspath.files
+    }
+
+    doLast {
+        println "Created zipped tarball file: ${tasks.dist.archiveFileName.get()}"
+    }
+}
+}

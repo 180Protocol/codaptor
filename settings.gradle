@@ -7,10 +7,11 @@ include 'corda-rpc-client'
 include 'local-cache'
 include 'distributed-cache'
 
-// Pre-built bundles for common deployment scenarios
-include 'bundle-rest-cluster'
+// Pre-built bundle for embedded deployment
 include 'bundle-rest-embedded'
-include 'bundle-rest-standalone'
+
+// Modules dealing with distributions
+include 'tar'
 
 // Not part of any bundle
 include 'reference-cordapp'

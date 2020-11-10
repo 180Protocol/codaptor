@@ -43,8 +43,8 @@ allprojects {
 }
 
 subprojects {
-    group = 'tech.b180'
-    version = '0.0.1-SNAPSHOT'
+    group = 'tech.b180.cordaptor'
+    version = getProperty("cordaptor_version")
 
     apply plugin: 'org.jetbrains.kotlin.jvm'
 
