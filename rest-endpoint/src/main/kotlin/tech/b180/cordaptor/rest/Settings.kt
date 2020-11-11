@@ -43,18 +43,22 @@ data class WebServerSettings(
     val bindAddress: HostAndPort,
     val secureTransportSettings: SecureTransportSettings,
     val ioThreads: Int,
-    val workerThreads: Int
+    val workerThreads: Int,
+    val externalAddress: HostAndPort = bindAddress,
+    val sslOnExternalAddress: Boolean = secureTransportSettings.enabled
 ) : URLBuilder {
   constructor(serverConfig: Config) : this(
       bindAddress = serverConfig.getHostAndPort("listenAddress"),
+      externalAddress = serverConfig.getHostAndPort("externalAddress"),
       secureTransportSettings = SecureTransportSettings(serverConfig.getSubtree("ssl")),
+      sslOnExternalAddress = serverConfig.getBoolean("sslOnExternalAddress"),
       ioThreads = serverConfig.getInt("ioThreads"),
       workerThreads = serverConfig.getInt("workerThreads")
   )
 
   override fun toAbsoluteUrl(contextPath: String) = baseUrl + contextPath
 
-  override val baseUrl = "${if (isSecure) "https" else "http"}://${bindAddress.hostname}:${bindAddress.port}"
+  override val baseUrl = "${if (sslOnExternalAddress) "https" else "http"}://${externalAddress.hostname}:${externalAddress.port}"
 
   val isSecure: Boolean get() = secureTransportSettings.enabled
 }
