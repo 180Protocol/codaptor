@@ -1,0 +1,18 @@
+# use docker-compose up -d to start the network
+# version 3 does not support setting memory limits for docker-compose
+version: '2'
+services:
+  cordaptor:
+    image: b180tech/cordaptor:0.1.0
+    hostname: cordaptor
+    mem_limit: 512m
+    environment:
+      - CORDA_RPC_NODE_ADDRESS=bank-node:10201
+      - CORDA_RPC_USERNAME=client
+      - CORDA_RPC_PASSWORD=test
+      - CORDAPTOR_API_LISTEN_ADDRESS=0.0.0.0:8500
+      - CORDAPTOR_API_EXTERNAL_ADDRESS=localhost:9500
+    ports:
+      - "9500:8500"
+    volumes:
+      - ./build/libs:/cordaptor/cordapps

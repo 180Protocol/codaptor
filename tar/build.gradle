@@ -65,4 +65,9 @@ task dist(type: Tar, dependsOn: [ ':corda-rpc-client:jar', ':local-cache:jar', '
         println "Created zipped tarball file: ${tasks.dist.archiveFileName.get()}"
     }
 }
+
+task docker(type: Exec, dependsOn: [ 'dist' ]) {
+    workingDir project.projectDir
+    commandLine 'docker', 'build', '--build-arg', "DIST_FILE=${tasks.dist.archiveFileName.get()}",
+            '-t', "b180tech/cordaptor:$cordaptor_version", '.'
 }

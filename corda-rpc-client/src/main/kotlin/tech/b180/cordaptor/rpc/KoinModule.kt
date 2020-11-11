@@ -77,6 +77,7 @@ class Settings private constructor(
     }
   }
 
+  // FIXME add more helpful error messages when RPC connection properties are undefined
   constructor(ourConfig: Config) : this(
       nodeAddress = ourConfig.getHostAndPort("nodeAddress"),
       rpcUsername = ourConfig.getStringSecret("rpcUsername"),

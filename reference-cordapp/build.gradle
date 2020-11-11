@@ -90,6 +90,10 @@ task standaloneBundleTest(type: Test, dependsOn: ["jar"]) {
     outputs.upToDateWhen { false }
 }
 
+task dockerImageTest(type: Exec, dependsOn: [ ':tar:docker', 'deployNodes' ]) {
+
+}
+
 dependencies {
     implementation project(":kernel")
 
@@ -127,7 +131,8 @@ dependencies {
     standaloneBundleTestImplementation project(":corda-rpc-client")
 }
 
-// Use this task to deploy local Corda network with embedded Cordaptor bundle
+// This tasks initializes minimal Corda network with embedded Cordaptor bundle
+// The network is intended to be run via docker-compose because it uses hostnames only resolvable within docker network
 task deployNodes(type: net.corda.plugins.Cordform, dependsOn: ['jar']) {
     nodeDefaults {
         projectCordapp {
@@ -137,7 +142,7 @@ task deployNodes(type: net.corda.plugins.Cordform, dependsOn: ['jar']) {
     node {
         name "O=Notary,L=London,C=GB"
         notary = [validating : false]
-        p2pAddress "localhost:10200"
+        p2pAddress "notary-node:10200"
         rpcSettings {
             address("0.0.0.0:10201")
             adminAddress("0.0.0.0:10202")
@@ -146,18 +151,13 @@ task deployNodes(type: net.corda.plugins.Cordform, dependsOn: ['jar']) {
     }
     node {
         name "O=Bank,L=London,C=GB"
-        p2pAddress "localhost:10300"
+        p2pAddress "bank-node:10200"
         rpcSettings {
-            address("0.0.0.0:10301")
-            adminAddress("0.0.0.0:10302")
+            address("0.0.0.0:10201")
+            adminAddress("0.0.0.0:10202")
             useSsl(false)
         }
-        cordapp(project(':bundle-rest-embedded')) {
-            config '''\
-                localCache {
-                  enabled = false
-                }
-            '''.stripIndent()
-        }
+        rpcUsers = [[ user: "client", "password": "test", "permissions": ["ALL"]]]
+        cordapp(project(':bundle-rest-embedded'))
     }
 }
