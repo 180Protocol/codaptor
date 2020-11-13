@@ -61,5 +61,7 @@ subprojects {
         // This makes the JAR's SHA-256 hash repeatable.
         preserveFileTimestamps = false
         reproducibleFileOrder = true
+
+        archivesBaseName = "cordaptor-${project.name}"
     }
 }
