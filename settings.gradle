@@ -5,7 +5,6 @@ include 'corda-common'
 include 'corda-service'
 include 'corda-rpc-client'
 include 'local-cache'
-include 'distributed-cache'
 
 // Pre-built bundle for embedded deployment
 include 'bundle-rest-embedded'
