@@ -6,7 +6,7 @@ for decentralized applications, but in order to communicate with a Corda node, t
 integrations using its Java client libraries. This comes with a steep learning curve, and adds complexity for
 for teams working outside Java ecosystem, e.g. Node.js, .Net, or Python.
 
-Cordator solves this problem by automatically creating REST API for any CorDapp running on a Corda node. There are
+Cordaptor solves this problem by automatically creating REST API for any CorDapp running on a Corda node. There are
 many tools that understand REST APIs in every technology stack, and teams can pick and choose what works for them.
 
 ## Features
