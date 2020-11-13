@@ -54,4 +54,14 @@ Cordaptor is an open-source project and contributions are welcome!
 
 SPDX:AGPL-3.0-or-later
 
-Copyright (C) Bond180 Limited 2020
+Copyright (C) 2020 Bond180 Limited
+
+**Important notice**: for the avoidance of doubt in the interpretation of the license terms,
+the copyright holders deem the following uses of Cordaptor to be 'aggregate' as opposed to 'modified versions':
+1. Deploying embedded Cordaptor bundle JAR file into a Corda node, regardless of whether it is a file
+distributed as a binary or built from the source code, as long as the source code remains unmodified.
+2. Creating extensions for Cordaptor using it's published microkernel's and modules' API, where the
+extensions' code is assembled into separate JAR files and made available for Cordaptor microkernel
+to dynamically discover at runtime.
+3. Including Cordaptor as a component of a broader application architecture where other components interact with it
+using network protocols.
