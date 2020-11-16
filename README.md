@@ -8,6 +8,8 @@ for teams working outside Java ecosystem, e.g. Node.js, .Net, or Python.
 
 Cordaptor solves this problem by automatically creating REST API for any CorDapp running on a Corda node. There are
 many tools that understand REST APIs in every technology stack, and teams can pick and choose what works for them.
+Cordaptor also allows to decouple API users from the underlying Corda node in order to improve the availability,
+reliability, and flexibility of the overall system.
 
 ## Features
 
@@ -37,12 +39,16 @@ Cordaptor is designed from ground up to be unobstructive, so there is no code or
 Simply download the embedded bundle JAR file from releases and drop it into `cordapps` 
 directory of your Corda node, restart it, and fire up your browser to access the Swagger UI.
 
-Read more in [Getting started]() guide about other ways to get immediately productive with Cordaptor.
+Read more in [Getting started](./docs/getting-started.md) guide about other ways to get immediately
+productive with Cordaptor.
 
-## Useful links
+## Next steps
 
-* [Cordaptor documentation]()
-* [Developers' blog]()
+* Learn how to [get started](./docs/getting-started.md) with Cordaptor
+* Learn more about [using](./docs/how-to-use.md) Cordaptor
+* Read about how Cordaptor fits into your [architecture](./docs/architecture.md)
+* Understand how to [configure](./docs/configuration.md) Cordaptor
+* Learn how to [create extensions](./docs/extensions.md) for Cordaptor
 
 ## Contributing
 
@@ -57,11 +63,19 @@ SPDX:AGPL-3.0-or-later
 Copyright (C) 2020 Bond180 Limited
 
 **Important notice**: for the avoidance of doubt in the interpretation of the license terms,
-the copyright holders deem the following uses of Cordaptor to be 'aggregate' as opposed to 'modified versions':
+the copyright holders commit to treat the following uses of Cordaptor as 'aggregate' as opposed to 'modified versions':
 1. Deploying embedded Cordaptor bundle JAR file into a Corda node, regardless of whether it is a file
-distributed as a binary or built from the source code, as long as the source code remains unmodified.
-2. Creating extensions for Cordaptor using it's published microkernel's and modules' API, where the
+distributed as a binary or built from the source code, as long as the source code of all modules in the bundle
+remains unmodified.
+2. Annotating application code with annotation types provided by Cordaptor in order to fine-tune the behaviour
+of Cordaptor components interacting with the application code.
+3. Creating extensions for Cordaptor using it's published microkernel's and modules' APIs, where the
 extensions' code is assembled into separate JAR files and made available for Cordaptor microkernel
-to dynamically discover at runtime.
-3. Including Cordaptor as a component of a broader application architecture where other components interact with it
-using network protocols.
+to dynamically discover at runtime. For clarity's sake, code constituting published APIs must be appropriately
+annotated, see [Extending Cordaptor](./docs/extensions.md) for further details.
+4. Including Cordaptor as a component of a broader application architecture where other components interact with it
+using network communication protocols regardless of how Cordaptor is deployed and configured.
+
+The intent of using AGPL is to protect the interests of the Cordaptor user community and ensure any bug fixes
+and important new features developed by some users become available to everyone else. It is not the intent of
+using AGPL to force disclose of any proprietary application code relying on Cordaptor.

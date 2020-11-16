@@ -4,11 +4,12 @@ version: '2'
 services:
   notary-node:
     image: corda/corda-zulu-java1.8-4.5:latest
+    # hostnames need to be the same as in build.gradle, because they are baked into nodeInfo files
     hostname: notary-node
     mem_limit: 1g
     expose:
-      - 10200
-      - 10201
+      - 10200 # p2p port
+      - 10201 # Corda RPC port, map to a host port using ports directive if Corda shell access is required
     volumes:
       - ./build/nodes/Notary/certificates:/opt/corda/certificates
       - ./build/nodes/Notary/cordapps:/opt/corda/cordapps
@@ -24,11 +25,12 @@ services:
       - ./build/nodes/Notary/node.conf:/etc/corda/node.conf
   bank-node:
     image: corda/corda-zulu-java1.8-4.5:latest
+    # hostnames need to be the same as in build.gradle, because they are baked into nodeInfo files
     hostname: bank-node
     mem_limit: 1g
     expose:
-      - 10200
-      - 10201
+      - 10200 # p2p port
+      - 10201 # Corda RPC port, map to a host port using ports directive if Corda shell access is required
     volumes:
       - ./build/nodes/Bank/certificates:/opt/corda/certificates
       - ./build/nodes/Bank/cordapps:/opt/corda/cordapps

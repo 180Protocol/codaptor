@@ -133,8 +133,10 @@ dependencies {
 
 // This tasks initializes minimal Corda network with embedded Cordaptor bundle
 // The network is intended to be run via docker-compose because it uses hostnames only resolvable within docker network
+// Note that hostnames (like bank-node) must match those configured in compose-corda-network.yml
 task deployNodes(type: net.corda.plugins.Cordform, dependsOn: ['jar']) {
     nodeDefaults {
+        // this is necessary as we provide reference cordapp for testing
         projectCordapp {
             deploy = true
         }
@@ -149,6 +151,7 @@ task deployNodes(type: net.corda.plugins.Cordform, dependsOn: ['jar']) {
             useSsl(false)
         }
     }
+    // this is the node where we deploy Cordaptor
     node {
         name "O=Bank,L=London,C=GB"
         p2pAddress "bank-node:10200"
@@ -157,7 +160,12 @@ task deployNodes(type: net.corda.plugins.Cordform, dependsOn: ['jar']) {
             adminAddress("0.0.0.0:10202")
             useSsl(false)
         }
+        // our test users has admin access to the node, caution advised
         rpcUsers = [[ user: "client", "password": "test", "permissions": ["ALL"]]]
-        cordapp(project(':bundle-rest-embedded'))
+        // This includes embedded Cordaptor bundle as a project dependency, but you are likely
+        // to use its full Maven coordinates instead, e.g. 'tech.b180.cordaptor:cordaptor-embedded-bundle:XXX'
+        // This is only necessary if you want to use the embedded bundle
+        // Remove this line if you plan to use Cordaptor standalone via compose-cordaptor.yml
+        cordapp project(':bundle-rest-embedded')
     }
 }
