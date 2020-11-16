@@ -21,6 +21,7 @@ typealias ConfigPath = String
  * that knows how to initialize itself from a [Config] instance. This way, all configuration
  * issues could be detected at container startup time.
  */
+@Suppress("unused")
 @ModuleAPI(since = "0.1")
 interface Config {
 
@@ -78,12 +79,14 @@ interface Config {
 /**
  * Container for a parsed configuration option for a network socket address
  */
+@ModuleAPI(since = "0.1")
 data class HostAndPort(val hostname: String, val port: Int) {
   val socketAddress : InetSocketAddress
   get() = InetSocketAddress(hostname, port)
 }
 
 /** Utility method for parsing socket address */
+@ModuleAPI(since = "0.1")
 fun Config.getHostAndPort(path: ConfigPath): HostAndPort {
   val ( hostPart, portPart ) = getString(path).split(":")
   return HostAndPort(hostPart, Integer.parseInt(portPart))

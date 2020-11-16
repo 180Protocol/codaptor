@@ -3,7 +3,7 @@ package tech.b180.cordaptor.kernel
 import org.koin.core.get
 
 /**
- * Entry point for the microkernel's secrets manager. Container will defined an instance of [ConfigSecretsStore]
+ * Entry point for the microkernel's secrets manager. Container will define an instance of [ConfigSecretsStore]
  * bound to [SecretsStore] in its Koin module, but other modules may override this component.
  *
  * Note that default implementation is not secure as it reads secret values from plain-text configuration

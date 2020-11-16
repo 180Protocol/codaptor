@@ -11,6 +11,7 @@ import java.util.*
  * so there also must a file called META-INF/services/tech.b180.cordaptor.kernel.ModuleProvider
  * in each module containing the name of a concrete implementation.
  */
+@ModuleAPI(since = "0.1")
 interface ModuleProvider {
 
   companion object {
@@ -54,6 +55,7 @@ interface ModuleProvider {
  * to be notified of the main container lifecycle events, e.g. to acquire
  * and/or gracefully release necessary resources.
  */
+@ModuleAPI(since = "0.1")
 interface LifecycleAware {
 
   /**
@@ -86,6 +88,7 @@ interface LifecycleAware {
 /**
  * Allows components to initiate microkernel lifecycle events.
  */
+@ModuleAPI(since = "0.1")
 interface LifecycleControl {
 
   /** This will trigger [LifecycleAware.onStarted] lifecycle event callbacks for all registered components */
