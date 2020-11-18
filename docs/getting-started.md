@@ -3,10 +3,10 @@
 Cordaptor is designed for flexibility and ability to fit into any reasonable Corda use case.
 Hence, there are a number of ways to quickly add Cordaptor to your stack:
 
-* [Ad hoc use of Cordaptor embedded CorDapp bundle](#Ad hoc use of Cordaptor embedded CorDapp bundle)
-* [Adding Cordaptor embedded CorDapp bundle to deployNodes task](#Adding Cordaptor embedded CorDapp bundle to deployNodes task)
-* [Running Cordaptor standalone](#Running Cordaptor standalone)
-* [Running Cordaptor in Docker](#Running Cordaptor in Docker)
+* [Ad hoc use of Cordaptor embedded CorDapp bundle](#ad-hoc-use-of-cordaptor-embedded-cordapp-bundle)
+* [Adding Cordaptor embedded CorDapp bundle to deployNodes task](#adding-cordaptor-embedded-cordapp-bundle-to-deploynodes-task)
+* [Running Cordaptor standalone](#running-cordaptor-standalone)
+* [Running Cordaptor in Docker](#running-cordaptor-in-docker)
 
 ## Ad hoc use of Cordaptor embedded CorDapp bundle
 
@@ -78,7 +78,7 @@ with `StartableByService` annotation for them to be available for initiation by 
 ## Running Cordaptor standalone
 
 This is currently available on Linux/Mac only. You can run Cordaptor standalone on Windows using Docker, see
-[next section](#Running Cordaptor in Docker) for details.
+[next section](#running-cordaptor-in-docker) for details.
 
 Unlike the embedded bundle, which is running inside a Corda node, standalone Cordaptor runs as a separate process
 and establishes Corda RPC connection to the node. This requires Corda node to have RPC user accounts with

@@ -4,8 +4,8 @@ This guide covers a number of topics related to the architecture of systems wher
 components of the whole. If you are interested in the architecture of Cordaptor itself, see
 [Extensions](./extensions.md) instead.
 
-* [Motivation for Cordaptor](#Motivation)
-* [Deployment models](#Deployment)
+* [Motivation for Cordaptor](#motivation)
+* [Deployment models](#deployment)
 
 ## Motivation
 
@@ -125,7 +125,7 @@ Refer to the [Dockerfile](../tar/Dockerfile) for details how it's built or requi
 Consider contributing your Dockerfile by creating a pull request.
 
 Cordaptor is compatible with standard practice of using environment variables to provide secrets to containers.
-See [Secrets management](#Secrets management) below for further details.
+See [Secrets management](#secrets-management) below for further details.
 
 ## Functionality
 
