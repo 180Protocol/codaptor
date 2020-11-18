@@ -18,7 +18,7 @@ dependencies {
     implementation project(":kernel")
     implementation project(":corda-common")
 
-    implementation name: "glassfish-javax-json-$glassfish_json_version-shaded"
+    implementation "tech.b180.cordaptor:glassfish-javax-json-shaded:$glassfish_json_version"
     implementation "org.pac4j:pac4j-core:$pac4j_version"
     implementation "org.pac4j:pac4j-http:$pac4j_version"
     implementation "org.pac4j:undertow-pac4j:$pac4j_version"
@@ -42,4 +42,15 @@ dependencies {
     testImplementation "org.eclipse.jetty:jetty-client:$jetty_version"
 
     testImplementation "io.mockk:mockk:1.9.3"
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            pom {
+                name = "Cordaptor OpenAPI Endpoint"
+                description = "Provides a REST API for the CorDapps running on the node"
+            }
+        }
+    }
 }

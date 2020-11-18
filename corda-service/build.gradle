@@ -22,3 +22,14 @@ dependencies {
     testImplementation 'org.jetbrains.kotlin:kotlin-test-junit'
     testImplementation "com.google.guava:guava:$guava_version"
 }
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            pom {
+                name = "Cordaptor Corda Service"
+                description = "Implementation of Corda service instantiating Cordaptor inside a Corda node"
+            }
+        }
+    }
+}

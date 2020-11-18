@@ -1,0 +1,2 @@
+This archive contains classes shaded from javax.json and org.glassfish.json packages.
+There are no javadocs of its own.

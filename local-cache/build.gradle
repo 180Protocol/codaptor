@@ -13,3 +13,14 @@ dependencies {
     testImplementation 'org.jetbrains.kotlin:kotlin-test'
     testImplementation 'org.jetbrains.kotlin:kotlin-test-junit'
 }
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            pom {
+                name = "Cordaptor Local Cache"
+                description = "Implements local JVM-level caching for API entities"
+            }
+        }
+    }
+}

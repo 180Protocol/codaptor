@@ -20,3 +20,14 @@ dependencies {
     testImplementation 'org.jetbrains.kotlin:kotlin-test-junit'
     testImplementation "com.google.guava:guava:$guava_version"
 }
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            pom {
+                name = "Cordaptor Corda RPC Client"
+                description = "Entry point for standalone Cordaptor connecting to a Corda node via RPC"
+            }
+        }
+    }
+}

@@ -1,16 +1,24 @@
+gradle.ext.moduleProjects=[]
+
 // Individual modules providing aspects of the functionality
-include 'kernel'
-include 'rest-endpoint'
-include 'corda-common'
-include 'corda-service'
-include 'corda-rpc-client'
-include 'local-cache'
+includeModule 'kernel'
+includeModule 'rest-endpoint'
+includeModule 'corda-common'
+includeModule 'corda-service'
+includeModule 'corda-rpc-client'
+includeModule 'local-cache'
 
 // Pre-built bundle for embedded deployment
-include 'bundle-rest-embedded'
+includeModule 'bundle-rest-embedded'
 
 // Modules dealing with distributions
 include 'tar'
 
 // Not part of any bundle
 include 'reference-cordapp'
+
+// projects added with this function produce artifacts that are published to Maven Central
+def includeModule(name) {
+    gradle.ext.moduleProjects.add(name)
+    include ":$name"
+}

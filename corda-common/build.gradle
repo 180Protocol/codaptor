@@ -13,3 +13,16 @@ dependencies {
     testImplementation "net.corda:corda-core:$corda_core_release_version"
     testImplementation "com.google.guava:guava:$guava_version"
 }
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            artifactId = "cordaptor-${project.name}"
+
+            pom {
+                name = "Cordaptor Corda Common"
+                description = "Common definitions and helpers for integrating with Corda"
+            }
+        }
+    }
+}

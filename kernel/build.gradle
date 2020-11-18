@@ -14,3 +14,14 @@ dependencies {
     testImplementation 'org.jetbrains.kotlin:kotlin-test'
     testImplementation 'org.jetbrains.kotlin:kotlin-test-junit'
 }
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            pom {
+                name = "Cordaptor Microkernel"
+                description = "Microkernel implementation response for loading all other Cordaptor modules"
+            }
+        }
+    }
+}

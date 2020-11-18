@@ -63,3 +63,14 @@ task bundleReferenceConf {
 }
 
 jar.dependsOn(bundleReferenceConf)
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            pom {
+                name = "Cordaptor embedded CorDapp bundle"
+                description = "Single-file deployable CorDapp embedding Cordaptor into a Corda node"
+            }
+        }
+    }
+}
