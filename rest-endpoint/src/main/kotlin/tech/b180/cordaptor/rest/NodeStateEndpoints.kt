@@ -349,6 +349,8 @@ class ContractStateRefQueryEndpoint<StateType: ContractState>(
             message = "No such state with ref $stateRef",
             errorType = OperationErrorType.NOT_FOUND)
 
+    // FIXME validate actual contract state type, otherwise it will fail at serialization
+
     return Response(stateAndRef.state.data)
   }
 
