@@ -10,8 +10,9 @@ The rationale is two-fold. Firstly, Cordaptor must support
 [different deployment models](./architecture.md) from the same codebase (embedded and standalone),
 which requires internal decoupling and, in case of the embedded CorDapp bundle, use of version-specific APIs,
 which cannot be easily accommodated in a monolithic codebase. Secondly, Cordaptor functionality
-may conceivably be augmented in a number of extension points, and microkernel architecture makes
-such extensibility a first-class citizen, as opposed to coming up with an ad hoc way.
+may conceivably be augmented in a number of extension points (see [use cases](#use-cases) below),
+and microkernel architecture makes such extensibility a first-class citizen, as opposed to
+coming up with an ad hoc mechanism.
 
 ## Use cases
 
