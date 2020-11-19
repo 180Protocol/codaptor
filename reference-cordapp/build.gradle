@@ -163,7 +163,7 @@ task deployNodes(type: net.corda.plugins.Cordform, dependsOn: ['jar']) {
         // our test users has admin access to the node, caution advised
         rpcUsers = [[ user: "client", "password": "test", "permissions": ["ALL"]]]
         // This includes embedded Cordaptor bundle as a project dependency, but you are likely
-        // to use its full Maven coordinates instead, e.g. 'tech.b180.cordaptor:cordaptor-embedded-bundle:XXX'
+        // to use its full Maven coordinates instead, e.g. 'tech.b180.cordaptor:cordaptor-bundle-rest-embedded:XXX'
         // This is only necessary if you want to use the embedded bundle
         // Remove this line if you plan to use Cordaptor standalone via compose-cordaptor.yml
         cordapp(project(':bundle-rest-embedded')) {
