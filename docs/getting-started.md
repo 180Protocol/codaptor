@@ -8,6 +8,11 @@ Hence, there are a number of ways to quickly add Cordaptor to your stack:
 * [Running Cordaptor standalone](#running-cordaptor-standalone)
 * [Running Cordaptor in Docker](#running-cordaptor-in-docker)
 
+## System requirements
+
+Cordaptor preview is compatible with Corda 4.5 or higher. We are intending to make it
+compatible with earlier versions of Corda 4, as well as support Corda 5 from day one.
+
 ## Ad hoc use of Cordaptor embedded CorDapp bundle
 
 One way to use Cordaptor is to deploy it alongside your CorDapp(s) into the Corda node.
@@ -52,7 +57,7 @@ Steps to follow:
     ```$gradle
     node {
         name "..."
-        cordapp "tech.b180.cordaptor:cordaptor-embedded-bundle:0.1.0" // <-- add this line
+        cordapp "tech.b180.cordaptor:cordaptor-bundle-rest-embedded:0.1.0" // <-- add this line
         p2pPort 10002
         rpcSettings {
             address("localhost:10003")
@@ -63,12 +68,18 @@ Steps to follow:
     If you add Cordaptor bundle to more than one node, make sure you assign different listen addresses.
     Otherwise, all Cordaptor services will attempt to bind to the same port, which will cause all but one
     failing to start. See [Configuration](./configuration.md) for details.
-3. Run `deployNode` Gradle task:  
+3. Add Cordaptor bundle to the dependencies section of your `build.gradle` file:
+    ```gradle
+    dependencies {
+        cordapp "tech.b180.cordaptor:cordaptor-bundle-rest-embedded:0.1.0"
+    }
+    ```
+4. Run `deployNode` Gradle task:  
    For Windows: `./gradlew.bat deployNodes`  
    For Linux/Mac: `./gradlew deployNodes`
-4. Start nodes in the generated Corda network using `runnodes.bat` or `runnodes.sh`
+5. Start nodes in the generated Corda network using `runnodes.bat` or `runnodes.sh`
 in directory `<project home>/build/nodes`
-5. Open http://127.0.0.1:8500/swagger in your browser
+6. Open http://127.0.0.1:8500/swagger in your browser
 
 Note when running as embedded CorDapp inside a Corda node, Cordaptor is instantiated as a
 [node service](https://docs.corda.net/docs/corda-os/4.6/node-services.html). It will use internal API
