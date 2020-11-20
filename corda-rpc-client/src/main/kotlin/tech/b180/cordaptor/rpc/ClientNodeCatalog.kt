@@ -1,7 +1,6 @@
 package tech.b180.cordaptor.rpc
 
 import net.corda.node.internal.cordapp.JarScanningCordappLoader
-import net.corda.node.services.api.ServiceHubInternal
 import org.koin.core.inject
 import tech.b180.cordaptor.corda.CordaNodeCatalog
 import tech.b180.cordaptor.corda.CordaNodeCatalogInner
@@ -28,6 +27,6 @@ class ClientNodeCatalogImpl : CordaNodeCatalogInner, CordaptorComponent {
     val scanner = JarScanningCordappLoader.fromDirectories(
         cordappDirs = listOf(settings.cordappDir))
 
-    cordapps = CordappInfoBuilder(cordapps = scanner.cordapps).build()
+    cordapps = CordappInfoBuilder(cordapps = scanner.cordapps, isEmbedded = false).build()
   }
 }

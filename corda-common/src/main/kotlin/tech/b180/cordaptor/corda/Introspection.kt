@@ -14,7 +14,8 @@ import kotlin.reflect.KClass
  * This class is also responsible for identifying anomalies and reporting them.
  */
 class CordappInfoBuilder(
-    private val cordapps: List<Cordapp>
+    private val cordapps: List<Cordapp>,
+    private val isEmbedded: Boolean
 ) {
 
   companion object {
@@ -37,19 +38,38 @@ class CordappInfoBuilder(
                 }
 
                 val canStartByService = flowClass.getAnnotation(StartableByService::class.java) != null
-                canStartByService.also {
-                  // we will ignore the flow because it is not available to Corda service,
-                  // but we can provide the user with further information in the log to help with troubleshooting
+                val canStartByRPC = flowClass.getAnnotation(StartableByRPC::class.java) != null
 
-                  val canStartByRPC = flowClass.getAnnotation(StartableByRPC::class.java) != null
-                  if (canStartByRPC) {
-                    logger.warn("Flow class ${flowClass.canonicalName} can be started by RPC, " +
-                        "but is not available to Cordaptor running as a service within the node. " +
-                        "Annotate the flow class with @StartableByService to make it available")
-                  } else {
-                    logger.debug("Ignoring flow class {} as it is not available to services nor RPC",
+                if (isEmbedded) {
+                  // ignore the flow as it is not available to Corda service
+                  // and provide further information in the log to help with troubleshooting
+                  if (!canStartByService) {
+                    if (canStartByRPC) {
+                      logger.warn("Flow class ${flowClass.canonicalName} can be started by RPC, " +
+                          "but is not available to Cordaptor running as a service within the node. " +
+                          "Annotate the flow class with @StartableByService to make it available")
+                    }
+
+                    logger.debug("Ignoring flow class {} as it is not available to Corda services",
                         flowClass.canonicalName)
                   }
+
+                  canStartByService
+                } else {
+                  // ignore the flow as it is not available to Corda RPC
+                  // and provide further information in the log to help with troubleshooting
+                  if (!canStartByRPC) {
+                    if (canStartByService) {
+                      logger.warn("Flow class ${flowClass.canonicalName} can be started by a Corda service, " +
+                          "but is not available to Cordaptor running as a standalone gateway. " +
+                          "Annotate the flow class with @StartableByRPC to make it available")
+                    }
+
+                    logger.debug("Ignoring flow class {} as it is not available to Corda RPC clients",
+                        flowClass.canonicalName)
+                  }
+
+                  canStartByRPC
                 }
               }
               .map { flowClass ->
