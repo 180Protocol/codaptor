@@ -1,5 +1,7 @@
 package tech.b180.cordaptor.corda
 
+import com.typesafe.config.Config
+import com.typesafe.config.ConfigFactory
 import net.corda.core.contracts.BelongsToContract
 import net.corda.core.contracts.ContractState
 import net.corda.core.cordapp.Cordapp
@@ -7,6 +9,9 @@ import net.corda.core.flows.FlowLogic
 import net.corda.core.flows.StartableByRPC
 import net.corda.core.flows.StartableByService
 import tech.b180.cordaptor.kernel.loggerFor
+import java.io.File
+import java.io.InputStreamReader
+import java.util.jar.JarFile
 import kotlin.reflect.KClass
 
 /**
@@ -26,8 +31,10 @@ class CordappInfoBuilder(
     return cordapps.map { cordapp ->
       logger.info("Found CordApp ${cordapp.info} at ${cordapp.jarPath}")
 
+      val settings = buildCordappSettings(cordapp)
+
       CordappInfo(
-          shortName = cordapp.info.shortName,
+          shortName = settings.urlPath,
           jarHash = cordapp.jarHash,
           jarURL = cordapp.jarPath,
           flows = cordapp.allFlows
@@ -112,4 +119,52 @@ class CordappInfoBuilder(
       )
     }
   }
+
+  private fun buildCordappSettings(cordapp: Cordapp): CordappSettings {
+    val jarFile = File(cordapp.jarPath.path)
+    if (!jarFile.exists() || !jarFile.canRead()) {
+      throw AssertionError("CorDapp JAR file is not accessible: $jarFile")
+    }
+    val jar = JarFile(jarFile.absoluteFile, false)
+    val config = try {
+      jar.use {
+        val entry = jar.getJarEntry("META-INF/cordaptor.conf")
+        if (entry != null) {
+          val config = it.getInputStream(entry).use { entryStream ->
+            InputStreamReader(entryStream).readText()
+          }
+          ConfigFactory.parseString(config).resolve()
+        } else {
+          logger.debug("CorDapp JAR {} does not contain META-INF/cordaptor.conf entry, " +
+              "using default settings", cordapp.name)
+          null
+        }
+      }
+    } catch (e: Exception) {
+      logger.error("Error reading META-INF/cordaptor.conf of ${cordapp.name}, using default settings", e)
+      null
+    } ?: return CordappSettings.default(cordapp)
+
+    return CordappSettings(config, cordapp).also {
+      logger.debug("Loaded CorDapp settings from {}!/META-INF/cordaptor.conf: {}",
+          cordapp.jarPath, it)
+    }
+  }
+}
+
+/** Wrapper for  */
+data class CordappSettings(
+    val urlPath: String
+) {
+
+  companion object {
+    fun default(cordapp: Cordapp) = CordappSettings(urlPath = cordapp.info.shortName)
+  }
+
+  constructor(config: Config, cordapp: Cordapp) : this(
+      urlPath = if (config.hasPath("urlPath"))
+        config.getString("urlPath")
+      else
+        cordapp.info.shortName
+  )
 }

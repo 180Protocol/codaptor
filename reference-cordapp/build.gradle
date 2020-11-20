@@ -7,7 +7,7 @@ cordapp {
     minimumPlatformVersion 7
     workflow {
         // this name becomes part of API endpoint URLs used in tests
-        name "reference"
+        name "Reference CorDapp"
         vendor "B180"
         versionId 1
     }
