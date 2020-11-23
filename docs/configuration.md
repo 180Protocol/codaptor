@@ -1,5 +1,8 @@
 # Configuring Cordaptor
 
+Please see [configuring CorDapps](#configuring-cordapps) section below if you are looking for a way to customize
+Cordaptor's default behaviour for a specific CorDapp.
+
 Cordaptor uses excellent [lightbend/config](https://github.com/lightbend/config) library configuring
 just about anything running in JVM, which comes with a lot of features out of the box. Corda itself also
 uses the same library, but unfortunately does not make underlying structures available
@@ -179,3 +182,26 @@ but we welcome contribution of modules from the community.
 
 It is recommended to switch off OpenAPI JSON specification and Swagger UI when running Cordaptor in production,
 unless your clients are dependent on either of them.
+
+## Configuring CorDapps
+
+One of the key design intentions for Cordaptor is to work out of the box for any reasonable CorDapp.
+To that end it assumes as little as possible about the nature of the CorDapp, and
+relies on introspection and sensible defaults to configure its behaviour.
+Unfortunately, this is not always possible. Corda programming model is designed without an open API in mind,
+and sometimes default assumptions do not make sense.
+
+To allow CorDapps to change how Cordaptor configures the API for their classes, we provide
+a dedicated configuration mechanism. Developers can add a file called `cordaptor.conf` into
+the `META-INF` folder of their CorDapp JARs. This file is read during the introspection
+of the available CorDapps before API endpoints are instantiated.
+
+Bundled `cordaptor.conf` files use
+[Human-optimized config object notation (HOCON)](https://github.com/lightbend/config/blob/master/HOCON.md),
+alongside core Cordaptor configuration, but they are resolved in isolation from the latter,
+so other configuration keys cannot be referenced from it.
+
+The following keys are supported by Cordaptor:
+* `urlPath` - prefix used by Cordaptor for API endpoints corresponding to flows and contract state
+queries for the classes bundled into this CorDapp JAR file. This is handy if CorDapp short name
+property is not URL-friendly, and cannot be easily changed.

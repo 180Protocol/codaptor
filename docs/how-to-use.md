@@ -91,7 +91,7 @@ any of its subclasses.
 The endpoint resource URLs are constructed using the following template:  
 `/node/<cordapp short name>/<flow class simple name>`,  
 where _cordapp short name_ is the value of **Cordapp-Workflow-Name**
-manifest attribute from the CorDapp JAR file,  
+manifest attribute from the CorDapp JAR file (unless [overridden](./configuration.md#configuring-cordapps)),  
 and _flow class simple name_ is the name of the flow class without its package.
 
 E.g. for `tech.b180.ref_cordapp.SimpleFlow` flow class defined in **reference-cordapp** module,
@@ -189,7 +189,8 @@ to obtain the latest flow snapshot using flow run id.
 
 The endpoint resource URLs are constructed using the following template:  
 `/node/<cordapp short name>/<flow class simple name>/snapshot/<flow run id>`, where  
-_cordapp short name_ is the value of **Cordapp-Workflow-Name** manifest attribute from the CorDapp JAR file,  
+_cordapp short name_ is the value of **Cordapp-Workflow-Name** manifest attribute from the CorDapp JAR file
+(unless [overridden](./configuration.md#configuring-cordapps)),  
 _flow class simple name_ is the name of the flow class without its package, and  
 _flow run id_ is the UUID returned by the flow initiation endpoint
 
@@ -251,7 +252,8 @@ The design intent is use this operation to resolve 'permanent' URLs for contract
 
 The endpoint resource URLs are constructed using the following template:  
 `/node/<cordapp short name>/<contract state class simple name>/<txid>(<index>)`, where  
-_cordapp short name_ is the value of **Cordapp-Workflow-Name** manifest attribute from the CorDapp JAR file,  
+_cordapp short name_ is the value of **Cordapp-Workflow-Name** manifest attribute from the CorDapp JAR file
+(unless [overridden](./configuration.md#configuring-cordapps)),  
 _contract state class simple name_ is the name of the contract state class without its package, and  
 _txid(index)_ is a 40 character-long textual representation of Corda's `net.corda.core.crypto.SecureHash` object,
 which is a unique identifier of a transaction in the vault, followed by an index of the output state
@@ -283,7 +285,8 @@ from the Corda vault.
 
 The endpoint resource URLs are constructed using the following template:  
 `/node/<cordapp short name>/<contract state class simple name>/query`, where  
-_cordapp short name_ is the value of **Cordapp-Workflow-Name** manifest attribute from the CorDapp JAR file, and  
+_cordapp short name_ is the value of **Cordapp-Workflow-Name** manifest attribute from the CorDapp JAR file
+(unless [overridden](./configuration.md#configuring-cordapps)), and  
 _contract state class simple name_ is the name of the contract state class without its package.
 
 E.g. for `tech.b180.ref_cordapp.SimpleLinearState` contract state class defined in **reference-cordapp** module,
