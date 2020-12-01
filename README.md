@@ -49,6 +49,7 @@ productive with Cordaptor.
 * Read about how Cordaptor fits into your [architecture](./docs/architecture.md)
 * Understand how to [configure](./docs/configuration.md) Cordaptor
 * Learn how to [create extensions](./docs/extensions.md) for Cordaptor
+* Stay tuned to updates in the [development blog](https://medium.com/b180tech)
 
 ## Contributing
 
