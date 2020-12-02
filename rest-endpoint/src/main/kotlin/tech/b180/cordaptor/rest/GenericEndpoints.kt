@@ -432,6 +432,8 @@ abstract class AbstractEndpointHandler<ResponseType: Any>(
       Json.createGenerator(OutputStreamWriter(exchange.outputStream))
           .writeSerializedObject(errorMessageSerializer, error)
           .flush()
+    } catch (e: Exception) {
+      logger.error("Exception occurred whilst serializing an error object masking it: {}", error, error.cause)
 
     } finally {
       exchange.endExchange()
