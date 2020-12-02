@@ -12,11 +12,25 @@ import java.lang.Double.max
 import java.time.Duration
 
 /**
+ * Allows to access [CordaRPCOps] instance representing Corda RPC link
+ * to a remote Corda node.
+ *
+ * Note that even through this interface is a part of the module API, other modules should
+ * exercise caution because this definition will only be available when Cordaptor
+ * is deployed as a standalone process.
+ */
+@ModuleAPI(since = "0.2")
+interface CordaRPCOpsLocator {
+
+  val rpcProxy: CordaRPCOps
+}
+
+/**
  * Wraps an instance of [CordaRPCClient] and knows how to configure it using module's settings.
  */
 class NodeConnection(
     private val settings: Settings
-) : LifecycleAware, CordaptorComponent {
+) : LifecycleAware, CordaptorComponent, CordaRPCOpsLocator {
 
   companion object {
     private val logger = loggerFor<NodeConnection>()
@@ -24,7 +38,7 @@ class NodeConnection(
 
   private lateinit var rpcConnection: CordaRPCConnection
 
-  val rpcProxy: CordaRPCOps
+  override val rpcProxy: CordaRPCOps
     get() = rpcConnection.proxy
 
   override fun onInitialize() {

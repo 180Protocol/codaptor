@@ -2,6 +2,7 @@ package tech.b180.cordaptor.rpc
 
 import net.corda.client.rpc.CordaRPCClientConfiguration
 import org.koin.dsl.bind
+import org.koin.dsl.binds
 import org.koin.dsl.module
 import tech.b180.cordaptor.corda.CordaNodeCatalog
 import tech.b180.cordaptor.corda.CordaNodeCatalogInner
@@ -28,7 +29,7 @@ class CordaRpcClientModuleProvider : ModuleProvider {
     single { settings }
 
     // RPC connection to the node
-    single { NodeConnection(get()) } bind LifecycleAware::class
+    single { NodeConnection(get()) } binds arrayOf(LifecycleAware::class, CordaRPCOpsLocator::class)
     single { get<NodeConnection>().rpcProxy }
 
     // actual components implementing Corda API access layer
