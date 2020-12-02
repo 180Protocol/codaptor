@@ -2,6 +2,7 @@ package tech.b180.cordaptor.rest
 
 import io.mockk.every
 import io.mockk.mockkClass
+import net.corda.core.contracts.Amount
 import net.corda.core.flows.FlowLogic
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.identity.Party
@@ -18,12 +19,12 @@ import tech.b180.cordaptor.corda.CordaFlowProgress
 import tech.b180.cordaptor.corda.CordaFlowSnapshot
 import tech.b180.cordaptor.corda.CordaNodeState
 import tech.b180.cordaptor.kernel.lazyGetAll
+import java.math.BigDecimal
+import java.math.RoundingMode
 import java.time.Instant
 import java.util.*
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
-import kotlin.test.assertSame
+import kotlin.reflect.full.allSuperclasses
+import kotlin.test.*
 
 class CordaTypesTest : KoinTest {
 
@@ -34,6 +35,8 @@ class CordaTypesTest : KoinTest {
       single { SerializationFactory(lazyGetAll(), lazyGetAll()) }
 
       // register custom serializers for the factory to discover
+      single { BigDecimalSerializer() } bind CustomSerializer::class
+      single { CurrencySerializer() } bind CustomSerializer::class
       single { CordaUUIDSerializer() } bind CustomSerializer::class
       single { CordaSecureHashSerializer() } bind CustomSerializer::class
       single { CordaX500NameSerializer() } bind CustomSerializer::class
@@ -49,6 +52,7 @@ class CordaTypesTest : KoinTest {
       single { JsonObjectSerializer() } bind CustomSerializer::class
 
       single { CordaFlowInstructionSerializerFactory(get()) } bind CustomSerializerFactory::class
+      single { CordaAmountSerializerFactory(get()) } bind CustomSerializerFactory::class
 
       // factory for requesting specific serializers into the non-generic serialization code
       factory<JsonSerializer<*>> { (key: SerializerKey) -> get<SerializationFactory>().getSerializer(key) }
@@ -58,6 +62,27 @@ class CordaTypesTest : KoinTest {
   @get:Rule
   val koinTestRule = KoinTestRule.create {
     modules(serializersModule)
+  }
+
+  @Test
+  fun `test amount serializer`() {
+    val serializer = getKoin().getSerializer(Amount::class, Currency::class)
+    assertTrue(CustomSerializer::class in serializer::class.allSuperclasses)
+    assertEquals(Amount::class.java, serializer.valueType.rawType)
+    assertEquals(Currency::class.java, serializer.valueType.typeParameters[0].rawType)
+
+    assertEquals("""{"type":"object",
+      |"properties":{"quantity":{"type":"number"},"of":{"type":"string"}},
+      |"required":["quantity","of"]}""".trimMargin().asJsonObject(), serializer.generateRecursiveSchema(getKoin().get()))
+
+    val amount = Amount.fromDecimal(BigDecimal.valueOf(120),
+        Currency.getInstance("GBP"), RoundingMode.UNNECESSARY)
+
+    assertEquals("""{"quantity":120.00,"of":"GBP"}""",
+        serializer.toJsonString(amount))
+
+    assertEquals(amount,
+        serializer.fromJson("""{"quantity":120,"of":"GBP"}""".asJsonValue()))
   }
 
   @Test
