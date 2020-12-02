@@ -75,6 +75,8 @@ class SerializationFactory(
     map[SerializerKey(String::class.java)] = StringSerializer as JsonSerializer<Any>
     map[SerializerKey(Int::class.java)] = IntSerializer as JsonSerializer<Any>
     map[SerializerKey(Long::class.java)] = LongSerializer as JsonSerializer<Any>
+    map[SerializerKey(Double::class.java)] = DoubleSerializer as JsonSerializer<Any>
+    map[SerializerKey(Float::class.java)] = FloatSerializer as JsonSerializer<Any>
     map[SerializerKey(Boolean::class.java)] = BooleanSerializer as JsonSerializer<Any>
     map[SerializerKey(KClass::class.java)] = KotlinClassSerializer as JsonSerializer<Any>
 
@@ -182,6 +184,38 @@ class SerializationFactory(
 
     override fun toJson(obj: Long, generator: JsonGenerator) {
       generator.write(obj)
+    }
+  }
+
+  /** Built-in serializer for atomic value of type [Double] */
+  object DoubleSerializer : PrimitiveTypeSerializer<Double>("number", "double") {
+    override fun fromJson(value: JsonValue): Double {
+      return when (value.valueType) {
+        // provide limited number of type conversions
+        JsonValue.ValueType.NUMBER -> (value as JsonNumber).doubleValue()
+        JsonValue.ValueType.STRING -> (value as JsonString).string.toDouble()
+        else -> throw AssertionError("Expected number, got ${value.valueType} with value $value")
+      }
+    }
+
+    override fun toJson(obj: Double, generator: JsonGenerator) {
+      generator.write(obj)
+    }
+  }
+
+  /** Built-in serializer for atomic value of type [Float] */
+  object FloatSerializer : PrimitiveTypeSerializer<Float>("number", "float") {
+    override fun fromJson(value: JsonValue): Float {
+      return when (value.valueType) {
+        // provide limited number of type conversions
+        JsonValue.ValueType.NUMBER -> (value as JsonNumber).doubleValue().toFloat()
+        JsonValue.ValueType.STRING -> (value as JsonString).string.toFloat()
+        else -> throw AssertionError("Expected number, got ${value.valueType} with value $value")
+      }
+    }
+
+    override fun toJson(obj: Float, generator: JsonGenerator) {
+      generator.write(obj.toDouble())
     }
   }
 
