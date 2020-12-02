@@ -13,6 +13,7 @@ import net.corda.core.utilities.loggerFor
 import tech.b180.ref_cordapp.DelayedProgressFlow.Companion.SLEEPING
 import tech.b180.ref_cordapp.DelayedProgressFlow.Companion.WORKING
 import java.time.Duration
+import java.util.*
 
 @BelongsToContract(TrivialContract::class)
 data class SimpleLinearState(
@@ -56,7 +57,8 @@ open class SimpleFlow(
     val stx = subFlow(FinalityFlow(tx, emptySet<FlowSession>()))
 
     flowLogger.debug("Run id={}: Finished", runId)
-    return SimpleFlowResult(stx.tx.outRef(0))
+    return SimpleFlowResult(stx.tx.outRef(0),
+        Amount.fromDecimal(10.toBigDecimal(), Currency.getInstance("USD")))
   }
 }
 
@@ -106,11 +108,13 @@ open class DelayedProgressFlow(
 
     flowLogger.info("Run id={}: Completed", runId)
     progressTracker.currentStep = ProgressTracker.DONE
-    return SimpleFlowResult(stx.tx.outRef(0))
+    return SimpleFlowResult(stx.tx.outRef(0),
+        Amount.fromDecimal(10.toBigDecimal(), Currency.getInstance("USD")))
   }
 }
 
 @CordaSerializable
 data class SimpleFlowResult(
-    val output: StateAndRef<SimpleLinearState>
+    val output: StateAndRef<SimpleLinearState>,
+    val feePaid: Amount<Currency>
 )

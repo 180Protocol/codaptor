@@ -14,13 +14,100 @@ import net.corda.core.transactions.WireTransaction
 import net.corda.serialization.internal.model.LocalTypeInformation
 import tech.b180.cordaptor.corda.CordaFlowInstruction
 import tech.b180.cordaptor.corda.CordaNodeState
+import tech.b180.cordaptor.shaded.javax.json.JsonNumber
 import tech.b180.cordaptor.shaded.javax.json.JsonObject
+import tech.b180.cordaptor.shaded.javax.json.JsonString
+import tech.b180.cordaptor.shaded.javax.json.JsonValue
+import tech.b180.cordaptor.shaded.javax.json.stream.JsonGenerator
+import java.math.BigDecimal
+import java.math.RoundingMode
 import java.security.PublicKey
 import java.security.cert.X509Certificate
 import java.time.Instant
 import java.time.format.DateTimeFormatter
 import java.util.*
 import kotlin.reflect.KClass
+
+/**
+ * Builds a serializer for a specific parameterized type based on [Amount] class.
+ *
+ * The rationale for using a factory is that we want to have separate amount types
+ * in JSON schema based on the underlying token, for which we need to pass
+ * explicit value type into [CustomStructuredObjectSerializer] constructor.
+ *
+ * We use display value from the Amount when serializing to JSON, as it's more intuitive
+ * for the API users.
+ */
+class CordaAmountSerializerFactory(private val factory: SerializationFactory) : CustomSerializerFactory<Amount<*>> {
+
+  override val rawType = Amount::class.java
+
+  override fun doCreateSerializer(key: SerializerKey): JsonSerializer<Amount<*>> {
+    return object : CustomStructuredObjectSerializer<Amount<*>>(factory, explicitValueType = key) {
+      override val properties: Map<String, ObjectProperty>
+        get() = mapOf(
+            "quantity" to SyntheticObjectProperty(
+                valueType = SerializerKey.forType(BigDecimal::class.java),
+                isMandatory = true,
+                accessor = { (it as Amount<*>).toDecimal() }
+            ),
+            "of" to SyntheticObjectProperty(
+                valueType = key.typeParameters[0],
+                isMandatory = true,
+                accessor = { (it as Amount<*>).token }
+            )
+        )
+
+      override fun initializeInstance(values: Map<String, Any?>): Amount<*> {
+        val quantity = (values["quantity"] as? BigDecimal)
+            ?: throw AssertionError("Unexpected value in mandatory field 'quantity': ${values["quantity"]}")
+
+        val token = values["of"] ?: throw AssertionError("Missing value in mandatory field 'of'")
+
+        return Amount.fromDecimal(displayQuantity = quantity, token = token, rounding = RoundingMode.UNNECESSARY)
+      }
+    }
+  }
+}
+
+/**
+ * Serializer for [BigDecimal], which is a standard Kotlin type, but needs to
+ * have a custom serializer in order to be treated as opaque by Corda introspection
+ * to avoid non-composable object exceptions.
+ */
+class BigDecimalSerializer
+  : CustomSerializer<BigDecimal>, SerializationFactory.PrimitiveTypeSerializer<BigDecimal>("number") {
+
+  override fun fromJson(value: JsonValue): BigDecimal {
+    return when (value.valueType) {
+      // provide limited number of type conversions
+      JsonValue.ValueType.NUMBER -> (value as JsonNumber).bigDecimalValue()
+      JsonValue.ValueType.STRING -> (value as JsonString).string.toBigDecimal()
+      else -> throw AssertionError("Expected number, got ${value.valueType} with value $value")
+    }
+  }
+
+  override fun toJson(obj: BigDecimal, generator: JsonGenerator) {
+    generator.write(obj)
+  }
+}
+
+/**
+ * Serializes a [Currency] as a JSON string representing its ISO code.
+ * Mainly used as part of the implementation for serializer of [Amount], but
+ * currencies may also be specified on contract states.
+ */
+class CurrencySerializer
+  : CustomSerializer<Currency>,
+    StandaloneTypeSerializer,
+    SerializationFactory.DelegatingSerializer<Currency, String>(
+        delegate = SerializationFactory.StringSerializer,
+        my2delegate = Currency::toString,
+        delegate2my = { Currency.getInstance(it) }
+    ) {
+
+  override val schemaTypeName = "ISOCurrencyCode"
+}
 
 /**
  * Serializer for [CordaX500Name] converting to/from a string value.

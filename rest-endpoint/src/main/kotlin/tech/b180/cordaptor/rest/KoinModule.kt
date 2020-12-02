@@ -70,6 +70,8 @@ class RestEndpointModuleProvider : ModuleProvider {
     // JSON serialization enablement
     single { SerializationFactory(lazyGetAll(), lazyGetAll()) }
 
+    single { BigDecimalSerializer() } bind CustomSerializer::class
+    single { CurrencySerializer() } bind CustomSerializer::class
     single { CordaX500NameSerializer() } bind CustomSerializer::class
     single { CordaSecureHashSerializer() } bind CustomSerializer::class
     single { CordaUUIDSerializer() } bind CustomSerializer::class
@@ -87,6 +89,7 @@ class RestEndpointModuleProvider : ModuleProvider {
     single { JsonObjectSerializer() } bind CustomSerializer::class
 
     single { CordaFlowInstructionSerializerFactory(get()) } bind CustomSerializerFactory::class
+    single { CordaAmountSerializerFactory(get()) } bind CustomSerializerFactory::class
 
     // factory for requesting specific serializers into the non-generic serialization code
     factory<JsonSerializer<*>> { (key: SerializerKey) -> get<SerializationFactory>().getSerializer(key) }

@@ -1,6 +1,21 @@
 {
   "components": {
     "schemas": {
+      "CordaAmount_Currency": {
+        "type": "object",
+        "properties": {
+          "quantity": {
+            "type": "number"
+          },
+          "of": {
+            "$ref": "#/components/schemas/ISOCurrencyCode"
+          }
+        },
+        "required": [
+          "quantity",
+          "of"
+        ]
+      },
       "CordaAttachmentConstraint": {
         "oneOf": [
           {
@@ -684,6 +699,11 @@
           "contractStateClass": {
             "type": "string"
           },
+          "expression": {
+            "type": "object",
+            "description": "Dynamic container for subclasses of tech.b180.cordaptor.corda.CordaVaultQuery.Expression",
+            "additionalProperties": "true"
+          },
           "linearStateExternalIds": {
             "type": "array",
             "items": {
@@ -864,6 +884,9 @@
       "CordaX500Name": {
         "type": "string"
       },
+      "ISOCurrencyCode": {
+        "type": "string"
+      },
       "PublicKey": {
         "type": "object",
         "properties": {
@@ -881,11 +904,15 @@
       "SimpleFlowResult": {
         "type": "object",
         "properties": {
+          "feePaid": {
+            "$ref": "#/components/schemas/CordaAmount_Currency"
+          },
           "output": {
             "$ref": "#/components/schemas/CordaStateAndRef_SimpleLinearState"
           }
         },
         "required": [
+          "feePaid",
           "output"
         ]
       },
