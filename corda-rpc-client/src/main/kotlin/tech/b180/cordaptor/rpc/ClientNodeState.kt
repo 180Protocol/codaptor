@@ -11,7 +11,9 @@ import net.corda.core.messaging.CordaRPCOps
 import net.corda.core.node.NodeInfo
 import net.corda.core.node.services.Vault
 import net.corda.core.node.services.diagnostics.NodeVersionInfo
+import net.corda.core.node.services.vault.PageSpecification
 import net.corda.core.node.services.vault.QueryCriteria
+import net.corda.core.node.services.vault.Sort
 import net.corda.core.transactions.SignedTransaction
 import net.corda.serialization.internal.AllWhitelist
 import net.corda.serialization.internal.amqp.CachingCustomSerializerRegistry
@@ -31,7 +33,7 @@ import java.security.PublicKey
  * Implementation of [CordaNodeState] interface providing access to a state
  * maintained within a particular node using Corda RPC API.
  */
-class ClientNodeStateImpl : CordaNodeStateInner, CordaptorComponent {
+class ClientNodeStateImpl : CordaNodeStateInner, CordaptorComponent, CordaNodeVault {
 
   private val rpc: CordaRPCOps by inject()
 
@@ -63,6 +65,15 @@ class ClientNodeStateImpl : CordaNodeStateInner, CordaptorComponent {
             stateRefs = listOf(stateRef)
         )
     ).states.singleOrNull()
+
+  override fun <T : ContractState> vaultQueryBy(
+      criteria: QueryCriteria,
+      paging: PageSpecification,
+      sorting: Sort,
+      contractStateType: Class<out T>
+  ): Vault.Page<T> {
+    return rpc.vaultQueryBy(criteria, paging, sorting, contractStateType)
+  }
 
   override fun <T : ContractState> queryStates(query: CordaVaultQuery<T>): CordaVaultPage<T> {
     val page = rpc.vaultQueryBy(

@@ -14,6 +14,9 @@ import net.corda.core.node.services.TransactionStorage
 import net.corda.core.node.services.Vault
 import net.corda.core.node.services.VaultService
 import net.corda.core.node.services.diagnostics.NodeVersionInfo
+import net.corda.core.node.services.vault.PageSpecification
+import net.corda.core.node.services.vault.QueryCriteria
+import net.corda.core.node.services.vault.Sort
 import net.corda.core.transactions.SignedTransaction
 import net.corda.serialization.internal.model.LocalTypeModel
 import org.koin.core.get
@@ -28,7 +31,7 @@ import java.security.PublicKey
  * Implementation of [CordaNodeState] interface providing access to a state
  * maintained within a particular Corda node using APIs available internally within the node.
  */
-class CordaNodeStateImpl : CordaNodeStateInner, CordaptorComponent {
+class CordaNodeStateImpl : CordaNodeStateInner, CordaptorComponent, CordaNodeVault {
 
   private val appServiceHub: AppServiceHub by inject()
   private val vaultService: VaultService by inject()
@@ -58,6 +61,15 @@ class CordaNodeStateImpl : CordaNodeStateInner, CordaptorComponent {
 
   override fun findTransactionByHash(hash: SecureHash): SignedTransaction? {
     return transactionStorage.getTransaction(hash)
+  }
+
+  override fun <T : ContractState> vaultQueryBy(
+      criteria: QueryCriteria,
+      paging: PageSpecification,
+      sorting: Sort,
+      contractStateType: Class<out T>
+  ): Vault.Page<T> {
+    return vaultService._queryBy(criteria, paging, sorting, contractStateType)
   }
 
   override fun <T : ContractState> queryStates(query: CordaVaultQuery<T>): CordaVaultPage<T> {

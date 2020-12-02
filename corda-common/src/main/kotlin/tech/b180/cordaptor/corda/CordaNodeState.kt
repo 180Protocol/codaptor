@@ -12,6 +12,8 @@ import net.corda.core.identity.Party
 import net.corda.core.node.NodeInfo
 import net.corda.core.node.services.Vault
 import net.corda.core.node.services.diagnostics.NodeVersionInfo
+import net.corda.core.node.services.vault.PageSpecification
+import net.corda.core.node.services.vault.QueryCriteria
 import net.corda.core.node.services.vault.Sort
 import net.corda.core.transactions.SignedTransaction
 import tech.b180.cordaptor.kernel.ModuleAPI
@@ -37,6 +39,24 @@ interface PartyLocator {
    * @see net.corda.core.messaging.CordaRPCOps.partyFromKey
    */
   fun partyFromKey(publicKey: PublicKey): Party?
+}
+
+/**
+ * This interface describes node vault operations that use Corda API that is consistently
+ * supported across all deployments. These methods are intended to
+ * be used by application-specific Cordaptor extensions.
+ */
+@ModuleAPI(since = "0.2")
+interface CordaNodeVault {
+
+  /**
+   * @see net.corda.core.messaging.CordaRPCOps.vaultQueryBy
+   * @see net.corda.core.node.services.VaultService._queryBy
+   */
+  fun <T : ContractState> vaultQueryBy(criteria: QueryCriteria,
+                                       paging: PageSpecification,
+                                       sorting: Sort,
+                                       contractStateType: Class<out T>): Vault.Page<T>
 }
 
 /**

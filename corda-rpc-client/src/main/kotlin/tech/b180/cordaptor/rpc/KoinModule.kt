@@ -4,10 +4,7 @@ import net.corda.client.rpc.CordaRPCClientConfiguration
 import org.koin.dsl.bind
 import org.koin.dsl.binds
 import org.koin.dsl.module
-import tech.b180.cordaptor.corda.CordaNodeCatalog
-import tech.b180.cordaptor.corda.CordaNodeCatalogInner
-import tech.b180.cordaptor.corda.CordaNodeState
-import tech.b180.cordaptor.corda.CordaNodeStateInner
+import tech.b180.cordaptor.corda.*
 import tech.b180.cordaptor.kernel.*
 import java.io.File
 import java.nio.file.Path
@@ -36,7 +33,7 @@ class CordaRpcClientModuleProvider : ModuleProvider {
     // these 'inner' definitions may be accessed by other modules to use as delegates
     // when overriding 'outer' definitions, e.g. by the caching layer
     single<CordaNodeCatalogInner> { ClientNodeCatalogImpl() }
-    single<CordaNodeStateInner> { ClientNodeStateImpl() }
+    single<CordaNodeStateInner> { ClientNodeStateImpl() } bind CordaNodeVault::class
 
     // outward-facing definitions for the Corda API access layer components
     // which may be overridden by higher-tier modules augmenting the functionality

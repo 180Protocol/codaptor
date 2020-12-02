@@ -3,11 +3,9 @@ package tech.b180.cordaptor.cordapp
 import net.corda.core.node.AppServiceHub
 import net.corda.node.services.api.ServiceHubInternal
 import net.corda.serialization.internal.model.LocalTypeModel
+import org.koin.dsl.bind
 import org.koin.dsl.module
-import tech.b180.cordaptor.corda.CordaNodeCatalog
-import tech.b180.cordaptor.corda.CordaNodeCatalogInner
-import tech.b180.cordaptor.corda.CordaNodeState
-import tech.b180.cordaptor.corda.CordaNodeStateInner
+import tech.b180.cordaptor.corda.*
 import tech.b180.cordaptor.kernel.Config
 import tech.b180.cordaptor.kernel.ConfigPath
 import tech.b180.cordaptor.kernel.ModuleAPI
@@ -52,7 +50,7 @@ class CordaServiceModuleProvider : ModuleProvider {
     // these 'inner' definitions may be accessed by other modules to use as delegates
     // when overriding 'outer' definitions, e.g. by the caching layer
     single<CordaNodeCatalogInner> { CordaNodeCatalogImpl(get(), settings.bundleCordappName) }
-    single<CordaNodeStateInner> { CordaNodeStateImpl() }
+    single<CordaNodeStateInner> { CordaNodeStateImpl() } bind CordaNodeVault::class
 
     // outward-facing definitions for the Corda API access layer components
     // which may be overridden by higher-tier modules augmenting the functionality
