@@ -140,7 +140,8 @@ object PermissiveSubject : Subject {
  * According to HTTP spec, 401 response must come with WWW-Authenticate header, which is not generated.
  * We map all 401 responses to 403 Forbidden
  *
- * TODO report bug to PAC4J
+ * TODO report bug to PAC4J, raised in pac4j-users
+ * https://groups.google.com/g/pac4j-users/c/GdkhHyAoNQI
  */
 object UnauthorizedAsForbiddenLogic : DefaultSecurityLogic<Any, UndertowWebContext>() {
 
@@ -158,7 +159,8 @@ object UnauthorizedAsForbiddenLogic : DefaultSecurityLogic<Any, UndertowWebConte
  * Uses [HttpServerExchange] attachments for storing user profiles as opposed
  * to [UndertowWebContext] that uses request path parameters and values serialized to strings.
  *
- * TODO report bug to undertow-pac4j
+ * TODO this will be unnecessary if the below bug in undertow-pac4j is fixed
+ * https://github.com/pac4j/undertow-pac4j/issues/50
  */
 class RequestAttributesAsAttachmentsUndertowWebContext(
     private val delegate: UndertowWebContext
