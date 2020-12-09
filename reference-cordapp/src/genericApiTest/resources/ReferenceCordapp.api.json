@@ -1,6 +1,57 @@
 {
   "components": {
     "schemas": {
+      "ComplexState": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "$ref": "#/components/schemas/CordaAmount_Currency"
+          },
+          "integer": {
+            "type": "number",
+            "format": "int32"
+          },
+          "nestedEntries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ComplexStateEntry"
+            }
+          },
+          "participant": {
+            "$ref": "#/components/schemas/CordaParty"
+          },
+          "string": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "amount",
+          "integer",
+          "nestedEntries",
+          "participant",
+          "string"
+        ]
+      },
+      "ComplexStateEntry": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "$ref": "#/components/schemas/CordaAmount_Currency"
+          },
+          "integer": {
+            "type": "number",
+            "format": "int32"
+          },
+          "string": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "amount",
+          "integer",
+          "string"
+        ]
+      },
       "CordaAmount_Currency": {
         "type": "object",
         "properties": {
@@ -169,6 +220,20 @@
           "delay"
         ]
       },
+      "CordaFlowInstruction_IssueComplexStateFlow": {
+        "type": "object",
+        "properties": {
+          "options": {
+            "$ref": "#/components/schemas/CordaFlowInstructionOptions"
+          },
+          "state": {
+            "$ref": "#/components/schemas/ComplexState"
+          }
+        },
+        "required": [
+          "state"
+        ]
+      },
       "CordaFlowInstruction_SimpleFlow": {
         "type": "object",
         "properties": {
@@ -217,6 +282,24 @@
           "timestamp"
         ]
       },
+      "CordaFlowResult_StateAndRef": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/Throwable"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "value": {
+            "$ref": "#/components/schemas/CordaStateAndRef"
+          }
+        },
+        "required": [
+          "timestamp"
+        ]
+      },
       "CordaFlowSnapshot_SimpleFlowResult": {
         "type": "object",
         "properties": {
@@ -232,6 +315,33 @@
           },
           "result": {
             "$ref": "#/components/schemas/CordaFlowResult_SimpleFlowResult"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "flowClass",
+          "flowRunId",
+          "startedAt"
+        ]
+      },
+      "CordaFlowSnapshot_StateAndRef": {
+        "type": "object",
+        "properties": {
+          "currentProgress": {
+            "$ref": "#/components/schemas/CordaFlowProgress"
+          },
+          "flowClass": {
+            "type": "string"
+          },
+          "flowRunId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "result": {
+            "$ref": "#/components/schemas/CordaFlowResult_StateAndRef"
           },
           "startedAt": {
             "type": "string",
@@ -411,6 +521,36 @@
           "DESC"
         ]
       },
+      "CordaStateAndRef": {
+        "type": "object",
+        "properties": {
+          "ref": {
+            "$ref": "#/components/schemas/CordaStateRef"
+          },
+          "state": {
+            "$ref": "#/components/schemas/CordaTransactionState_ContractState"
+          }
+        },
+        "required": [
+          "ref",
+          "state"
+        ]
+      },
+      "CordaStateAndRef_ComplexState": {
+        "type": "object",
+        "properties": {
+          "ref": {
+            "$ref": "#/components/schemas/CordaStateRef"
+          },
+          "state": {
+            "$ref": "#/components/schemas/CordaTransactionState_ComplexState"
+          }
+        },
+        "required": [
+          "ref",
+          "state"
+        ]
+      },
       "CordaStateAndRef_SimpleLinearState": {
         "type": "object",
         "properties": {
@@ -562,6 +702,33 @@
           "metadata"
         ]
       },
+      "CordaTransactionState_ComplexState": {
+        "type": "object",
+        "properties": {
+          "constraint": {
+            "$ref": "#/components/schemas/CordaAttachmentConstraint"
+          },
+          "contract": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ComplexState"
+          },
+          "encumbrance": {
+            "type": "number",
+            "format": "int32"
+          },
+          "notary": {
+            "$ref": "#/components/schemas/CordaParty"
+          }
+        },
+        "required": [
+          "constraint",
+          "contract",
+          "data",
+          "notary"
+        ]
+      },
       "CordaTransactionState_ContractState": {
         "type": "object",
         "properties": {
@@ -644,6 +811,36 @@
           "constraint"
         ]
       },
+      "CordaVaultPage_ComplexState": {
+        "type": "object",
+        "properties": {
+          "stateTypes": {
+            "$ref": "#/components/schemas/CordaVaultStateStatus"
+          },
+          "states": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CordaStateAndRef_ComplexState"
+            }
+          },
+          "statesMetadata": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CordaVaultStateMetadata"
+            }
+          },
+          "totalStatesAvailable": {
+            "type": "number",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "stateTypes",
+          "states",
+          "statesMetadata",
+          "totalStatesAvailable"
+        ]
+      },
       "CordaVaultPage_SimpleLinearState": {
         "type": "object",
         "properties": {
@@ -687,6 +884,81 @@
         "required": [
           "direction",
           "sortAttribute"
+        ]
+      },
+      "CordaVaultQuery_ComplexState": {
+        "type": "object",
+        "properties": {
+          "consumedTimeIsAfter": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "contractStateClass": {
+            "type": "string"
+          },
+          "expression": {
+            "type": "object",
+            "description": "Dynamic container for subclasses of tech.b180.cordaptor.corda.CordaVaultQuery.Expression",
+            "additionalProperties": "true"
+          },
+          "linearStateExternalIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "linearStateUUIDs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "notaryNames": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CordaX500Name"
+            }
+          },
+          "ownerNames": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CordaX500Name"
+            }
+          },
+          "pageNumber": {
+            "type": "number",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "number",
+            "format": "int32"
+          },
+          "participantNames": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CordaX500Name"
+            }
+          },
+          "recordedTimeIsAfter": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "relevancyStatus": {
+            "$ref": "#/components/schemas/CordaVaultRelevancyStatus"
+          },
+          "sortCriteria": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CordaVaultQuerySortColumn"
+            }
+          },
+          "stateStatus": {
+            "$ref": "#/components/schemas/CordaVaultStateStatus"
+          }
+        },
+        "required": [
+          "contractStateClass"
         ]
       },
       "CordaVaultQuery_SimpleLinearState": {
@@ -980,6 +1252,198 @@
         ]
       }
     },
+    "/node/reference/ComplexState/query": {
+      "get": {
+        "operationId": "fetchComplexStateInstances",
+        "parameters": [
+          {
+            "description": "One or more of X500 names of notarizing parties for a state",
+            "explode": true,
+            "in": "query",
+            "name": "notary",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "description": "One or more of X500 names of owning parties for ownable states",
+            "explode": true,
+            "in": "query",
+            "name": "owner",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "description": "One or more of X500 names of participants in a state",
+            "explode": true,
+            "in": "query",
+            "name": "participant",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "description": "One or more UUIDs used in unique identifiers of linear states",
+            "explode": true,
+            "in": "query",
+            "name": "uuid",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "description": "One or more external keys used in unique identifiers of linear states",
+            "explode": true,
+            "in": "query",
+            "name": "externalId",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "description": "Approach to querying consumed states (ignore by default)",
+            "in": "query",
+            "name": "consumed",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ignore",
+                "include",
+                "only"
+              ]
+            }
+          },
+          {
+            "description": "Size of the page to return (200 by default)",
+            "in": "query",
+            "name": "pageSize",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          {
+            "description": "Zero-based index of the page to return (0 by default)",
+            "in": "query",
+            "name": "pageNumber",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CordaVaultPage_ComplexState"
+                }
+              }
+            },
+            "description": "Query ran successfully"
+          },
+          "403": {
+            "description": "Permission denied"
+          }
+        },
+        "summary": "Performs a query of the vault of the underlying Corda node with a simplified criteria",
+        "tags": [
+          "vaultQuery"
+        ]
+      },
+      "post": {
+        "operationId": "queryComplexStateInstances",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CordaVaultQuery_ComplexState"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CordaVaultPage_ComplexState"
+                }
+              }
+            },
+            "description": "Query ran successfully"
+          }
+        },
+        "summary": "Performs a query of the vault of the underlying Corda node with a complex criteria",
+        "tags": [
+          "vaultQuery"
+        ]
+      }
+    },
+    "/node/reference/ComplexState/{hash}({index})": {
+      "get": {
+        "operationId": "getComplexStateByRef",
+        "parameters": [
+          {
+            "description": "Transaction output index",
+            "in": "path",
+            "name": "index",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "format": "int32"
+            }
+          },
+          {
+            "description": "Transaction hash value",
+            "in": "path",
+            "name": "hash",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/CordaSecureHash"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComplexState"
+                }
+              }
+            },
+            "description": "Successfully retrieved contract state"
+          },
+          "403": {
+            "description": "Permission denied"
+          },
+          "404": {
+            "description": "Contract state with given hash and index was not found"
+          }
+        },
+        "summary": "Finds contract state recorded to the ledger with a given hash and index ",
+        "tags": [
+          "vaultQuery"
+        ]
+      }
+    },
     "/node/reference/DelayedProgressFlow": {
       "post": {
         "operationId": "initiateDelayedProgressFlow",
@@ -1107,6 +1571,138 @@
           }
         },
         "summary": "Returns latest snapshot for a flow of type DelayedProgressFlow initiated with given run id",
+        "tags": [
+          "flowInitiation"
+        ]
+      }
+    },
+    "/node/reference/IssueComplexStateFlow": {
+      "post": {
+        "operationId": "initiateIssueComplexStateFlow",
+        "parameters": [
+          {
+            "description": "Timeout for synchronous flow execution, 0 for immediate return",
+            "in": "query",
+            "name": "wait",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CordaFlowInstruction_IssueComplexStateFlow"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CordaFlowSnapshot_StateAndRef"
+                }
+              }
+            },
+            "description": "Flow execution completed successfully and its result is available",
+            "headers": {
+              "Location": {
+                "description": "URL from which to obtain latest snapshot of the flow",
+                "schema": {
+                  "type": "string",
+                  "format": "url"
+                }
+              }
+            }
+          },
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CordaFlowSnapshot_StateAndRef"
+                }
+              }
+            },
+            "description": "Flow execution stared and its outcome is not yet available",
+            "headers": {
+              "Location": {
+                "description": "URL from which to obtain latest snapshot of the flow",
+                "schema": {
+                  "type": "string",
+                  "format": "url"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CordaFlowSnapshot_StateAndRef"
+                }
+              }
+            },
+            "description": "Flow execution failed and error information is available",
+            "headers": {
+              "Location": {
+                "description": "URL from which to obtain latest snapshot of the flow",
+                "schema": {
+                  "type": "string",
+                  "format": "url"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Initiates and tracks execution of Corda flow IssueComplexStateFlow with given parameters",
+        "tags": [
+          "flowInitiation"
+        ]
+      }
+    },
+    "/node/reference/IssueComplexStateFlow/snapshot/{flowRunId}": {
+      "get": {
+        "operationId": "getLatestSnapshotForIssueComplexStateFlow",
+        "parameters": [
+          {
+            "description": "Flow run id returned by a flow initiation operation",
+            "in": "path",
+            "name": "flowRunId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CordaFlowSnapshot_StateAndRef"
+                }
+              }
+            },
+            "description": "Latest snapshot of the flow with given run id"
+          },
+          "403": {
+            "description": "Permission denied"
+          },
+          "404": {
+            "description": "Snapshot of a flow with given run id was not found, which may mean it was already evicted"
+          }
+        },
+        "summary": "Returns latest snapshot for a flow of type IssueComplexStateFlow initiated with given run id",
         "tags": [
           "flowInitiation"
         ]
