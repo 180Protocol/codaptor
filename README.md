@@ -66,6 +66,19 @@ productive with Cordaptor.
 * Learn how to [create extensions](./docs/extensions.md) for Cordaptor
 * Stay tuned to updates in the [development blog](https://medium.com/b180tech)
 
+## Getting support
+
+We offer community support for Cordaptor in `#cordaptor` channel on [Cordaledger Slack](https://slack.corda.net/).
+The development team members can often be seen hanging out there.
+
+If something isn't working, feel free to file a bug report through
+[GitHub Issues](https://github.com/b180tech/cordaptor/issues). Although, we ask you to search for
+related messages in the above Slack channel and among existing reported issues on GitHub first
+to avoid creating duplicates.
+
+For bespoke feature development, custom integrations and extensions, or commercial support enquiries, please email 
+to [management@bond180.com](mailto:management@bond180.com?subject=Cordaptor).
+
 ## Contributing
 
 Cordaptor is an open-source project and contributions are welcome!
