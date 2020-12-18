@@ -1,6 +1,17 @@
 {
   "components": {
     "schemas": {
+      "ComplexFlowResult": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "$ref": "#/components/schemas/CordaStateAndRef_SimpleLinearState"
+          }
+        },
+        "required": [
+          "output"
+        ]
+      },
       "ComplexState": {
         "type": "object",
         "properties": {
@@ -264,6 +275,24 @@
           "timestamp"
         ]
       },
+      "CordaFlowResult_ComplexFlowResult": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/Throwable"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "value": {
+            "$ref": "#/components/schemas/ComplexFlowResult"
+          }
+        },
+        "required": [
+          "timestamp"
+        ]
+      },
       "CordaFlowResult_SimpleFlowResult": {
         "type": "object",
         "properties": {
@@ -282,22 +311,31 @@
           "timestamp"
         ]
       },
-      "CordaFlowResult_StateAndRef": {
+      "CordaFlowSnapshot_ComplexFlowResult": {
         "type": "object",
         "properties": {
-          "error": {
-            "$ref": "#/components/schemas/Throwable"
+          "currentProgress": {
+            "$ref": "#/components/schemas/CordaFlowProgress"
           },
-          "timestamp": {
+          "flowClass": {
+            "type": "string"
+          },
+          "flowRunId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "result": {
+            "$ref": "#/components/schemas/CordaFlowResult_ComplexFlowResult"
+          },
+          "startedAt": {
             "type": "string",
             "format": "date-time"
-          },
-          "value": {
-            "$ref": "#/components/schemas/CordaStateAndRef"
           }
         },
         "required": [
-          "timestamp"
+          "flowClass",
+          "flowRunId",
+          "startedAt"
         ]
       },
       "CordaFlowSnapshot_SimpleFlowResult": {
@@ -315,33 +353,6 @@
           },
           "result": {
             "$ref": "#/components/schemas/CordaFlowResult_SimpleFlowResult"
-          },
-          "startedAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "required": [
-          "flowClass",
-          "flowRunId",
-          "startedAt"
-        ]
-      },
-      "CordaFlowSnapshot_StateAndRef": {
-        "type": "object",
-        "properties": {
-          "currentProgress": {
-            "$ref": "#/components/schemas/CordaFlowProgress"
-          },
-          "flowClass": {
-            "type": "string"
-          },
-          "flowRunId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "result": {
-            "$ref": "#/components/schemas/CordaFlowResult_StateAndRef"
           },
           "startedAt": {
             "type": "string",
@@ -520,21 +531,6 @@
         "enum": [
           "ASC",
           "DESC"
-        ]
-      },
-      "CordaStateAndRef": {
-        "type": "object",
-        "properties": {
-          "ref": {
-            "$ref": "#/components/schemas/CordaStateRef"
-          },
-          "state": {
-            "$ref": "#/components/schemas/CordaTransactionState_ContractState"
-          }
-        },
-        "required": [
-          "ref",
-          "state"
         ]
       },
       "CordaStateAndRef_ComplexState": {
@@ -1603,7 +1599,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CordaFlowSnapshot_StateAndRef"
+                  "$ref": "#/components/schemas/CordaFlowSnapshot_ComplexFlowResult"
                 }
               }
             },
@@ -1622,7 +1618,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CordaFlowSnapshot_StateAndRef"
+                  "$ref": "#/components/schemas/CordaFlowSnapshot_ComplexFlowResult"
                 }
               }
             },
@@ -1644,7 +1640,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CordaFlowSnapshot_StateAndRef"
+                  "$ref": "#/components/schemas/CordaFlowSnapshot_ComplexFlowResult"
                 }
               }
             },
@@ -1686,7 +1682,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CordaFlowSnapshot_StateAndRef"
+                  "$ref": "#/components/schemas/CordaFlowSnapshot_ComplexFlowResult"
                 }
               }
             },
