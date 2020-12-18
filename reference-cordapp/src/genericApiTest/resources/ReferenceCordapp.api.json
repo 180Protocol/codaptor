@@ -439,13 +439,14 @@
       "CordaParty": {
         "type": "object",
         "properties": {
+          "owningKey": {
+            "$ref": "#/components/schemas/PublicKey"
+          },
           "name": {
             "$ref": "#/components/schemas/CordaX500Name"
           }
         },
-        "required": [
-          "name"
-        ]
+        "required": []
       },
       "CordaPartyAndCertificate": {
         "type": "object",
@@ -1065,9 +1066,7 @@
             "format": "date-time"
           },
           "notary": {
-            "type": "object",
-            "description": "Dynamic container for subclasses of net.corda.core.identity.AbstractParty",
-            "additionalProperties": "true"
+            "$ref": "#/components/schemas/CordaParty"
           },
           "recordedTime": {
             "type": "string",
@@ -1162,16 +1161,14 @@
       "PublicKey": {
         "type": "object",
         "properties": {
-          "fingerprint": {
+          "hash": {
             "type": "string",
-            "readOnly": true
-          },
-          "knownParty": {
-            "$ref": "#/components/schemas/CordaParty",
             "readOnly": true
           }
         },
-        "required": []
+        "required": [
+          "hash"
+        ]
       },
       "SimpleFlowResult": {
         "type": "object",

@@ -75,7 +75,8 @@ class RestEndpointModuleProvider : ModuleProvider {
     single { CordaX500NameSerializer() } bind CustomSerializer::class
     single { CordaSecureHashSerializer() } bind CustomSerializer::class
     single { CordaUUIDSerializer() } bind CustomSerializer::class
-    single { CordaPartySerializer(get(), get()) } bind CustomSerializer::class
+    single { CordaAbstractPartySerializer(get(), get()) } bind CustomSerializer::class
+    single { CordaPartySerializer(get()) } bind CustomSerializer::class
     single { CordaPartyAndCertificateSerializer(get()) } bind CustomSerializer::class
     single { JavaInstantSerializer() } bind CustomSerializer::class
     single { ThrowableSerializer(get()) } bind CustomSerializer::class
@@ -83,7 +84,7 @@ class RestEndpointModuleProvider : ModuleProvider {
     single { CordaTransactionSignatureSerializer(get()) } bind CustomSerializer::class
     single { CordaCoreTransactionSerializer(get()) } bind CustomSerializer::class
     single { CordaWireTransactionSerializer(get()) } bind CustomSerializer::class
-    single { CordaPublicKeySerializer(get(), get()) } bind CustomSerializer::class
+    single { CordaPublicKeySerializer(get()) } bind CustomSerializer::class
     single { CordaAttachmentConstraintSerializer(get()) } bind CustomSerializer::class
     single { CordaTimeWindowSerializer(get()) } bind CustomSerializer::class
     single { JsonObjectSerializer() } bind CustomSerializer::class

@@ -3,12 +3,13 @@ package tech.b180.cordaptor.rest
 import io.mockk.every
 import io.mockk.mockkClass
 import net.corda.core.contracts.Amount
+import net.corda.core.crypto.Crypto
 import net.corda.core.flows.FlowLogic
-import net.corda.core.identity.CordaX500Name
-import net.corda.core.identity.Party
-import net.corda.core.identity.PartyAndCertificate
+import net.corda.core.identity.*
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.utilities.OpaqueBytes
+import net.corda.core.utilities.toBase58
+import net.corda.core.utilities.toSHA256Bytes
 import net.corda.testing.core.TestIdentity
 import org.junit.Rule
 import org.koin.dsl.bind
@@ -41,7 +42,8 @@ class CordaTypesTest : KoinTest {
       single { CordaUUIDSerializer() } bind CustomSerializer::class
       single { CordaSecureHashSerializer() } bind CustomSerializer::class
       single { CordaX500NameSerializer() } bind CustomSerializer::class
-      single { CordaPartySerializer(get(), mockNodeState) } bind CustomSerializer::class
+      single { CordaAbstractPartySerializer(get(), mockNodeState) } bind CustomSerializer::class
+      single { CordaPartySerializer(get()) } bind CustomSerializer::class
       single { CordaPartyAndCertificateSerializer(factory = get()) } bind CustomSerializer::class
       single { JavaInstantSerializer() } bind CustomSerializer::class
       single { ThrowableSerializer(get()) } bind CustomSerializer::class
@@ -49,7 +51,7 @@ class CordaTypesTest : KoinTest {
       single { CordaTransactionSignatureSerializer(get()) } bind CustomSerializer::class
       single { CordaCoreTransactionSerializer(get()) } bind CustomSerializer::class
       single { CordaWireTransactionSerializer(get()) } bind CustomSerializer::class
-      single { CordaPublicKeySerializer(get(), mockNodeState) } bind CustomSerializer::class
+      single { CordaPublicKeySerializer(get()) } bind CustomSerializer::class
       single { CordaOpaqueBytesSerializer() } bind CustomSerializer::class
       single { JsonObjectSerializer() } bind CustomSerializer::class
 
@@ -103,20 +105,32 @@ class CordaTypesTest : KoinTest {
   }
 
   @Test
-  fun `test party serialization`() {
-    val serializer = getKoin().getSerializer(Party::class)
+  fun `test abstract party serialization`() {
+    val serializer = getKoin().getSerializer(AbstractParty::class)
 
-    assertEquals(CordaPartySerializer::class.java, serializer.javaClass as Class<*>)
+    assertEquals(CordaAbstractPartySerializer::class.java, serializer.javaClass as Class<*>)
 
-    assertEquals("""{"type":"object","properties":{"name":{"type":"string"}},"required":["name"]}""".asJsonObject(),
+    assertEquals("""{"type":"object",
+      "properties":{"owningKey":{"type":"object",
+      "properties":{"hash":{"type":"string","readOnly":true}},"required":["hash"]},
+      "name":{"type":"string"}},"required":[]}""".asJsonObject(),
         serializer.generateRecursiveSchema(getKoin().get()))
 
     val party = TestIdentity(CordaX500Name("Bank", "London", "GB")).party
-    assertEquals("""{"name":"O=Bank, L=London, C=GB"}""", serializer.toJsonString(party))
+    every { mockNodeState.partyFromKey(party.owningKey) }.returns(party)
+    every { mockNodeState.partyFromKey(not(party.owningKey)) }.returns(null)
+
+    val keyHash = party.owningKey.toSHA256Bytes().toBase58()
+    assertEquals("""{"owningKey":{"hash":"$keyHash"},"name":"O=Bank, L=London, C=GB"}""",
+        serializer.toJsonString(party))
+
+    val randomKey = Crypto.generateKeyPair(Crypto.DEFAULT_SIGNATURE_SCHEME).public
+    val randomKeyHash = randomKey.toSHA256Bytes().toBase58()
+    assertEquals("""{"owningKey":{"hash":"$randomKeyHash"}}""",
+        serializer.toJsonString(AnonymousParty(owningKey = randomKey)))
 
     every { mockNodeState.wellKnownPartyFromX500Name(party.name) }.returns(party)
     every { mockNodeState.wellKnownPartyFromX500Name(not(party.name)) }.returns(null)
-
     assertSame(party, serializer.fromJson("""{"name":"O=Bank, L=London, C=GB"}""".asJsonObject()),
         "Party should have been resolved through the identity service")
 
@@ -126,23 +140,42 @@ class CordaTypesTest : KoinTest {
   }
 
   @Test
+  fun `test concrete party serialization`() {
+    val serializer = getKoin().getSerializer(Party::class)
+
+    assertEquals(CordaPartySerializer::class.java, serializer.javaClass as Class<*>)
+
+    assertEquals("""{"type":"object",
+      "properties":{"owningKey":{"type":"object",
+      "properties":{"hash":{"type":"string","readOnly":true}},"required":["hash"]},
+      "name":{"type":"string"}},"required":[]}""".asJsonObject(),
+        serializer.generateRecursiveSchema(getKoin().get()))
+
+    // CordaPartySerializer delegates to CordaAbstractPartySerializer, so it's tested above
+  }
+
+  @Test
   fun `test party and certificate serializer`() {
     val serializer = getKoin().getSerializer(PartyAndCertificate::class)
     assertEquals(CordaPartyAndCertificateSerializer::class.java, serializer.javaClass as Class<*>)
 
-    assertEquals("""{
-      |"type":"object",
-      |"properties":{
-      | "party":{
-      |   "type":"object",
-      |   "properties":{"name":{"type":"string"}},
-      |   "required":["name"]}},
-      |"required":["party"]}""".trimMargin().asJsonObject(),
+    assertEquals("""{"type":"object",
+      "properties":{"party":{"type":"object",
+      "properties":{"owningKey":{"type":"object",
+      "properties":{"hash":{"type":"string","readOnly":true}},
+      "required":["hash"]},
+      "name":{"type":"string"}},
+      "required":[]}},
+      "required":["party"]}""".trimMargin().asJsonObject(),
         serializer.generateRecursiveSchema(getKoin().get()))
 
     val id = TestIdentity(CordaX500Name("Bank", "London", "GB")).identity
+    every { mockNodeState.partyFromKey(id.party.owningKey) }.returns(id.party)
+    every { mockNodeState.partyFromKey(not(id.party.owningKey)) }.returns(null)
 
-    assertEquals("""{"party":{"name":"O=Bank, L=London, C=GB"}}""", serializer.toJsonString(id))
+    val hash = id.owningKey.toSHA256Bytes().toBase58()
+    assertEquals("""{"party":{"owningKey":{"hash":"$hash"},"name":"O=Bank, L=London, C=GB"}}""",
+        serializer.toJsonString(id))
 
     assertFailsWith(UnsupportedOperationException::class) {
       serializer.fromJson("""{"name":"O=UnknownBank, L=London, C=GB"}""".asJsonObject())

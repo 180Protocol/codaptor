@@ -4,6 +4,7 @@ import net.corda.core.contracts.*
 import net.corda.core.crypto.SecureHash
 import net.corda.core.crypto.TransactionSignature
 import net.corda.core.flows.FlowLogic
+import net.corda.core.identity.AbstractParty
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.identity.Party
 import net.corda.core.identity.PartyAndCertificate
@@ -12,6 +13,8 @@ import net.corda.core.transactions.CoreTransaction
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.WireTransaction
 import net.corda.core.utilities.OpaqueBytes
+import net.corda.core.utilities.toBase58
+import net.corda.core.utilities.toSHA256Bytes
 import net.corda.serialization.internal.model.LocalTypeInformation
 import tech.b180.cordaptor.corda.CordaFlowInstruction
 import tech.b180.cordaptor.corda.CordaNodeState
@@ -206,22 +209,34 @@ class JavaInstantSerializer : CustomSerializer<Instant>,
 }
 
 /**
- * Serializer for a [Party] representing it as a JSON object containing its X.500 name.
+ * Serializer for an [AbstractParty] representing it as a JSON object containing its X.500 name.
  *
- * When reading from JSON, it attempts to resolve the party by calling
- * [CordaNodeState.wellKnownPartyFromX500Name] method
+ * It supports both anonymous and well-known parties. If a party is anonymous,
+ * but it's identity is known to the underlying Corda node, it's name will be written to JSON,
+ * otherwise only its owning key hash will be written.
+ *
+ * When reading parties from JSON, it only supports well-known parties identified by X.500 name,
+ * for which a resolution will be attempted.
  */
-class CordaPartySerializer(
+class CordaAbstractPartySerializer(
     factory: SerializationFactory,
     private val nodeState: CordaNodeState
-) : CustomStructuredObjectSerializer<Party>(factory) {
+) : CustomStructuredObjectSerializer<AbstractParty>(factory), StandaloneTypeSerializer {
 
+  override val schemaTypeName: String
+    get() = "CordaParty"
+
+  @Suppress("UNCHECKED_CAST")
   override val properties: Map<String, ObjectProperty> = mapOf(
-      "name" to KotlinObjectProperty(Party::name, isMandatory = true)
+      "owningKey" to KotlinObjectProperty(AbstractParty::owningKey, isMandatory = false),
+      "name" to SyntheticObjectProperty(SerializerKey.forType(CordaX500Name::class.java),
+          accessor = makePartyNameAccessor(nodeState) as ObjectPropertyValueAccessor)
   )
 
   override fun initializeInstance(values: Map<String, Any?>): Party {
     val nameValue = values["name"]
+        ?: throw SerializationException("Corda parties can only be resolved if an X.500 name is provided")
+
     assert(nameValue is CordaX500Name) { "Expected X500 name, got $nameValue" }
 
     val name = nameValue as CordaX500Name
@@ -229,6 +244,31 @@ class CordaPartySerializer(
     return nodeState.wellKnownPartyFromX500Name(name)
         ?: throw SerializationException("Party with name $name is not known")
   }
+
+  companion object {
+    fun makePartyNameAccessor(nodeState: CordaNodeState) =
+        { party: AbstractParty -> nodeState.partyFromKey(party.owningKey)?.name }
+  }
+}
+
+/**
+ * Serializer for a [Party] delegating to [CordaAbstractPartySerializer].
+ *
+ * The rationale is that sometimes CorDapp developers disallow use of anonymous parties
+ * by specifying [Party] type explicitly.
+ */
+class CordaPartySerializer(
+    abstractPartySerializer: CordaAbstractPartySerializer
+) : CustomSerializer<Party>,
+    SerializationFactory.DelegatingSerializer<Party, AbstractParty>(
+    delegate = abstractPartySerializer,
+    my2delegate = { this },
+    delegate2my = { it as? Party ?: throw AssertionError("Only resolved parties can be received") }
+), StandaloneTypeSerializer {
+
+  // this is deliberately name-clashing with CordaAbstractPartySerializer, so because the schemas are identical
+  override val schemaTypeName: String
+    get() = "CordaParty"
 }
 
 /**
@@ -312,26 +352,24 @@ class CordaWireTransactionSerializer(factory: SerializationFactory)
 }
 
 /**
- * Serializer for a [PublicKey] representing it as a JSON object.
+ * Serializer for a [PublicKey] representing it as a JSON object containing a base58-encoded hash of it.
  * This object is most commonly serialized as part of a [SignedTransaction].
- * There is no support for restoring instances of [WireTransaction] from JSON structures.
+ *
+ * There is no support for restoring instances of [PublicKey] from JSON.
  */
 class CordaPublicKeySerializer(
-    factory: SerializationFactory,
-    nodeState: CordaNodeState
+    factory: SerializationFactory
 ) : CustomStructuredObjectSerializer<PublicKey>(factory, deserialize = false) {
 
   override val properties = mapOf(
-      "fingerprint" to SyntheticObjectProperty(valueType = SerializerKey(String::class),
-          deserialize = false, isMandatory = false, accessor = { "not implemented" }),
-      "knownParty" to SyntheticObjectProperty(valueType = SerializerKey(Party::class),
-          deserialize = false, isMandatory = false, accessor = makeKnownPartyAccessor(nodeState))
+      "hash" to SyntheticObjectProperty(valueType = SerializerKey(String::class),
+          deserialize = false, isMandatory = true, accessor = makePublicKeyHashAccessor())
   )
 
   companion object {
     @Suppress("UNCHECKED_CAST")
-    fun makeKnownPartyAccessor(nodeState: CordaNodeState) =
-        { key: PublicKey -> nodeState.partyFromKey(key) } as ObjectPropertyValueAccessor
+    fun makePublicKeyHashAccessor() =
+        { key: PublicKey -> key.toSHA256Bytes().toBase58() } as ObjectPropertyValueAccessor
   }
 }
 
