@@ -8,6 +8,7 @@ import net.corda.core.identity.CordaX500Name
 import net.corda.core.identity.Party
 import net.corda.core.identity.PartyAndCertificate
 import net.corda.core.transactions.SignedTransaction
+import net.corda.core.utilities.OpaqueBytes
 import net.corda.testing.core.TestIdentity
 import org.junit.Rule
 import org.koin.dsl.bind
@@ -49,6 +50,7 @@ class CordaTypesTest : KoinTest {
       single { CordaCoreTransactionSerializer(get()) } bind CustomSerializer::class
       single { CordaWireTransactionSerializer(get()) } bind CustomSerializer::class
       single { CordaPublicKeySerializer(get(), mockNodeState) } bind CustomSerializer::class
+      single { CordaOpaqueBytesSerializer() } bind CustomSerializer::class
       single { JsonObjectSerializer() } bind CustomSerializer::class
 
       single { CordaFlowInstructionSerializerFactory(get()) } bind CustomSerializerFactory::class
@@ -224,6 +226,21 @@ class CordaTypesTest : KoinTest {
     assertFailsWith(SerializationException::class, message = "Missing mandatory flow class constructor parameter") {
       serializer.fromJson("""{"objectParam":{"intParam":123}}}""".asJsonObject())
     }
+  }
+
+  @Test
+  fun `test corda opaque bytes serialization`() {
+    val serializer = getKoin().getSerializer(OpaqueBytes::class)
+
+    assertEquals("""{"type":"string","format":"base64"}""".asJsonObject(),
+        serializer.generateRecursiveSchema(getKoin().get()))
+
+    // "VEVTVA==" is base64 encoding of string "TEST" in UTF-8 charset
+    assertEquals(""""VEVTVA=="""",
+        serializer.toJsonString(OpaqueBytes("TEST".toByteArray(Charsets.UTF_8))))
+
+    assertEquals(OpaqueBytes("TEST".toByteArray(Charsets.UTF_8)),
+        serializer.fromJson(""""VEVTVA=="""".asJsonValue()))
   }
 }
 

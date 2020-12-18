@@ -11,6 +11,7 @@ import net.corda.core.node.NodeInfo
 import net.corda.core.transactions.CoreTransaction
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.WireTransaction
+import net.corda.core.utilities.OpaqueBytes
 import net.corda.serialization.internal.model.LocalTypeInformation
 import tech.b180.cordaptor.corda.CordaFlowInstruction
 import tech.b180.cordaptor.corda.CordaNodeState
@@ -159,6 +160,27 @@ class CordaUUIDSerializer : CustomSerializer<UUID>,
     return mapOf(
         "type" to "string",
         "format" to "uuid"
+    ).asJsonObject()
+  }
+}
+
+/**
+ * Serializer for a [OpaqueBytes] converting to/from a string value containing underlying bytes in base64 encoding.
+ */
+class CordaOpaqueBytesSerializer : CustomSerializer<OpaqueBytes>,
+    SerializationFactory.DelegatingSerializer<OpaqueBytes, String>(
+        delegate = SerializationFactory.StringSerializer,
+        my2delegate = {
+          Base64.getEncoder().encodeToString(bytes)
+        },
+        delegate2my = {
+          OpaqueBytes(Base64.getDecoder().decode(it))
+        }
+    ) {
+  override fun generateSchema(generator: JsonSchemaGenerator): JsonObject {
+    return mapOf(
+        "type" to "string",
+        "format" to "base64"
     ).asJsonObject()
   }
 }
