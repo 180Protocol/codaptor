@@ -53,18 +53,6 @@ class StandaloneBundleTest {
     suite.runTests()
   }
 
-  private fun testNodeInfoRequest(client: HttpClient) {
-    val response = client.GET("http://localhost:8500/node/info")
-    assertEquals(HttpServletResponse.SC_OK, response.status)
-    assertEquals("application/json", response.mediaType)
-
-    val nodeInfo = response.contentAsString.asJsonObject()
-    assertEquals("localhost".asJsonValue(), nodeInfo.getValue("/addresses/0/host"))
-    assertEquals(NODE_NAME.asJsonValue(), nodeInfo.getValue("/legalIdentitiesAndCerts/0/party/name"))
-    assertEquals(7.asJsonValue(), nodeInfo.getValue("/platformVersion"))
-    assertEquals(JsonValue.ValueType.NUMBER, nodeInfo.getValue("/serial").valueType)
-  }
-
   private fun DriverDSL.startNode(name: CordaX500Name): NodeHandle {
     return startNode(
         defaultParameters = NodeParameters(
