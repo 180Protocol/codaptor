@@ -136,7 +136,7 @@ configure(moduleProjects) {
     }
 
     signing {
-        required { version.endsWith('SNAPSHOT') }
+        required { !version.endsWith('SNAPSHOT') }
         sign publishing.publications.maven
     }
 }

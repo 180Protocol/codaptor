@@ -23,6 +23,7 @@ import tech.b180.cordaptor.corda.CordaNodeState
 import tech.b180.cordaptor.kernel.lazyGetAll
 import java.math.BigDecimal
 import java.math.RoundingMode
+import java.time.Duration
 import java.time.Instant
 import java.util.*
 import kotlin.reflect.full.allSuperclasses
@@ -275,6 +276,22 @@ class CordaTypesTest : KoinTest {
     assertEquals(OpaqueBytes("TEST".toByteArray(Charsets.UTF_8)),
         serializer.fromJson(""""VEVTVA=="""".asJsonValue()))
   }
+
+    @Test
+    fun `test java duration serialization`() {
+        val serializer = getKoin().getSerializer(Duration::class)
+
+        assertEquals("""{"type":"string","format":"date-time"}""".asJsonObject(),
+                serializer.generateRecursiveSchema(getKoin().get()))
+
+        // "PT4H" is string for duration of 4 hours
+        assertEquals("PT4H",
+                serializer.toJsonString(Duration.ofHours(4)))
+
+        assertEquals(Duration.ofHours(4),
+                serializer.fromJson("PT4H".asJsonValue()))
+    }
+
 }
 
 data class TestFlowParam(val intParam: Int)
