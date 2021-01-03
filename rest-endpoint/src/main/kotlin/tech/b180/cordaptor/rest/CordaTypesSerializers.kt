@@ -27,6 +27,7 @@ import java.math.BigDecimal
 import java.math.RoundingMode
 import java.security.PublicKey
 import java.security.cert.X509Certificate
+import java.time.Duration
 import java.time.Instant
 import java.time.format.DateTimeFormatter
 import java.util.*
@@ -207,6 +208,27 @@ class JavaInstantSerializer : CustomSerializer<Instant>,
     ).asJsonObject()
   }
 }
+
+/**
+ * Serializer for an [Duration] representing it as a JSON string value formatted as an ISO-8601 timestamp.
+ *
+ * @see DateTimeFormatter.ISO_INSTANT
+ */
+class JavaDurationSerializer : CustomSerializer<Duration>,
+        SerializationFactory.DelegatingSerializer<Duration, String>(
+                delegate = SerializationFactory.StringSerializer,
+                my2delegate = { this.toString() },
+                delegate2my = { Duration.parse(it) }
+        ) {
+
+  override fun generateSchema(generator: JsonSchemaGenerator): JsonObject {
+    return mapOf(
+            "type" to "string",
+            "format" to "date-time"
+    ).asJsonObject()
+  }
+}
+
 
 /**
  * Serializer for an [AbstractParty] representing it as a JSON object containing its X.500 name.

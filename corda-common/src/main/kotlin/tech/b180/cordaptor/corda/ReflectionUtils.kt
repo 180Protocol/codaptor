@@ -2,6 +2,7 @@ package tech.b180.cordaptor.corda
 
 import net.corda.core.flows.FlowLogic
 import kotlin.reflect.KClass
+import kotlin.reflect.full.allSupertypes
 
 /**
  * Unpacks reflection data about a flow class to determine its return type.
@@ -12,7 +13,7 @@ import kotlin.reflect.KClass
  * FIXME log details of failed type discovery
  */
 fun determineFlowResultClass(flowClass: KClass<out FlowLogic<Any>>): KClass<out Any> {
-  val flowLogicType = flowClass.supertypes.find { it.classifier == FlowLogic::class }
+  val flowLogicType = flowClass.allSupertypes.find { it.classifier == FlowLogic::class }
       ?: throw AssertionError("Flow class $flowClass does not seem to extend FlowLogic")
 
   val flowLogicReturnType = flowLogicType.arguments.firstOrNull()?.type

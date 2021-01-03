@@ -174,7 +174,7 @@ class ListSerializer private constructor(
         when (parameterizedType.rawType) {
           Collection::class.java -> ::newArrayList
           List::class.java -> ::newArrayList
-          else -> throw AssertionError("Don't know how to make instances of ${parameterizedType.rawType}")
+          else -> ::instantiationNotSupported
         }
       } else {
         throw AssertionError("Don't know how to make instances of ${collectionType.observedType}")
@@ -194,6 +194,9 @@ class ListSerializer private constructor(
     fun newArrayList(items: List<*>) = ArrayList(items)
     // FIXME instantiate an array of a certain type via Java reflection
     fun newArray(items: List<*>): Array<Any> = TODO("Deserialization of arrays is not supported yet")
+
+    //catch all for types that do not need to be created from JSON
+    fun instantiationNotSupported(items: Any) = SerializationException("Type not supported")
 
     fun iteratorOfAnArray(c: Any?) = c?.let { (c as Array<*>).iterator() }
         ?: throw AssertionError("Null instead of an array - unsafe code in the parent serializer")

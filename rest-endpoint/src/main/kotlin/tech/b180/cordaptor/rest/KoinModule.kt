@@ -89,6 +89,7 @@ class RestEndpointModuleProvider : ModuleProvider {
     single { CordaTimeWindowSerializer(get()) } bind CustomSerializer::class
     single { JsonObjectSerializer() } bind CustomSerializer::class
     single { CordaOpaqueBytesSerializer() } bind CustomSerializer::class
+    single { JavaDurationSerializer() } bind CustomSerializer::class
 
     single { CordaFlowInstructionSerializerFactory(get()) } bind CustomSerializerFactory::class
     single { CordaAmountSerializerFactory(get()) } bind CustomSerializerFactory::class
