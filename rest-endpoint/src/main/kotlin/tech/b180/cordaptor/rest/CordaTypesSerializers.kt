@@ -210,7 +210,7 @@ class JavaInstantSerializer : CustomSerializer<Instant>,
 }
 
 /**
- * Serializer for an [Duration] representing it as a JSON string value formatted as an ISO-8601 timestamp.
+ * Serializer for an [Duration] representing it as a JSON string value formatted as an ISO-8601 duration format.
  *
  * @see DateTimeFormatter.ISO_INSTANT
  */
@@ -224,7 +224,7 @@ class JavaDurationSerializer : CustomSerializer<Duration>,
   override fun generateSchema(generator: JsonSchemaGenerator): JsonObject {
     return mapOf(
             "type" to "string",
-            "format" to "date-time"
+            "format" to "iso-8601-duration"
     ).asJsonObject()
   }
 }
