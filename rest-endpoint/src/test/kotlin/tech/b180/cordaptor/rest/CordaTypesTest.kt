@@ -281,7 +281,7 @@ class CordaTypesTest : KoinTest {
     fun `test java duration serialization`() {
         val serializer = getKoin().getSerializer(Duration::class)
 
-        assertEquals("""{"type":"string","format":"date-time"}""".asJsonObject(),
+        assertEquals("""{"type":"string","format":"iso-8601-duration"}""".asJsonObject(),
                 serializer.generateRecursiveSchema(getKoin().get()))
 
         // "PT4H" is string for duration of 4 hours
