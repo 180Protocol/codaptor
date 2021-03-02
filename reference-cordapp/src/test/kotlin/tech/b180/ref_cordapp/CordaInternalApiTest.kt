@@ -71,7 +71,7 @@ class CordaInternalApiTest {
 
     val cordapps = serviceHubImpl.cordappProvider.cordapps.filter { it.info.shortName != "corda-core" }
     assertEquals(1, cordapps.size, "Internal API is accessible via service hub instance")
-    assertEquals("cordaptor-reference", cordapps[0].info.shortName, "Reference CorDapp is available")
+    assertEquals("Reference CorDapp", cordapps[0].info.shortName, "Reference CorDapp is available")
 
     val cordapp = cordapps[0]
     assertEquals(TrivialContract::class.qualifiedName, cordapp.contractClassNames[0])

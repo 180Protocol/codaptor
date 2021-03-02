@@ -55,6 +55,7 @@ class CordaTypesTest : KoinTest {
       single { CordaPublicKeySerializer(get()) } bind CustomSerializer::class
       single { CordaOpaqueBytesSerializer() } bind CustomSerializer::class
       single { JsonObjectSerializer() } bind CustomSerializer::class
+      single { JavaDurationSerializer() } bind CustomSerializer::class
 
       single { CordaFlowInstructionSerializerFactory(get()) } bind CustomSerializerFactory::class
       single { CordaAmountSerializerFactory(get()) } bind CustomSerializerFactory::class
@@ -285,11 +286,13 @@ class CordaTypesTest : KoinTest {
                 serializer.generateRecursiveSchema(getKoin().get()))
 
         // "PT4H" is string for duration of 4 hours
-        assertEquals("PT4H",
+        var testString = "\"PT4H\""
+
+        assertEquals(testString,
                 serializer.toJsonString(Duration.ofHours(4)))
 
         assertEquals(Duration.ofHours(4),
-                serializer.fromJson("PT4H".asJsonValue()))
+                serializer.fromJson(testString.asJsonValue()))
     }
 
 }
