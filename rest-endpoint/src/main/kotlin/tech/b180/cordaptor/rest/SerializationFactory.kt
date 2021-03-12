@@ -78,6 +78,7 @@ class SerializationFactory(
     map[SerializerKey(Double::class.java)] = DoubleSerializer as JsonSerializer<Any>
     map[SerializerKey(Float::class.java)] = FloatSerializer as JsonSerializer<Any>
     map[SerializerKey(Boolean::class.java)] = BooleanSerializer as JsonSerializer<Any>
+    map[SerializerKey(Unit::class.java)] = UnitSerializer as JsonSerializer<Any>
     map[SerializerKey(KClass::class.java)] = KotlinClassSerializer as JsonSerializer<Any>
 
     // nullable values use Java versions of the primitive type wrappers
@@ -232,6 +233,20 @@ class SerializationFactory(
 
     override fun toJson(obj: Boolean, generator: JsonGenerator) {
       generator.write(obj)
+    }
+  }
+
+  /** Serializer for Kotlin type [Unit] */
+  object UnitSerializer : PrimitiveTypeSerializer<Unit>("null") {
+    override fun fromJson(value: JsonValue): Unit {
+      return when (value.valueType) {
+        JsonValue.ValueType.NULL -> Unit
+        else -> throw AssertionError("Expected unit, got ${value.valueType} with value $value")
+      }
+    }
+
+    override fun toJson(obj: Unit, generator: JsonGenerator) {
+      generator.write(obj.toString())
     }
   }
 

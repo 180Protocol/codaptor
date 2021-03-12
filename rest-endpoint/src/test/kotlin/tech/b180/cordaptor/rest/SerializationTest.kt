@@ -41,6 +41,8 @@ class SerializationTest {
     assertTrue(localTypeModel.inspect(Int::class.java) is LocalTypeInformation.Atomic)
     assertTrue(localTypeModel.inspect(Boolean::class.java) is LocalTypeInformation.Atomic)
 
+    assertTrue(localTypeModel.inspect(Unit::class.java) is LocalTypeInformation.Singleton)
+
     assertTrue(localTypeModel.inspect(UUID::class.java) is LocalTypeInformation.Opaque)
 
     assertTrue(localTypeModel.inspect(Amount::class.java) is LocalTypeInformation.NonComposable)
@@ -238,6 +240,7 @@ class SerializationTest {
     assertEquals("""{"type": "string"}""".asJsonObject(), SerializationFactory.StringSerializer.generateRecursiveSchema(f))
     assertEquals("""{"type": "boolean"}""".asJsonObject(), SerializationFactory.BooleanSerializer.generateRecursiveSchema(f))
     assertEquals("""{"type": "number", "format": "int32"}""".asJsonObject(), SerializationFactory.IntSerializer.generateRecursiveSchema(f))
+    assertEquals("""{"type": "null"}""".asJsonObject(), SerializationFactory.UnitSerializer.generateRecursiveSchema(f))
   }
 
   @Test
