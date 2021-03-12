@@ -78,6 +78,7 @@ class SerializationFactory(
     map[SerializerKey(Double::class.java)] = DoubleSerializer as JsonSerializer<Any>
     map[SerializerKey(Float::class.java)] = FloatSerializer as JsonSerializer<Any>
     map[SerializerKey(Boolean::class.java)] = BooleanSerializer as JsonSerializer<Any>
+    map[SerializerKey(Unit::class.java)] = UnitSerializer as JsonSerializer<Any>
     map[SerializerKey(KClass::class.java)] = KotlinClassSerializer as JsonSerializer<Any>
 
     // nullable values use Java versions of the primitive type wrappers

@@ -240,6 +240,7 @@ class SerializationTest {
     assertEquals("""{"type": "string"}""".asJsonObject(), SerializationFactory.StringSerializer.generateRecursiveSchema(f))
     assertEquals("""{"type": "boolean"}""".asJsonObject(), SerializationFactory.BooleanSerializer.generateRecursiveSchema(f))
     assertEquals("""{"type": "number", "format": "int32"}""".asJsonObject(), SerializationFactory.IntSerializer.generateRecursiveSchema(f))
+    assertEquals("""{"type": "null"}""".asJsonObject(), SerializationFactory.UnitSerializer.generateRecursiveSchema(f))
   }
 
   @Test
