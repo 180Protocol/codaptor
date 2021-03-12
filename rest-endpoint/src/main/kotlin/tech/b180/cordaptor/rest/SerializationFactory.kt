@@ -235,6 +235,20 @@ class SerializationFactory(
     }
   }
 
+  /** Serializer for Kotlin type [Unit] */
+  object UnitSerializer : PrimitiveTypeSerializer<Unit>("null") {
+    override fun fromJson(value: JsonValue): Unit {
+      return when (value.valueType) {
+        JsonValue.ValueType.NULL -> Unit
+        else -> throw AssertionError("Expected unit, got ${value.valueType} with value $value")
+      }
+    }
+
+    override fun toJson(obj: Unit, generator: JsonGenerator) {
+      generator.write(obj.toString())
+    }
+  }
+
   // FIXME use url format for the schema
   object URLSerializer : DelegatingSerializer<URL, String>(
       StringSerializer, URL::toString, { URL(it) })
