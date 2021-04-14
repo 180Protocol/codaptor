@@ -65,6 +65,7 @@ productive with Cordaptor.
 * Understand how to [configure](./docs/configuration.md) Cordaptor
 * Learn how to [create extensions](./docs/extensions.md) for Cordaptor
 * Stay tuned to updates in the [development blog](https://medium.com/b180tech)
+* If you are developing for the Cordaptor [developer guide](./docs/developer-guide.md)
 
 ## Getting support
 
