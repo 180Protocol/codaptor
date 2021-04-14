@@ -10,3 +10,6 @@ build
 # NPM dependencies for swagger-ui
 /rest-endpoint/swagger-ui/node_modules/
 /rest-endpoint/swagger-ui/dist/
+
+#Shell Script results
+/automated-results
