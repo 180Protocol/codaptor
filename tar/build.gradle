@@ -81,3 +81,8 @@ task docker(type: Exec, dependsOn: [ 'dist' ]) {
     commandLine 'docker', 'build', '--build-arg', "DIST_FILE=${tasks.dist.archiveFileName.get()}",
             '-t', "b180tech/cordaptor:$cordaptor_version", '.'
 }
+
+task pushDocker(type: Exec, dependsOn: [ 'docker' ]) {
+    workingDir project.projectDir
+    commandLine 'docker', 'push', "b180tech/cordaptor:$cordaptor_version"
+}

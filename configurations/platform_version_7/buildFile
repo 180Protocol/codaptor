@@ -1,0 +1,175 @@
+apply plugin: 'org.jetbrains.kotlin.jvm'
+apply plugin: 'net.corda.plugins.cordapp'
+apply plugin: 'net.corda.plugins.cordformation'
+
+cordapp {
+    targetPlatformVersion 7
+    minimumPlatformVersion 7
+    workflow {
+        // this name becomes part of API endpoint URLs used in tests
+        name "Reference CorDapp"
+        vendor "B180"
+        versionId 1
+    }
+    signing {
+        enabled false
+    }
+}
+
+repositories {
+    flatDir {
+        dirs 'lib'
+    }
+}
+
+sourceSets {
+    genericApiTest {
+        kotlin {
+            compileClasspath += main.output
+            runtimeClasspath += main.output
+            srcDir file('src/genericApiTest/kotlin')
+        }
+    }
+    embeddedBundleTest {
+        kotlin {
+            compileClasspath += main.output + genericApiTest.output
+            runtimeClasspath += main.output + genericApiTest.output
+            srcDir file('src/embeddedBundleTest/kotlin')
+        }
+    }
+    standaloneBundleTest {
+        kotlin {
+            compileClasspath += main.output + genericApiTest.output
+            runtimeClasspath += main.output + genericApiTest.output
+            srcDir file('src/standaloneBundleTest/kotlin')
+        }
+    }
+}
+
+configurations {
+    compile.exclude group: 'co.paralleluniverse'
+
+    // these dependencies are brought in by artimismq included into Corda bundles
+    // and they interfere with glassfish javax.json impl, which has more recent version
+    embeddedBundleTestRuntime.exclude module: 'geronimo-json_1.0_spec'
+    embeddedBundleTestRuntime.exclude module: 'johnzon-core'
+    standaloneBundleTestRuntime.exclude module: 'geronimo-json_1.0_spec'
+    standaloneBundleTestRuntime.exclude module: 'johnzon-core'
+
+    embeddedBundleTestImplementation.extendsFrom genericApiTestImplementation
+    standaloneBundleTestImplementation.extendsFrom genericApiTestImplementation
+}
+
+tasks.withType(Test) {
+    jvmArgs += "-Xmx3g" // OOMs unless enough memory is given
+    jvmArgs += "-javaagent:lib/quasar.jar"
+    jvmArgs += "-Dnet.corda.client.rpc.trackRpcCallSites=true"
+}
+
+task embeddedBundleTest(type: Test, dependsOn: [":bundle-rest-embedded:build", "jar"]) {
+    def bundleProject = project(":bundle-rest-embedded")
+    def bundleJarPath = bundleProject.tasks["jar"].archivePath
+
+    doFirst {
+        println("Copying bundle JAR file from ${bundleJarPath}")
+    }
+
+    // we have to add bundle JAR to the test classpath here instead of configuring it as a dependency
+    // because otherwise there will be multiple JARS with classes in Cordaptor package in the classpath
+    // caused by transitive subproject dependencies, which would cause TestCordapp to fail
+    classpath = sourceSets.embeddedBundleTest.runtimeClasspath + bundleProject.files(bundleJarPath)
+
+    testClassesDirs = sourceSets.embeddedBundleTest.output.classesDirs
+    outputs.upToDateWhen { false }
+}
+
+task standaloneBundleTest(type: Test, dependsOn: ["jar"]) {
+    classpath = sourceSets.standaloneBundleTest.runtimeClasspath
+
+    testClassesDirs = sourceSets.standaloneBundleTest.output.classesDirs
+    outputs.upToDateWhen { false }
+}
+
+task dockerImageTest(type: Exec, dependsOn: [ ':tar:docker', 'deployNodes' ]) {
+
+}
+
+dependencies {
+    implementation project(":kernel")
+
+    compileOnly name: 'quasar'
+    runtimeOnly name: 'quasar'
+
+    // required for cordformation plugin to be able to deploy nodes
+    cordaRuntime "net.corda:corda:$corda_release_version"
+    cordaRuntime "net.corda:corda-node-api:$corda_release_version"
+    cordapp project(':bundle-rest-embedded')
+
+    compileOnly "net.corda:corda-core:$corda_core_release_version"
+    compileOnly "net.corda:corda-node-api:$corda_core_release_version"
+    compileOnly "net.corda:corda-node:$corda_core_release_version"
+
+    testCompile "net.corda:corda-node-driver:$corda_core_release_version"
+
+    implementation "org.koin:koin-core:$koin_version"
+    testImplementation "org.koin:koin-test:$koin_version"
+
+    testImplementation 'org.jetbrains.kotlin:kotlin-test'
+    testImplementation 'org.jetbrains.kotlin:kotlin-test-junit'
+
+    genericApiTestImplementation "org.jetbrains.kotlin:kotlin-test"
+    genericApiTestImplementation "org.jetbrains.kotlin:kotlin-test-junit"
+    genericApiTestImplementation "net.corda:corda-node-driver:$corda_core_release_version"
+    genericApiTestImplementation "org.eclipse.jetty:jetty-client:$jetty_version"
+    genericApiTestImplementation "org.glassfish:javax.json:$glassfish_json_version"
+
+    // Cordaptor running standalone mode can rely on its default module resolution mechanism,
+    // so it's enough to add relevant modules as dependencies
+    standaloneBundleTestImplementation project(":kernel")
+    standaloneBundleTestImplementation project(":rest-endpoint")
+    standaloneBundleTestImplementation project(":local-cache")
+    standaloneBundleTestImplementation project(":corda-rpc-client")
+}
+
+// This tasks initializes minimal Corda network with embedded Cordaptor bundle
+// The network is intended to be run via docker-compose because it uses hostnames only resolvable within docker network
+// Note that hostnames (like bank-node) must match those configured in compose-corda-network.yml
+task deployNodes(type: net.corda.plugins.Cordform, dependsOn: ['jar']) {
+    nodeDefaults {
+        // this is necessary as we provide reference cordapp for testing
+        projectCordapp {
+            deploy = true
+        }
+    }
+    node {
+        name "O=Notary,L=London,C=GB"
+        notary = [validating : false]
+        p2pAddress "notary-node:10200"
+        rpcSettings {
+            address("0.0.0.0:10201")
+            adminAddress("0.0.0.0:10202")
+            useSsl(false)
+        }
+    }
+    // this is the node where we deploy Cordaptor
+    node {
+        name "O=Bank,L=London,C=GB"
+        p2pAddress "bank-node:10200"
+        rpcSettings {
+            address("0.0.0.0:10201")
+            adminAddress("0.0.0.0:10202")
+            useSsl(false)
+        }
+        // our test users has admin access to the node, caution advised
+        rpcUsers = [[ user: "client", "password": "test", "permissions": ["ALL"]]]
+        // This includes embedded Cordaptor bundle as a project dependency, but you are likely
+        // to use its full Maven coordinates instead, e.g. 'tech.b180.cordaptor:cordaptor-bundle-rest-embedded:XXX'
+        // This is only necessary if you want to use the embedded bundle
+        // Remove this line if you plan to use Cordaptor standalone via compose-cordaptor.yml
+        cordapp(project(':bundle-rest-embedded')) {
+            config '''\
+                openAPI.webServer.externalAddress = "localhost:8500"
+            '''.stripIndent()
+        }
+    }
+}

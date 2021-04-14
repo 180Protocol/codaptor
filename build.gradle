@@ -140,3 +140,38 @@ configure(moduleProjects) {
         sign publishing.publications.maven
     }
 }
+
+//Tasks for automating the getting the embedded cordaptor jar and test results.
+task automatedResults {
+    dependsOn 'getCordaptorEmbedded', 'getCordaCommonResults', 'getCordaServiceResults',
+            'getKernelResults', 'getReferenceCordappResults', 'getRestEndpointResults'
+}
+
+task getCordaptorEmbedded(type: Copy) {
+    from(file("$rootDir/bundle-rest-embedded/build/libs"))
+    into(file("$rootDir/automated-results/Corda-$corda_core_release_version/bundle-rest-embedded"))
+}
+
+task getCordaCommonResults(type: Copy) {
+    from(file("$rootDir/corda-common/build/reports"))
+    into(file("$rootDir/automated-results/Corda-$corda_core_release_version/corda-common"))
+}
+task getCordaServiceResults(type: Copy) {
+    from(file("$rootDir/corda-service/build/reports"))
+    into(file("$rootDir/automated-results/Corda-$corda_core_release_version/corda-service"))
+}
+
+task getKernelResults(type: Copy) {
+    from(file("$rootDir/kernel/build/reports"))
+    into(file("$rootDir/automated-results/Corda-$corda_core_release_version/kernel"))
+}
+
+task getReferenceCordappResults(type: Copy) {
+    from(file("$rootDir/reference-cordapp/build/reports"))
+    into(file("$rootDir/automated-results/Corda-$corda_core_release_version/reference-cordapp"))
+}
+
+task getRestEndpointResults(type: Copy) {
+    from(file("$rootDir/rest-endpoint/build/reports"))
+    into(file("$rootDir/automated-results/Corda-$corda_core_release_version/rest-endpoint"))
+}
