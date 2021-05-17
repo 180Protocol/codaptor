@@ -8,8 +8,10 @@ import net.corda.core.flows.FlowLogic
 import net.corda.core.identity.*
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.utilities.OpaqueBytes
+import net.corda.core.utilities.ProgressTracker
 import net.corda.core.utilities.toBase58
 import net.corda.core.utilities.toSHA256Bytes
+import net.corda.finance.flows.AbstractCashFlow
 import net.corda.testing.core.TestIdentity
 import org.junit.Rule
 import org.koin.dsl.bind
@@ -263,6 +265,17 @@ class CordaTypesTest : KoinTest {
     }
   }
 
+    @Test
+    fun `test corda non-composable serialization`() {
+        val serializer = getKoin().getSerializer(CordaFlowInstruction::class, TestNonComposableFlow::class)
+
+        println("Serializer Schema: " + serializer.generateRecursiveSchema(getKoin().get()))
+
+        assertEquals(CordaFlowInstruction(flowClass = TestNonComposableFlow::class,
+            arguments = mapOf("testProperty" to "ABC")),
+            serializer.fromJson("""{"testProperty":"ABC"}""".asJsonObject()))
+    }
+
   @Test
   fun `test corda opaque bytes serialization`() {
     val serializer = getKoin().getSerializer(OpaqueBytes::class)
@@ -307,4 +320,19 @@ data class TestFlow(
   override fun call(): String {
     throw AssertionError("Not expected to be called in the test")
   }
+}
+
+data class TestNonComposableFlow(
+    val testProperty: String,
+    override val progressTracker: ProgressTracker
+) : FlowLogic<String>() {
+    constructor(testProperty: String) : this(testProperty, ProgressTracker(
+        AbstractCashFlow.Companion.GENERATING_TX,
+        AbstractCashFlow.Companion.SIGNING_TX,
+        AbstractCashFlow.Companion.FINALISING_TX
+    ))
+
+    override fun call(): String {
+        throw AssertionError("Not expected to be called in the test")
+    }
 }
