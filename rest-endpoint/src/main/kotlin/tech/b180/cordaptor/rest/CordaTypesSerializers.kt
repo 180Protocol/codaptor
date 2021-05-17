@@ -13,9 +13,12 @@ import net.corda.core.transactions.CoreTransaction
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.WireTransaction
 import net.corda.core.utilities.OpaqueBytes
+import net.corda.core.utilities.ProgressTracker
 import net.corda.core.utilities.toBase58
 import net.corda.core.utilities.toSHA256Bytes
+import net.corda.serialization.internal.model.LocalConstructorParameterInformation
 import net.corda.serialization.internal.model.LocalTypeInformation
+import net.corda.serialization.internal.model.PropertyName
 import tech.b180.cordaptor.corda.CordaFlowInstruction
 import tech.b180.cordaptor.corda.CordaNodeState
 import tech.b180.cordaptor.shaded.javax.json.JsonNumber
@@ -430,25 +433,31 @@ class CordaFlowInstructionSerializerFactory(
 
       override val properties: Map<String, ObjectProperty>
         get() {
-          val typeInfo = factory.inspectLocalType(flowClass)
-          val constructor = (typeInfo as? LocalTypeInformation.Composable)?.constructor
-              ?: throw SerializationException("Flow type identified as $key was not introspected as composable.\n" +
-                  "Introspection details: ${typeInfo.prettyPrint()})")
-
-          // expose trackProgress flag explicitly among the properties
-          // FIXME watch out for property name clashes
-          val properties: MutableList<Pair<String, ObjectProperty>> = mutableListOf(OPTIONS_PROPERTY_NAME
-              to KotlinObjectProperty(property = CordaFlowInstruction<*>::options))
-
-          constructor.parameters.mapTo(properties) {
-            val prop = typeInfo.properties[it.name]
-                ?: throw SerializationException("Could not find property ${it.name} for type type $key, " +
-                    "despite it being referenced in constructor parameters")
-
-            it.name to ComposableTypeJsonSerializer.createIntrospectedProperty(it.name, prop)
-          }
-
-          return properties.toMap()
+            var bannedClasses = listOf<Class<*>>(ProgressTracker::class.java)
+            val typeInfo = factory.inspectLocalType(flowClass)
+            //val kFlowClass = flowClass as KClass<*>
+            var validConstructor = flowClass.constructors.first()
+            var valid = true
+            flowClass.constructors.forEach { constructor ->
+                constructor.parameters.forEach {
+                        param ->  if(bannedClasses.contains(param::class.java)) valid = false
+                }
+                if(valid) validConstructor = constructor
+            }
+            if(!valid){
+                throw SerializationException("The ${flowClass.canonicalName} has a non composable constructor argument and cannot be serialized")
+            }
+            // expose trackProgress flag explicitly among the properties
+            // FIXME watch out for property name clashes
+            val properties: MutableList<Pair<String, ObjectProperty>> = mutableListOf(OPTIONS_PROPERTY_NAME
+                    to KotlinObjectProperty(property = CordaFlowInstruction<*>::options))
+            validConstructor.parameters.mapTo(properties) {
+                val prop = typeInfo.propertiesOrEmptyMap[it.name]
+                    ?: throw SerializationException("Could not find property ${it.name} for type type $key, " +
+                            "despite it being referenced in constructor parameters")
+                it.name to ComposableTypeJsonSerializer.createIntrospectedProperty(it.name as PropertyName, prop)
+            }
+            return properties.toMap()
         }
 
       override fun initializeInstance(values: Map<String, Any?>): CordaFlowInstruction<*> {
