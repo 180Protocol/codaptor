@@ -179,7 +179,7 @@ data class JsonValueLiteral(private val value: JsonValue) : CordaVaultQuery.Lite
         (value.asJsonObject()["values"] as List<JsonValue>).forEach {
           list.add(JsonValueLiteral(it))
         }
-      }
+}
       else -> throw AssertionError("Expected object or array, got ${value.valueType} with value $value")
     }
     return list

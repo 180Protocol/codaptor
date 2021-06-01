@@ -365,27 +365,12 @@ class CordaTypesTest : KoinTest {
     fun `test corda vault query serialization`() {
         val serializer = getKoin().getSerializer(CordaVaultQuery.Expression::class)
 
-        val testEqualityJson = """{"type": "equals", "column": "CompoundStateSchemaV1.string", "schema": "CompoundStateSchemaV1", "value": "ABC"}""".asJsonObject()
+        var testJson = """{"type": "between", "column": "recordedTime","from": "2020-06-01","to": "2020-07-01"}""".asJsonObject()
+
+        println(serializer.fromJson(testJson))
         assertEquals(
-            CordaVaultQuery.Expression.EqualityComparison(
-                EqualityComparisonOperator.EQUAL,
-                "CompoundStateSchemaV1.string",
-                CompoundStateSchemaV1,
-                JsonValueLiteral("\"ABC\"".asJsonValue())
-            ),
-            serializer.fromJson(testEqualityJson)
-        )
-    }
-
-    @Test
-    fun `test corda vault query`() {
-        val serializer = getKoin().getSerializer(CordaVaultQuery.Expression::class)
-
-        val testBetweenJson = """{"type": "between", "column": "recordedTime","from": "2020-06-01","to": "2020-07-01"}""".asJsonObject()
-
-        val testBetweenExpression = QueryCriteria.TimeCondition(
-            QueryCriteria.TimeInstantType.RECORDED,
-            ColumnPredicate.Between(Instant.parse("2020-06-01T00:00:00Z"), Instant.parse("2020-07-01T00:00:00Z"))
+            CordaVaultQuery.Expression.Between("testAttributeName",
+                JsonValueLiteral("2020-06-01".asJsonValue()), JsonValueLiteral("2020-07-01".asJsonValue())), serializer.fromJson(testJson)
         )
     }
 }
