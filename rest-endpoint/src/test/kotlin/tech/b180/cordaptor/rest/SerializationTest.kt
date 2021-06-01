@@ -121,22 +121,26 @@ class SerializationTest {
     assertEquals("", SerializationFactory.StringSerializer.fromJson("null".asJsonValue()))
 
     assertEquals("\"literal\"",
-        generateJson { SerializationFactory.StringSerializer.toJson("literal", this) } )
+      generateJson { SerializationFactory.StringSerializer.toJson("literal", this) })
   }
 
   @Test
   fun `test class name serializer`() {
-    assertEquals(TestDataObject::class.java,
-        SerializationFactory.JavaClassSerializer.fromJson("\"${TestDataObject::class.java.canonicalName}\"".asJsonValue()))
+    assertEquals(
+      TestDataObject::class.java,
+      SerializationFactory.JavaClassSerializer.fromJson("\"${TestDataObject::class.java.canonicalName}\"".asJsonValue())
+    )
 
-    assertEquals(TestDataObject::class,
-        SerializationFactory.KotlinClassSerializer.fromJson("\"${TestDataObject::class.qualifiedName}\"".asJsonValue()))
+    assertEquals(
+      TestDataObject::class,
+      SerializationFactory.KotlinClassSerializer.fromJson("\"${TestDataObject::class.qualifiedName}\"".asJsonValue())
+    )
 
     assertEquals("\"${TestDataObject::class.java.canonicalName}\"",
-        generateJson { SerializationFactory.JavaClassSerializer.toJson(TestDataObject::class.java, this) } )
+      generateJson { SerializationFactory.JavaClassSerializer.toJson(TestDataObject::class.java, this) })
 
     assertEquals("\"${TestDataObject::class.qualifiedName}\"",
-        generateJson { SerializationFactory.KotlinClassSerializer.toJson(TestDataObject::class, this) } )
+      generateJson { SerializationFactory.KotlinClassSerializer.toJson(TestDataObject::class, this) })
   }
 
   @Test
@@ -144,42 +148,55 @@ class SerializationTest {
     assertEquals(123, SerializationFactory.IntSerializer.fromJson("123".asJsonValue()))
 
     assertEquals("123",
-        generateJson { SerializationFactory.IntSerializer.toJson(123, this) } )
+      generateJson { SerializationFactory.IntSerializer.toJson(123, this) })
 
     assertEquals(Integer(123), SerializationFactory.JavaIntegerSerializer.fromJson("123".asJsonValue()))
 
     assertEquals("123",
-        generateJson { SerializationFactory.JavaIntegerSerializer.toJson(Integer(123), this) } )
+      generateJson { SerializationFactory.JavaIntegerSerializer.toJson(Integer(123), this) })
   }
 
   @Test
   fun `test composable type serializer`() {
 
-    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() }, lazy { emptyList<CustomSerializerFactory<Any>>() })
+    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() },
+      lazy { emptyList<CustomSerializerFactory<Any>>() })
 
     val publicPropertiesSerializer = f.getSerializer(TestDataObject::class)
     val privatePropertiesSerializer = f.getSerializer(NonPublicPropertiesObject::class)
     val pojoSerializer = f.getSerializer(TestPojo::class)
 
-    assertEquals("""{"one":"123","two":123}""",
-        publicPropertiesSerializer.toJsonString(TestDataObject("123", 123, null)))
-    assertEquals("""{"one":"123","two":123}""",
-        privatePropertiesSerializer.toJsonString(NonPublicPropertiesObject("123", 123)))
+    assertEquals(
+      """{"one":"123","two":123}""",
+      publicPropertiesSerializer.toJsonString(TestDataObject("123", 123, null))
+    )
+    assertEquals(
+      """{"one":"123","two":123}""",
+      privatePropertiesSerializer.toJsonString(NonPublicPropertiesObject("123", 123))
+    )
     assertEquals("""{"one":"123","two":321}""",
-        pojoSerializer.toJsonString(TestPojo().apply { one = "123"; two = 321 }))
+      pojoSerializer.toJsonString(TestPojo().apply { one = "123"; two = 321 })
+    )
 
-    assertEquals(TestDataObject("321", 321, null),
-        publicPropertiesSerializer.fromJson("""{"one":"321","two":321}""".asJsonObject()))
-    assertEquals(NonPublicPropertiesObject("321", 321),
-        privatePropertiesSerializer.fromJson("""{"one":"321","two":321}""".asJsonObject()))
-    assertEquals(TestPojo().apply { one = "123"; two = 321 },
-        pojoSerializer.fromJson("""{"one":"123","two":321}""".asJsonObject()))
+    assertEquals(
+      TestDataObject("321", 321, null),
+      publicPropertiesSerializer.fromJson("""{"one":"321","two":321}""".asJsonObject())
+    )
+    assertEquals(
+      NonPublicPropertiesObject("321", 321),
+      privatePropertiesSerializer.fromJson("""{"one":"321","two":321}""".asJsonObject())
+    )
+    assertEquals(
+      TestPojo().apply { one = "123"; two = 321 },
+      pojoSerializer.fromJson("""{"one":"123","two":321}""".asJsonObject())
+    )
   }
 
   @Test
   fun `test collection types serializer`() {
 
-    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() }, lazy { emptyList<CustomSerializerFactory<Any>>() })
+    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() },
+      lazy { emptyList<CustomSerializerFactory<Any>>() })
 
     // roundabout way to make sure type comes with generic
     val arraySerializer = ListSerializer(localTypeModel.inspectProperty(ObjectWithParametrizedProperties::array), f)
@@ -209,10 +226,14 @@ class SerializationTest {
 
     // arrays cannot be deserialized currently, so no test
 
-    assertEquals(listOf("A", "B", "C"),
-        listSerializer.fromJson("""["A","B","C"]""".asJsonValue()))
-    assertEquals(mapOf("A" to 1, "B" to 2, "C" to 3),
-        mapSerializer.fromJson("""{"A":1,"B":2,"C":3}""".asJsonValue()) as Any)
+    assertEquals(
+      listOf("A", "B", "C"),
+      listSerializer.fromJson("""["A","B","C"]""".asJsonValue())
+    )
+    assertEquals(
+      mapOf("A" to 1, "B" to 2, "C" to 3),
+      mapSerializer.fromJson("""{"A":1,"B":2,"C":3}""".asJsonValue()) as Any
+    )
 
     val map = enumMapSerializer.fromJson("""{"VAL1":"A","VAL2":"B"}""".asJsonValue())
     assertEquals("A", map[TestEnum.VAL1])
@@ -221,7 +242,8 @@ class SerializationTest {
 
   @Test
   fun `test enum type serialization`() {
-    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() }, lazy { emptyList<CustomSerializerFactory<Any>>() })
+    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() },
+      lazy { emptyList<CustomSerializerFactory<Any>>() })
 
     val serializer = f.getSerializer(TestEnum::class)
 
@@ -229,27 +251,41 @@ class SerializationTest {
 
     assertEquals(TestEnum.VAL2, serializer.fromJson(""""VAL2"""".asJsonValue()))
 
-    assertEquals("""{
+    assertEquals(
+      """{
       |"type": "string",
-      |"enum": ["VAL1","VAL2"]}""".trimMargin().asJsonObject(), serializer.generateRecursiveSchema(f))
+      |"enum": ["VAL1","VAL2"]}""".trimMargin().asJsonObject(), serializer.generateRecursiveSchema(f)
+    )
   }
 
   @Test
   fun `test atomic types schema`() {
-    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() }, lazy { emptyList<CustomSerializerFactory<Any>>() })
-    assertEquals("""{"type": "string"}""".asJsonObject(), SerializationFactory.StringSerializer.generateRecursiveSchema(f))
-    assertEquals("""{"type": "boolean"}""".asJsonObject(), SerializationFactory.BooleanSerializer.generateRecursiveSchema(f))
-    assertEquals("""{"type": "number", "format": "int32"}""".asJsonObject(), SerializationFactory.IntSerializer.generateRecursiveSchema(f))
+    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() },
+      lazy { emptyList<CustomSerializerFactory<Any>>() })
+    assertEquals(
+      """{"type": "string"}""".asJsonObject(),
+      SerializationFactory.StringSerializer.generateRecursiveSchema(f)
+    )
+    assertEquals(
+      """{"type": "boolean"}""".asJsonObject(),
+      SerializationFactory.BooleanSerializer.generateRecursiveSchema(f)
+    )
+    assertEquals(
+      """{"type": "number", "format": "int32"}""".asJsonObject(),
+      SerializationFactory.IntSerializer.generateRecursiveSchema(f)
+    )
     assertEquals("""{"type": "null"}""".asJsonObject(), SerializationFactory.UnitSerializer.generateRecursiveSchema(f))
   }
 
   @Test
   fun `test composite type schema`() {
-    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() }, lazy { emptyList<CustomSerializerFactory<Any>>() })
+    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() },
+      lazy { emptyList<CustomSerializerFactory<Any>>() })
 
     val publicPropertiesSerializer = f.getSerializer(TestDataObject::class)
 
-    assertEquals("""{
+    assertEquals(
+      """{
       |"type": "object",
       |"properties": {
       | "one":{
@@ -268,37 +304,46 @@ class SerializationTest {
       | "one",
       | "two"
       |]
-      |}""".trimMargin().asJsonObject(), publicPropertiesSerializer.generateRecursiveSchema(f))
+      |}""".trimMargin().asJsonObject(), publicPropertiesSerializer.generateRecursiveSchema(f)
+    )
   }
 
   @Test
   fun `test collection types schema`() {
-    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() }, lazy { emptyList<CustomSerializerFactory<Any>>() })
+    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() },
+      lazy { emptyList<CustomSerializerFactory<Any>>() })
 
     // roundabout way to make sure type comes with generic
     val arraySerializer = ListSerializer(localTypeModel.inspectProperty(ObjectWithParametrizedProperties::array), f)
     val listSerializer = ListSerializer(localTypeModel.inspectProperty(ObjectWithParametrizedProperties::list), f)
     val mapSerializer = MapSerializer(localTypeModel.inspectProperty(ObjectWithParametrizedProperties::map), f)
 
-    assertEquals("""{
+    assertEquals(
+      """{
       |"type":"array",
       |"items":{"type":"string"}
-      |}""".trimMargin().asJsonObject(), arraySerializer.generateRecursiveSchema(f))
+      |}""".trimMargin().asJsonObject(), arraySerializer.generateRecursiveSchema(f)
+    )
 
-    assertEquals("""{
+    assertEquals(
+      """{
       |"type":"array",
       |"items":{"type":"string"}
-      |}""".trimMargin().asJsonObject(), listSerializer.generateRecursiveSchema(f))
+      |}""".trimMargin().asJsonObject(), listSerializer.generateRecursiveSchema(f)
+    )
 
-    assertEquals("""{
+    assertEquals(
+      """{
       |"type":"array",
       |"additionalProperties":{"type":"number","format":"int32"}
-      |}""".trimMargin().asJsonObject(), mapSerializer.generateRecursiveSchema(f))
+      |}""".trimMargin().asJsonObject(), mapSerializer.generateRecursiveSchema(f)
+    )
   }
 
   @Test
   fun `test class literals serialization`() {
-    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() }, lazy { emptyList<CustomSerializerFactory<Any>>() })
+    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() },
+      lazy { emptyList<CustomSerializerFactory<Any>>() })
 
     val kotlinClassSerializer = f.getSerializer(KClass::class.java)
     val javaClassSerializer = f.getSerializer(Class::class.java)
@@ -309,49 +354,70 @@ class SerializationTest {
 
   @Test
   fun `test transient annotation`() {
-    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() }, lazy { emptyList<CustomSerializerFactory<Any>>() })
+    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() },
+      lazy { emptyList<CustomSerializerFactory<Any>>() })
 
     val serializer = f.getSerializer(ObjectWithTransientProperties::class.java)
 
-    assertEquals("""{"one":"123","two":123}""", serializer.toJsonString(
-        ObjectWithTransientProperties("123", 123, 321)))
+    assertEquals(
+      """{"one":"123","two":123}""", serializer.toJsonString(
+        ObjectWithTransientProperties("123", 123, 321)
+      )
+    )
   }
 
   @Test
   fun `test calculated property annotation`() {
-    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() }, lazy { emptyList<CustomSerializerFactory<Any>>() })
+    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() },
+      lazy { emptyList<CustomSerializerFactory<Any>>() })
 
     val serializer = f.getSerializer(ObjectWithCalculatedProperties::class.java)
 
-    assertEquals("""{"one":"123","two":123}""", serializer.toJsonString(
-        ObjectWithCalculatedProperties("123")))
+    assertEquals(
+      """{"one":"123","two":123}""", serializer.toJsonString(
+        ObjectWithCalculatedProperties("123")
+      )
+    )
   }
 
   @Test
   fun `test abstract class serialization`() {
-    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() }, lazy { emptyList<CustomSerializerFactory<Any>>() })
+    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() },
+      lazy { emptyList<CustomSerializerFactory<Any>>() })
 
     val serializer = object : CustomAbstractClassSerializer<BaseObject>(f) {
       override val subclassesMap = mapOf(
-          "one" to DerivedObjectOne::class,
-          "two" to DerivedObjectTwo::class,
-          "singleton" to DerivedSingleton::class
+        "one" to DerivedObjectOne::class,
+        "two" to DerivedObjectTwo::class,
+        "singleton" to DerivedSingleton::class
       )
     }
 
-    assertEquals("""{"type":"one","stringValue":"ABC"}""",
-        serializer.toJsonString(DerivedObjectOne("ABC")))
-    assertEquals("""{"type":"two","intValue":123}""",
-        serializer.toJsonString(DerivedObjectTwo(123)))
-    assertEquals("""{"type":"singleton"}""",
-        serializer.toJsonString(DerivedSingleton))
-    
-    assertEquals(DerivedObjectOne("ABC"),
-        serializer.fromJson("""{"type":"one","stringValue":"ABC"}""".asJsonObject()))
-    assertEquals(DerivedObjectTwo(123),
-        serializer.fromJson("""{"type":"two","intValue":123}""".asJsonObject()))
-    assertSame(DerivedSingleton,
-        serializer.fromJson("""{"type":"singleton"}""".asJsonObject()))
+    assertEquals(
+      """{"type":"one","stringValue":"ABC"}""",
+      serializer.toJsonString(DerivedObjectOne("ABC"))
+    )
+    assertEquals(
+      """{"type":"two","intValue":123}""",
+      serializer.toJsonString(DerivedObjectTwo(123))
+    )
+    assertEquals(
+      """{"type":"singleton"}""",
+      serializer.toJsonString(DerivedSingleton)
+    )
+
+    assertEquals(
+      DerivedObjectOne("ABC"),
+      serializer.fromJson("""{"type":"one","stringValue":"ABC"}""".asJsonObject())
+    )
+    assertEquals(
+      DerivedObjectTwo(123),
+      serializer.fromJson("""{"type":"two","intValue":123}""".asJsonObject())
+    )
+    assertSame(
+      DerivedSingleton,
+      serializer.fromJson("""{"type":"singleton"}""".asJsonObject())
+    )
 
     assertFailsWith(SerializationException::class) {
       serializer.fromJson("""{"type":"unknown"}""".asJsonObject())
@@ -360,35 +426,50 @@ class SerializationTest {
 
   @Test
   fun `test typed schema for nested parameterized objects`() {
-    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() }, lazy { emptyList<CustomSerializerFactory<Any>>() })
+    val f = SerializationFactory(lazy { emptyList<CustomSerializer<Any>>() },
+      lazy { emptyList<CustomSerializerFactory<Any>>() })
 
     val serializer1 = f.getSerializer(
-        SerializerKey(ParameterizedObjectsContainer::class, DerivedObjectOne::class).localType)
+      SerializerKey(ParameterizedObjectsContainer::class, DerivedObjectOne::class).localType
+    )
     val serializer2 = f.getSerializer(
-        SerializerKey(ParameterizedObjectsContainer::class, DerivedObjectTwo::class).localType)
+      SerializerKey(ParameterizedObjectsContainer::class, DerivedObjectTwo::class).localType
+    )
 
     val schema1 = serializer1.generateRecursiveSchema(f)
     val schema2 = serializer2.generateRecursiveSchema(f)
 
     println(schema1)
 
-    assertEquals("""{"stringValue":{"type":"string"}}""".asJsonObject(),
-        schema1.getValue("/properties/list/items/properties/value/properties"))
+    assertEquals(
+      """{"stringValue":{"type":"string"}}""".asJsonObject(),
+      schema1.getValue("/properties/list/items/properties/value/properties")
+    )
 
-    assertEquals("""{"stringValue":{"type":"string"}}""".asJsonObject(),
-        schema1.getValue("/properties/map/additionalProperties/properties/value/properties"))
+    assertEquals(
+      """{"stringValue":{"type":"string"}}""".asJsonObject(),
+      schema1.getValue("/properties/map/additionalProperties/properties/value/properties")
+    )
 
-    assertEquals("""{"stringValue":{"type":"string"}}""".asJsonObject(),
-        schema1.getValue("/properties/nestedSingle/properties/value/properties/value/properties"))
+    assertEquals(
+      """{"stringValue":{"type":"string"}}""".asJsonObject(),
+      schema1.getValue("/properties/nestedSingle/properties/value/properties/value/properties")
+    )
 
-    assertEquals("""{"intValue":{"type":"number","format":"int32"}}""".asJsonObject(),
-        schema2.getValue("/properties/list/items/properties/value/properties"))
+    assertEquals(
+      """{"intValue":{"type":"number","format":"int32"}}""".asJsonObject(),
+      schema2.getValue("/properties/list/items/properties/value/properties")
+    )
 
-    assertEquals("""{"intValue":{"type":"number","format":"int32"}}""".asJsonObject(),
-        schema2.getValue("/properties/map/additionalProperties/properties/value/properties"))
+    assertEquals(
+      """{"intValue":{"type":"number","format":"int32"}}""".asJsonObject(),
+      schema2.getValue("/properties/map/additionalProperties/properties/value/properties")
+    )
 
-    assertEquals("""{"intValue":{"type":"number","format":"int32"}}""".asJsonObject(),
-        schema2.getValue("/properties/nestedSingle/properties/value/properties/value/properties"))
+    assertEquals(
+      """{"intValue":{"type":"number","format":"int32"}}""".asJsonObject(),
+      schema2.getValue("/properties/nestedSingle/properties/value/properties/value/properties")
+    )
   }
 }
 

@@ -92,6 +92,8 @@ class RestEndpointModuleProvider : ModuleProvider {
     single { JavaDurationSerializer() } bind CustomSerializer::class
     single { CordaNodeAttachmentSerializer() } bind CustomSerializer::class
 
+    single { CordaVaultQueryExpressionSerializer() } bind CustomSerializer::class
+
     single { CordaFlowInstructionSerializerFactory(get()) } bind CustomSerializerFactory::class
     single { CordaAmountSerializerFactory(get()) } bind CustomSerializerFactory::class
     single { CordaLinearPointerSerializer(get()) } bind CustomSerializerFactory::class
