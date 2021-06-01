@@ -68,6 +68,8 @@ class CordaTypesTest : KoinTest {
       single { CordaAmountSerializerFactory(get()) } bind CustomSerializerFactory::class
       single { CordaLinearPointerSerializer(get()) } bind CustomSerializerFactory::class
 
+        single { CordaVaultQueryExpressionSerializer() } bind CustomSerializerFactory::class
+
       // factory for requesting specific serializers into the non-generic serialization code
       factory<JsonSerializer<*>> { (key: SerializerKey) -> get<SerializationFactory>().getSerializer(key) }
     }
@@ -353,6 +355,18 @@ class CordaTypesTest : KoinTest {
                 serializer.fromJson(testString.asJsonValue()))
     }
 
+    @Test
+    fun `test corda vault query serialization`() {
+        val serializer = getKoin().getSerializer(CordaVaultQuery.Expression::class)
+
+        var testJson = """{"type": "between", "column": "recordedTime","from": "2020-06-01","to": "2020-07-01"}""".asJsonObject()
+
+        println(serializer.fromJson(testJson))
+        assertEquals(
+            CordaVaultQuery.Expression.Between("testAttributeName",
+                JsonValueLiteral("2020-06-01".asJsonValue()), JsonValueLiteral("2020-07-01".asJsonValue())), serializer.fromJson(testJson)
+        )
+    }
 }
 
 data class TestFlowParam(val intParam: Int)
