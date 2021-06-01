@@ -25,10 +25,7 @@ for configuration in "${configurations[@]}"; do
   sed -i "/corda_core_release_version/c\corda_core_release_version=$configuration" ./gradle.properties
   sed -i "/corda_release_version/c\corda_release_version=$configuration" ./gradle.properties
   sed -i "/cordaptor_version/c\cordaptor_version=0.2.0-corda$configuration-SNAPSHOT" ./gradle.properties
-
-  #Replaces target and minimum platform version in build.gradle under reference-cordapp project
-  sed -i "/targetPlatformVersion/c\ \ttargetPlatformVersion ${supportedCordaVersions[$configuration]}" ./reference-cordapp/build.gradle
-  sed -i "/minimumPlatformVersion/c\ \tminimumPlatformVersion ${supportedCordaVersions[$configuration]}" ./reference-cordapp/build.gradle
+  sed -i "/platform_version/c\platform_version=${supportedCordaVersions[$configuration]}" ./gradle.properties
 
   #Build with imported configurations
   ./gradlew build

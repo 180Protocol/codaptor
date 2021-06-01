@@ -5,6 +5,7 @@ buildscript {
         corda_release_version = getProperty("corda_release_version")
         corda_core_release_version = getProperty("corda_core_release_version")
         corda_gradle_plugins_version = getProperty("corda_gradle_plugins_version")
+        corda_platform_version = getProperty("platform_version").toInteger()
     }
 
     repositories {
