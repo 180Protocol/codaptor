@@ -97,13 +97,13 @@ data class CordaVaultQuery<T: ContractState>(
   interface Expression {
 
     /** Passes `this` into appropriate visitor method to allow typesafe API translation */
-    fun visit(visitor: Visitor)
+    fun <T> visit(visitor: Visitor<T>): T
 
     /** Maps to 'not' */
     data class Negation(
         val arg: Expression
     ) : Expression {
-      override fun visit(visitor: Visitor) = visitor.negation(this)
+      override fun <T> visit(visitor: Visitor<T>) = visitor.negation(this)
     }
 
     /** Maps to 'and', 'or' */
@@ -111,7 +111,7 @@ data class CordaVaultQuery<T: ContractState>(
       val operator: BinaryLogicalOperator,
       val args: List<Expression>
     ) : Expression {
-      override fun visit(visitor: Visitor) = visitor.logicalComparison(this)
+      override fun <T> visit(visitor: Visitor<T>) = visitor.logicalComparison(this)
     }
 
     /** Maps to 'equals', 'notEquals', 'equalsIgnoreCase', 'notEqualsIgnoreCase' */
@@ -120,7 +120,7 @@ data class CordaVaultQuery<T: ContractState>(
         val attributeName: String,
         val value: LiteralValue
     ) : Expression {
-      override fun visit(visitor: Visitor) = visitor.equalityComparison(this)
+      override fun <T> visit(visitor: Visitor<T>) = visitor.equalityComparison(this)
     }
 
     /** Maps to 'greaterThan', 'greaterThanOrEquals', 'lessThan', 'lessThanOrEquals' */
@@ -129,7 +129,7 @@ data class CordaVaultQuery<T: ContractState>(
         val attributeName: String,
         val value: LiteralValue
     ) : Expression {
-      override fun visit(visitor: Visitor) = visitor.binaryComparison(this)
+      override fun <T> visit(visitor: Visitor<T>) = visitor.binaryComparison(this)
     }
 
     /** Maps to 'like', 'notLike', 'likeIgnoreCase', 'notLikeIgnoreCase' */
@@ -138,7 +138,7 @@ data class CordaVaultQuery<T: ContractState>(
         val attributeName: String,
         val value: LiteralValue
     ) : Expression {
-      override fun visit(visitor: Visitor) = visitor.likeness(this)
+      override fun <T> visit(visitor: Visitor<T>) = visitor.likeness(this)
     }
 
     /** Maps to 'between' */
@@ -147,7 +147,7 @@ data class CordaVaultQuery<T: ContractState>(
         val from: LiteralValue,
         val to: LiteralValue
     ) : Expression {
-      override fun visit(visitor: Visitor) = visitor.between(this)
+      override fun <T> visit(visitor: Visitor<T>) = visitor.between(this)
     }
 
     /** Maps to 'isNull', 'isNotNull' */
@@ -155,7 +155,7 @@ data class CordaVaultQuery<T: ContractState>(
         val operator: NullOperator,
         val attributeName: String
     ) : Expression {
-      override fun visit(visitor: Visitor) = visitor.nullExpression(this)
+      override fun <T> visit(visitor: Visitor<T>) = visitor.nullExpression(this)
     }
 
     /** Maps to 'in', 'notIn', 'inIgnoreCase', 'notInIgnoreCase'  */
@@ -164,19 +164,19 @@ data class CordaVaultQuery<T: ContractState>(
         val attributeName: String,
         val values: List<LiteralValue>
     ) : Expression {
-      override fun visit(visitor: Visitor) = visitor.collectionExpression(this)
+      override fun <T> visit(visitor: Visitor<T>) = visitor.collectionExpression(this)
     }
   }
 
-  interface Visitor {
-    fun negation(negation: Expression.Negation)
-    fun logicalComparison(logicalComposition: Expression.LogicalComposition)
-    fun equalityComparison(equalityComparison: Expression.EqualityComparison)
-    fun binaryComparison(binaryComparison: Expression.BinaryComparison)
-    fun likeness(likeness: Expression.Likeness)
-    fun between(between: Expression.Between)
-    fun nullExpression(nullExpression: Expression.NullExpression)
-    fun collectionExpression(collectionExpression: Expression.CollectionExpression)
+  interface Visitor<T> {
+    fun negation(negation: Expression.Negation): T
+    fun logicalComparison(logicalComposition: Expression.LogicalComposition): T
+    fun equalityComparison(equalityComparison: Expression.EqualityComparison): T
+    fun binaryComparison(binaryComparison: Expression.BinaryComparison): T
+    fun likeness(likeness: Expression.Likeness): T
+    fun between(between: Expression.Between): T
+    fun nullExpression(nullExpression: Expression.NullExpression): T
+    fun collectionExpression(collectionExpression: Expression.CollectionExpression): T
   }
 
   /**
@@ -192,6 +192,7 @@ data class CordaVaultQuery<T: ContractState>(
     fun asDouble(): Double
     fun asBigDecimal(): BigDecimal
     fun <E : Enum<*>> asEnum(enumClass: KClass<E>): E
+    fun asInstant(): Instant
   }
 }
 
