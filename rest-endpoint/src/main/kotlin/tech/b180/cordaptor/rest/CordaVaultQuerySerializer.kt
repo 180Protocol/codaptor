@@ -99,6 +99,12 @@ class CordaVaultQueryExpressionSerializer : CustomSerializer<CordaVaultQuery.Exp
       "to" to "LiteralValue"
     ).asJsonObject()
   }
+
+  override fun nullExpression(nullExpression: CordaVaultQuery.Expression.NullExpression) =
+    TODO("Not yet implemented")
+
+  override fun collectionExpression(collectionExpression: CordaVaultQuery.Expression.CollectionExpression) =
+    TODO("Not yet implemented")
 }
 
 data class JsonValueLiteral(private val value: JsonValue) : CordaVaultQuery.LiteralValue {
