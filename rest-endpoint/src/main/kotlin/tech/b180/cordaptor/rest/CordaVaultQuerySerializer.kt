@@ -1,5 +1,8 @@
 package tech.b180.cordaptor.rest
 
+import net.corda.core.node.services.vault.ColumnPredicate
+import net.corda.core.node.services.vault.EqualityComparisonOperator
+import net.corda.core.node.services.vault.QueryCriteria
 import tech.b180.cordaptor.corda.CordaVaultQuery
 import tech.b180.cordaptor.shaded.javax.json.JsonNumber
 import tech.b180.cordaptor.shaded.javax.json.JsonObject
@@ -7,6 +10,7 @@ import tech.b180.cordaptor.shaded.javax.json.JsonString
 import tech.b180.cordaptor.shaded.javax.json.JsonValue
 import tech.b180.cordaptor.shaded.javax.json.stream.JsonGenerator
 import java.math.BigDecimal
+import java.time.Instant
 import kotlin.reflect.KClass
 
 /**
@@ -15,20 +19,19 @@ import kotlin.reflect.KClass
  */
 class CordaVaultQueryExpressionSerializer : CustomSerializer<CordaVaultQuery.Expression>, StandaloneTypeSerializer {
 
-  override val valueType: SerializerKey
-    get() = TODO("Not yet implemented")
+  override val valueType: SerializerKey = SerializerKey.forType(CordaVaultQuery.Expression::class.java)
 
   override fun fromJson(value: JsonValue): CordaVaultQuery.Expression {
 
     val jsonValue = value.asJsonObject()
 
-    return when (jsonValue["type"].toString()) {
+    return when (jsonValue.getString("type")) {
       "not" -> TODO()
       "to", "or" -> TODO()
-      "equals", "notEquals", "equalsIgnoreCase", "notEqualsIgnoreCase" -> TODO()
+      "equals", "notEquals", "equalsIgnoreCase", "notEqualsIgnoreCase" -> CordaVaultQuery.Expression.EqualityComparison(getEqualityOperator(jsonValue.getString("type")), jsonValue.getString("column"), JsonValueLiteral(jsonValue["value"]!!))
       "greaterThan", "greaterThanOrEquals", "lessThan", "lessThanOrEquals" -> TODO()
       "like", "notLike", "likeIgnoreCase", "notLikeIgnoreCase" -> TODO()
-      "between" -> CordaVaultQuery.Expression.Between(jsonValue["column"].toString(), JsonValueLiteral(jsonValue["from"]!!), JsonValueLiteral(jsonValue["to"]!!))
+      "between" -> CordaVaultQuery.Expression.Between(jsonValue.getString("column"), JsonValueLiteral(jsonValue["from"]!!), JsonValueLiteral(jsonValue["to"]!!))
       "isNull", "isNotNull" -> TODO()
       "in", "notIn", "inIgnoreCase", "notInIgnoreCase" -> TODO()
       else -> throw Exception("placeholder")
@@ -45,11 +48,52 @@ class CordaVaultQueryExpressionSerializer : CustomSerializer<CordaVaultQuery.Exp
       "from" to "LiteralValue",
       "to" to "LiteralValue"
     ).asJsonObject()
-    TODO()
+  }
+
+  private fun getEqualityOperator(operator: String) : EqualityComparisonOperator {
+    return when(operator) {
+      "equals" ->  EqualityComparisonOperator.EQUAL
+      "notEquals" ->  EqualityComparisonOperator.NOT_EQUAL
+      "equalsIgnoreCase" -> EqualityComparisonOperator.EQUAL_IGNORE_CASE
+      "notEqualsIgnoreCase" -> EqualityComparisonOperator.NOT_EQUAL_IGNORE_CASE
+      else -> throw Exception("Unknown operator. $operator was given.")
+    }
   }
 }
 
-class JsonValueLiteral(private val value: JsonValue) : CordaVaultQuery.LiteralValue {
+data class CreateCordaQuery(val expression: CordaVaultQuery.Expression): CordaVaultQuery.Visitor<QueryCriteria> {
+
+  override fun negation(negation: CordaVaultQuery.Expression.Negation) =
+    TODO("Not yet implemented")
+
+  override fun logicalComparison(logicalComposition: CordaVaultQuery.Expression.LogicalComposition) =
+    TODO("Not yet implemented")
+
+  override fun equalityComparison(equalityComparison: CordaVaultQuery.Expression.EqualityComparison) =
+    TODO("Not yet implemented")
+
+  override fun binaryComparison(binaryComparison: CordaVaultQuery.Expression.BinaryComparison) =
+    TODO("Not yet implemented")
+
+  override fun likeness(likeness: CordaVaultQuery.Expression.Likeness) =
+    TODO("Not yet implemented")
+
+  override fun between(between: CordaVaultQuery.Expression.Between): QueryCriteria {
+    val recordedBetweenExpression = QueryCriteria.TimeCondition(
+      QueryCriteria.TimeInstantType.RECORDED,
+      ColumnPredicate.Between(between.from.asInstant(), between.to.asInstant())
+    )
+    return QueryCriteria.VaultQueryCriteria(timeCondition = recordedBetweenExpression)
+  }
+
+  override fun nullExpression(nullExpression: CordaVaultQuery.Expression.NullExpression) =
+    TODO("Not yet implemented")
+
+  override fun collectionExpression(collectionExpression: CordaVaultQuery.Expression.CollectionExpression) =
+    TODO("Not yet implemented")
+}
+
+data class JsonValueLiteral(private val value: JsonValue) : CordaVaultQuery.LiteralValue {
 
   override fun asString(): String {
     return when (value.valueType) {
@@ -110,5 +154,12 @@ class JsonValueLiteral(private val value: JsonValue) : CordaVaultQuery.LiteralVa
 
   override fun <E : Enum<*>> asEnum(enumClass: KClass<E>): E {
     TODO("Not yet implemented")
+  }
+
+  override fun asInstant(): Instant {
+    return when (value.valueType) {
+      JsonValue.ValueType.STRING -> Instant.parse((value as JsonString).string + "T00:00:00Z")
+      else -> throw AssertionError("Expected date, got ${value.valueType} with value $value")
+    }
   }
 }
