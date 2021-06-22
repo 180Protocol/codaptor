@@ -10,9 +10,7 @@ import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.crypto.Crypto
 import net.corda.core.flows.FlowLogic
 import net.corda.core.identity.*
-import net.corda.core.node.services.vault.ColumnPredicate
-import net.corda.core.node.services.vault.EqualityComparisonOperator
-import net.corda.core.node.services.vault.QueryCriteria
+import net.corda.core.node.services.vault.*
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.utilities.OpaqueBytes
 import net.corda.core.utilities.ProgressTracker
@@ -364,13 +362,32 @@ class CordaTypesTest : KoinTest {
 
         val testBetweenJson = """{"type": "between", "column": "recordedTime","from": "2020-06-01","to": "2020-07-01"}""".asJsonObject()
         assertEquals(
-            CordaVaultQuery.Expression.Between("recordedTime",
-                JsonValueLiteral("\"2020-06-01\"".asJsonValue()), JsonValueLiteral("\"2020-07-01\"".asJsonValue())), serializer.fromJson(testBetweenJson)
+            CordaVaultQuery.Expression.Between("recordedTime", JsonValueLiteral("\"2020-06-01\"".asJsonValue()), JsonValueLiteral("\"2020-07-01\"".asJsonValue())),
+            serializer.fromJson(testBetweenJson)
         )
 
-        val testLikenessJson = """{"type": "equals", "column": "VaultLinearStates.externalId", "value": "ABC"}""".asJsonObject()
+        val testEqualityJson = """{"type": "equals", "column": "VaultLinearStates.externalId", "value": "ABC"}""".asJsonObject()
         assertEquals(
-            CordaVaultQuery.Expression.EqualityComparison(EqualityComparisonOperator.EQUAL, "VaultLinearStates.externalId", JsonValueLiteral("\"ABC\"".asJsonValue())), serializer.fromJson(testLikenessJson)
+            CordaVaultQuery.Expression.EqualityComparison(EqualityComparisonOperator.EQUAL, "VaultLinearStates.externalId", JsonValueLiteral("\"ABC\"".asJsonValue())),
+            serializer.fromJson(testEqualityJson)
+        )
+
+        val testBinaryJson = """{"type": "greaterThan", "column": "VaultFungibleStates.owner", "value": "ABC"}""".asJsonObject()
+        assertEquals(
+            CordaVaultQuery.Expression.BinaryComparison(BinaryComparisonOperator.GREATER_THAN, "VaultFungibleStates.owner", JsonValueLiteral("\"ABC\"".asJsonValue())),
+            serializer.fromJson(testBinaryJson)
+        )
+
+        val testLikenessJson = """{"type": "like", "column": "VaultLinearStates.externalId", "value": "ABC"}""".asJsonObject()
+        assertEquals(
+            CordaVaultQuery.Expression.Likeness(LikenessOperator.LIKE, "VaultLinearStates.externalId", JsonValueLiteral("\"ABC\"".asJsonValue())),
+            serializer.fromJson(testLikenessJson)
+        )
+
+        val testNullJson = """{"type": "isNull", "column": "VaultLinearStates.externalId"}""".asJsonObject()
+        assertEquals(
+            CordaVaultQuery.Expression.NullExpression(NullOperator.IS_NULL, "VaultLinearStates.externalId"),
+            serializer.fromJson(testNullJson)
         )
     }
 
@@ -395,6 +412,13 @@ class CordaTypesTest : KoinTest {
     fun `test JSonValueLiteral asInstant`() {
         assertEquals(
             Instant.parse("2020-06-01T00:00:00Z"), JsonValueLiteral("\"2020-06-01\"".asJsonValue()).asInstant()
+        )
+    }
+
+    @Test
+    fun `test JSonValueLiteral asList`() {
+        assertEquals(
+            listOf(JsonValueLiteral("\"ABC\"".asJsonValue()), JsonValueLiteral("\"CBA\"".asJsonValue())), JsonValueLiteral("""{"values": ["ABC", "CBA"]}""".asJsonObject()).asList()
         )
     }
 }

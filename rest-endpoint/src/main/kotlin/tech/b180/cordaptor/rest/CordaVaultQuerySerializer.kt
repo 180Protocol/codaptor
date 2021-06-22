@@ -1,8 +1,6 @@
 package tech.b180.cordaptor.rest
 
-import net.corda.core.node.services.vault.ColumnPredicate
-import net.corda.core.node.services.vault.EqualityComparisonOperator
-import net.corda.core.node.services.vault.QueryCriteria
+import net.corda.core.node.services.vault.*
 import tech.b180.cordaptor.corda.CordaVaultQuery
 import tech.b180.cordaptor.shaded.javax.json.JsonNumber
 import tech.b180.cordaptor.shaded.javax.json.JsonObject
@@ -27,13 +25,13 @@ class CordaVaultQueryExpressionSerializer : CustomSerializer<CordaVaultQuery.Exp
 
     return when (jsonValue.getString("type")) {
       "not" -> TODO()
-      "to", "or" -> TODO()
+      "and", "or" -> TODO()
       "equals", "notEquals", "equalsIgnoreCase", "notEqualsIgnoreCase" -> CordaVaultQuery.Expression.EqualityComparison(getEqualityOperator(jsonValue.getString("type")), jsonValue.getString("column"), JsonValueLiteral(jsonValue["value"]!!))
-      "greaterThan", "greaterThanOrEquals", "lessThan", "lessThanOrEquals" -> TODO()
-      "like", "notLike", "likeIgnoreCase", "notLikeIgnoreCase" -> TODO()
+      "greaterThan", "greaterThanOrEquals", "lessThan", "lessThanOrEquals" -> CordaVaultQuery.Expression.BinaryComparison(getBinaryOperator(jsonValue.getString("type")), jsonValue.getString("column"), JsonValueLiteral(jsonValue["value"]!!))
+      "like", "notLike", "likeIgnoreCase", "notLikeIgnoreCase" -> CordaVaultQuery.Expression.Likeness(getLikenessOperator(jsonValue.getString("type")), jsonValue.getString("column"), JsonValueLiteral(jsonValue["value"]!!))
       "between" -> CordaVaultQuery.Expression.Between(jsonValue.getString("column"), JsonValueLiteral(jsonValue["from"]!!), JsonValueLiteral(jsonValue["to"]!!))
-      "isNull", "isNotNull" -> TODO()
-      "in", "notIn", "inIgnoreCase", "notInIgnoreCase" -> TODO()
+      "isNull", "isNotNull" -> CordaVaultQuery.Expression.NullExpression(getNullOperator(jsonValue.getString("type")), jsonValue.getString("column"))
+      "in", "notIn", "inIgnoreCase", "notInIgnoreCase" -> CordaVaultQuery.Expression.CollectionExpression(getCollectionOperator(jsonValue.getString("type")), jsonValue.getString("column"), JsonValueLiteral(jsonValue["values"]!!).asList())
       else -> throw Exception("placeholder")
     }
   }
@@ -50,7 +48,7 @@ class CordaVaultQueryExpressionSerializer : CustomSerializer<CordaVaultQuery.Exp
     ).asJsonObject()
   }
 
-  private fun getEqualityOperator(operator: String) : EqualityComparisonOperator {
+  private fun getEqualityOperator(operator: String): EqualityComparisonOperator {
     return when(operator) {
       "equals" ->  EqualityComparisonOperator.EQUAL
       "notEquals" ->  EqualityComparisonOperator.NOT_EQUAL
@@ -59,9 +57,47 @@ class CordaVaultQueryExpressionSerializer : CustomSerializer<CordaVaultQuery.Exp
       else -> throw Exception("Unknown operator. $operator was given.")
     }
   }
+
+  private fun getBinaryOperator(operator: String): BinaryComparisonOperator {
+    return when(operator) {
+      "greaterThan" -> BinaryComparisonOperator.GREATER_THAN
+      "greaterThanOrEquals" -> BinaryComparisonOperator.GREATER_THAN_OR_EQUAL
+      "lessThan" -> BinaryComparisonOperator.LESS_THAN
+      "lessThanOrEquals" -> BinaryComparisonOperator.LESS_THAN_OR_EQUAL
+      else -> throw Exception("Unknown operator. $operator was given.")
+    }
+  }
+
+  private fun getLikenessOperator(operator: String): LikenessOperator {
+    return when(operator) {
+      "like" -> LikenessOperator.LIKE
+      "notLike" -> LikenessOperator.NOT_LIKE
+      "likeIgnoreCase" -> LikenessOperator.LIKE_IGNORE_CASE
+      "notLikeIgnoreCase" -> LikenessOperator.NOT_LIKE_IGNORE_CASE
+      else -> throw Exception("Unknown operator. $operator was given.")
+    }
+  }
+
+  private fun getNullOperator(operator: String): NullOperator {
+    return when(operator) {
+      "isNull" -> NullOperator.IS_NULL
+      "isNotNull" -> NullOperator.NOT_NULL
+      else -> throw Exception("Unknown operator. $operator was given.")
+    }
+  }
+
+  private fun getCollectionOperator(operator: String): CollectionOperator {
+    return when(operator) {
+      "in" -> CollectionOperator.IN
+      "notIn" -> CollectionOperator.NOT_IN
+      "inIgnoreCase" -> CollectionOperator.IN_IGNORE_CASE
+      "notInIgnoreCase" -> CollectionOperator.NOT_IN_IGNORE_CASE
+      else -> throw Exception("Unknown operator. $operator was given.")
+    }
+  }
 }
 
-data class CreateCordaQuery(val expression: CordaVaultQuery.Expression): CordaVaultQuery.Visitor<QueryCriteria> {
+data class CreateCordaQuery(val expression: CordaVaultQuery.Expression) : CordaVaultQuery.Visitor<QueryCriteria> {
 
   override fun negation(negation: CordaVaultQuery.Expression.Negation) =
     TODO("Not yet implemented")
@@ -161,5 +197,19 @@ data class JsonValueLiteral(private val value: JsonValue) : CordaVaultQuery.Lite
       JsonValue.ValueType.STRING -> Instant.parse((value as JsonString).string + "T00:00:00Z")
       else -> throw AssertionError("Expected date, got ${value.valueType} with value $value")
     }
+  }
+
+  override fun asList(): List<CordaVaultQuery.LiteralValue> {
+    val list = mutableListOf<CordaVaultQuery.LiteralValue>()
+    when (value.valueType) {
+      JsonValue.ValueType.ARRAY -> TODO()
+      JsonValue.ValueType.OBJECT -> {
+        (value.asJsonObject()["values"] as List<JsonValue>).forEach {
+          list.add(JsonValueLiteral(it))
+        }
+      }
+      else -> throw AssertionError("Expected object or array, got ${value.valueType} with value $value")
+    }
+    return list
   }
 }

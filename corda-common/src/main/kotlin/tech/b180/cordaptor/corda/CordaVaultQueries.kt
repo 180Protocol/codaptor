@@ -193,6 +193,7 @@ data class CordaVaultQuery<T: ContractState>(
     fun asBigDecimal(): BigDecimal
     fun <E : Enum<*>> asEnum(enumClass: KClass<E>): E
     fun asInstant(): Instant
+    fun asList(): List<LiteralValue>
   }
 }
 
