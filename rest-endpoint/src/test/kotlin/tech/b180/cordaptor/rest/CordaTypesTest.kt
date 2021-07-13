@@ -404,21 +404,14 @@ class CordaTypesTest : KoinTest {
 
         assertEquals(
             QueryCriteria.VaultQueryCriteria(timeCondition = testBetweenExpression),
-            CreateCordaQuery(serializer.fromJson(testBetweenJson)).between(CordaVaultQuery.Expression.Between("recordedTime", JsonValueLiteral("\"2020-06-01\"".asJsonValue()), JsonValueLiteral("\"2020-07-01\"".asJsonValue())))
+            CreateCordaQuery().between(CordaVaultQuery.Expression.Between("recordedTime", JsonValueLiteral("\"2020-06-01\"".asJsonValue()), JsonValueLiteral("\"2020-07-01\"".asJsonValue())))
         )
-    }
 
-    @Test
-    fun `test JSonValueLiteral asInstant`() {
-        assertEquals(
-            Instant.parse("2020-06-01T00:00:00Z"), JsonValueLiteral("\"2020-06-01\"".asJsonValue()).asInstant()
-        )
-    }
+        val testEqualityJson = """{"type": "equals", "column": "VaultLinearStates.externalId", "value": "ABC"}""".asJsonObject()
 
-    @Test
-    fun `test JSonValueLiteral asList`() {
         assertEquals(
-            listOf(JsonValueLiteral("\"ABC\"".asJsonValue()), JsonValueLiteral("\"CBA\"".asJsonValue())), JsonValueLiteral("""{"values": ["ABC", "CBA"]}""".asJsonObject()).asList()
+            QueryCriteria.LinearStateQueryCriteria(externalId = listOf("ABC")),
+            CreateCordaQuery().equalityComparison(CordaVaultQuery.Expression.EqualityComparison(EqualityComparisonOperator.EQUAL, "VaultLinearStates.externalId", JsonValueLiteral("\"ABC\"".asJsonValue())))
         )
     }
 }

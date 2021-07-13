@@ -194,6 +194,8 @@ data class CordaVaultQuery<T: ContractState>(
     fun <E : Enum<*>> asEnum(enumClass: KClass<E>): E
     fun asInstant(): Instant
     fun asList(): List<LiteralValue>
+    fun asVaultStatus(): Vault.StateStatus
+    fun asRelevancyStatus(): Vault.RelevancyStatus
   }
 }
 
