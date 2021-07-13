@@ -226,6 +226,25 @@ class IssueComplexStateFlow(
   }
 }
 
+@InitiatingFlow
+@StartableByRPC
+@StartableByService
+@Suppress("UNUSED")
+class CompoundState(
+    private val participant: Party,
+    private val string: String,
+    private val integer: Int,
+    private val amount: Amount<Currency>,
+    private val nestedEntries: List<ComplexState.Entry> = emptyList(),
+    override val linearId: UniqueIdentifier
+    ) : LinearState, QueryableState {
+    override val participants = listOf(participant)
+
+    override fun supportedSchemas(): Iterable<MappedSchema> = listOf(ComplexStateSchemaV1)
+
+    override fun generateMappedObject(schema: MappedSchema) = ComplexStateSchemaV1.PersistentComplexState(ComplexState(participant, string, integer, amount, nestedEntries))
+}
+
 // FIXME serializer cannot correctly generate flow result type schema for FlowLogic<StateAndRef<ComplexState>>
 @CordaSerializable
 data class ComplexFlowResult(

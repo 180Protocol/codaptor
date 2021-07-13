@@ -1,6 +1,8 @@
 package tech.b180.cordaptor.rest
 
-import net.corda.core.node.services.vault.*
+import net.corda.core.node.services.Vault
+import net.corda.core.node.services.vault.ColumnPredicate
+import net.corda.core.node.services.vault.QueryCriteria
 import tech.b180.cordaptor.corda.CordaVaultQuery
 import tech.b180.cordaptor.shaded.javax.json.JsonNumber
 import tech.b180.cordaptor.shaded.javax.json.JsonObject
@@ -47,57 +49,9 @@ class CordaVaultQueryExpressionSerializer : CustomSerializer<CordaVaultQuery.Exp
       "to" to "LiteralValue"
     ).asJsonObject()
   }
-
-  private fun getEqualityOperator(operator: String): EqualityComparisonOperator {
-    return when(operator) {
-      "equals" ->  EqualityComparisonOperator.EQUAL
-      "notEquals" ->  EqualityComparisonOperator.NOT_EQUAL
-      "equalsIgnoreCase" -> EqualityComparisonOperator.EQUAL_IGNORE_CASE
-      "notEqualsIgnoreCase" -> EqualityComparisonOperator.NOT_EQUAL_IGNORE_CASE
-      else -> throw Exception("Unknown operator. $operator was given.")
-    }
-  }
-
-  private fun getBinaryOperator(operator: String): BinaryComparisonOperator {
-    return when(operator) {
-      "greaterThan" -> BinaryComparisonOperator.GREATER_THAN
-      "greaterThanOrEquals" -> BinaryComparisonOperator.GREATER_THAN_OR_EQUAL
-      "lessThan" -> BinaryComparisonOperator.LESS_THAN
-      "lessThanOrEquals" -> BinaryComparisonOperator.LESS_THAN_OR_EQUAL
-      else -> throw Exception("Unknown operator. $operator was given.")
-    }
-  }
-
-  private fun getLikenessOperator(operator: String): LikenessOperator {
-    return when(operator) {
-      "like" -> LikenessOperator.LIKE
-      "notLike" -> LikenessOperator.NOT_LIKE
-      "likeIgnoreCase" -> LikenessOperator.LIKE_IGNORE_CASE
-      "notLikeIgnoreCase" -> LikenessOperator.NOT_LIKE_IGNORE_CASE
-      else -> throw Exception("Unknown operator. $operator was given.")
-    }
-  }
-
-  private fun getNullOperator(operator: String): NullOperator {
-    return when(operator) {
-      "isNull" -> NullOperator.IS_NULL
-      "isNotNull" -> NullOperator.NOT_NULL
-      else -> throw Exception("Unknown operator. $operator was given.")
-    }
-  }
-
-  private fun getCollectionOperator(operator: String): CollectionOperator {
-    return when(operator) {
-      "in" -> CollectionOperator.IN
-      "notIn" -> CollectionOperator.NOT_IN
-      "inIgnoreCase" -> CollectionOperator.IN_IGNORE_CASE
-      "notInIgnoreCase" -> CollectionOperator.NOT_IN_IGNORE_CASE
-      else -> throw Exception("Unknown operator. $operator was given.")
-    }
-  }
 }
 
-data class CreateCordaQuery(val expression: CordaVaultQuery.Expression) : CordaVaultQuery.Visitor<QueryCriteria> {
+class CreateCordaQuery : CordaVaultQuery.Visitor<QueryCriteria> {
 
   override fun negation(negation: CordaVaultQuery.Expression.Negation) =
     TODO("Not yet implemented")
@@ -105,8 +59,9 @@ data class CreateCordaQuery(val expression: CordaVaultQuery.Expression) : CordaV
   override fun logicalComparison(logicalComposition: CordaVaultQuery.Expression.LogicalComposition) =
     TODO("Not yet implemented")
 
-  override fun equalityComparison(equalityComparison: CordaVaultQuery.Expression.EqualityComparison) =
-    TODO("Not yet implemented")
+  override fun equalityComparison(equalityComparison: CordaVaultQuery.Expression.EqualityComparison): QueryCriteria {
+    return queryType(equalityComparison.attributeName, equalityComparison.value)
+  }
 
   override fun binaryComparison(binaryComparison: CordaVaultQuery.Expression.BinaryComparison) =
     TODO("Not yet implemented")
@@ -211,5 +166,29 @@ data class JsonValueLiteral(private val value: JsonValue) : CordaVaultQuery.Lite
       else -> throw AssertionError("Expected object or array, got ${value.valueType} with value $value")
     }
     return list
+  }
+
+  override fun asVaultStatus(): Vault.StateStatus {
+    return when (value.valueType) {
+      JsonValue.ValueType.STRING -> when((value as JsonString).string) {
+        "consumed" -> Vault.StateStatus.CONSUMED
+        "unconsumed" -> Vault.StateStatus.UNCONSUMED
+        "all" -> Vault.StateStatus.ALL
+        else -> throw Exception("Expected consumed, unconsumed or all, got $value")
+      }
+      else -> throw Exception("Expected String, got ${value.valueType} with value $value")
+    }
+  }
+
+  override fun asRelevancyStatus(): Vault.RelevancyStatus {
+    return when (value.valueType) {
+      JsonValue.ValueType.STRING -> when((value as JsonString).string) {
+        "relevant" -> Vault.RelevancyStatus.RELEVANT
+        "not_relevant" -> Vault.RelevancyStatus.NOT_RELEVANT
+        "all" -> Vault.RelevancyStatus.ALL
+        else -> throw Exception("Expected relevant, not_relevant or all, got $value")
+      }
+      else -> throw Exception("Expected String, got ${value.valueType} with value $value")
+    }
   }
 }
