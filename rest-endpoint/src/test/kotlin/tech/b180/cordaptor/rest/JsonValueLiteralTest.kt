@@ -59,6 +59,4 @@ class JsonValueLiteralTest {
             JsonValueLiteral("\"123\"".asJsonValue()).asRelevancyStatus()
         }
     }
-
-
 }

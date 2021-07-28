@@ -407,12 +407,12 @@ class CordaTypesTest : KoinTest {
             CreateCordaQuery().between(CordaVaultQuery.Expression.Between("recordedTime", JsonValueLiteral("\"2020-06-01\"".asJsonValue()), JsonValueLiteral("\"2020-07-01\"".asJsonValue())))
         )
 
-        val testEqualityJson = """{"type": "equals", "column": "VaultLinearStates.externalId", "value": "ABC"}""".asJsonObject()
-
-        assertEquals(
-            QueryCriteria.LinearStateQueryCriteria(externalId = listOf("ABC")),
-            CreateCordaQuery().equalityComparison(CordaVaultQuery.Expression.EqualityComparison(EqualityComparisonOperator.EQUAL, "VaultLinearStates.externalId", JsonValueLiteral("\"ABC\"".asJsonValue())))
-        )
+//        val testEqualityJson = """{"type": "equals", "column": "VaultLinearStates.externalId", "value": "ABC"}""".asJsonObject()
+//
+//        assertEquals(
+//            QueryCriteria.LinearStateQueryCriteria(externalId = listOf("ABC")),
+//            CreateCordaQuery().equalityComparison(CordaVaultQuery.Expression.EqualityComparison(EqualityComparisonOperator.EQUAL, "VaultLinearStates.externalId", JsonValueLiteral("\"ABC\"".asJsonValue())))
+//        )
     }
 }
 
