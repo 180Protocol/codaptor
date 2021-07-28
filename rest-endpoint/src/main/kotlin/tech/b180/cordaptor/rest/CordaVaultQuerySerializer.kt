@@ -25,15 +25,17 @@ class CordaVaultQueryExpressionSerializer : CustomSerializer<CordaVaultQuery.Exp
 
     val jsonValue = value.asJsonObject()
 
+    val getOperatorFromJson = GetOperatorFromJsonImpl()
+
     return when (jsonValue.getString("type")) {
       "not" -> TODO()
       "and", "or" -> TODO()
-      "equals", "notEquals", "equalsIgnoreCase", "notEqualsIgnoreCase" -> CordaVaultQuery.Expression.EqualityComparison(getEqualityOperator(jsonValue.getString("type")), jsonValue.getString("column"), JsonValueLiteral(jsonValue["value"]!!))
-      "greaterThan", "greaterThanOrEquals", "lessThan", "lessThanOrEquals" -> CordaVaultQuery.Expression.BinaryComparison(getBinaryOperator(jsonValue.getString("type")), jsonValue.getString("column"), JsonValueLiteral(jsonValue["value"]!!))
-      "like", "notLike", "likeIgnoreCase", "notLikeIgnoreCase" -> CordaVaultQuery.Expression.Likeness(getLikenessOperator(jsonValue.getString("type")), jsonValue.getString("column"), JsonValueLiteral(jsonValue["value"]!!))
+      "equals", "notEquals", "equalsIgnoreCase", "notEqualsIgnoreCase" -> CordaVaultQuery.Expression.EqualityComparison(getOperatorFromJson.getEqualityOperator(jsonValue.getString("type")), jsonValue.getString("column"), JsonValueLiteral(jsonValue["value"]!!))
+      "greaterThan", "greaterThanOrEquals", "lessThan", "lessThanOrEquals" -> CordaVaultQuery.Expression.BinaryComparison(getOperatorFromJson.getBinaryOperator(jsonValue.getString("type")), jsonValue.getString("column"), JsonValueLiteral(jsonValue["value"]!!))
+      "like", "notLike", "likeIgnoreCase", "notLikeIgnoreCase" -> CordaVaultQuery.Expression.Likeness(getOperatorFromJson.getLikenessOperator(jsonValue.getString("type")), jsonValue.getString("column"), JsonValueLiteral(jsonValue["value"]!!))
       "between" -> CordaVaultQuery.Expression.Between(jsonValue.getString("column"), JsonValueLiteral(jsonValue["from"]!!), JsonValueLiteral(jsonValue["to"]!!))
-      "isNull", "isNotNull" -> CordaVaultQuery.Expression.NullExpression(getNullOperator(jsonValue.getString("type")), jsonValue.getString("column"))
-      "in", "notIn", "inIgnoreCase", "notInIgnoreCase" -> CordaVaultQuery.Expression.CollectionExpression(getCollectionOperator(jsonValue.getString("type")), jsonValue.getString("column"), JsonValueLiteral(jsonValue["values"]!!).asList())
+      "isNull", "isNotNull" -> CordaVaultQuery.Expression.NullExpression(getOperatorFromJson.getNullOperator(jsonValue.getString("type")), jsonValue.getString("column"))
+      "in", "notIn", "inIgnoreCase", "notInIgnoreCase" -> CordaVaultQuery.Expression.CollectionExpression(getOperatorFromJson.getCollectionOperator(jsonValue.getString("type")), jsonValue.getString("column"), JsonValueLiteral(jsonValue["values"]!!).asList())
       else -> throw Exception("placeholder")
     }
   }
@@ -60,7 +62,7 @@ class CreateCordaQuery : CordaVaultQuery.Visitor<QueryCriteria> {
     TODO("Not yet implemented")
 
   override fun equalityComparison(equalityComparison: CordaVaultQuery.Expression.EqualityComparison): QueryCriteria {
-    return queryType(equalityComparison.attributeName, equalityComparison.value)
+    TODO("Not yet implemented")
   }
 
   override fun binaryComparison(binaryComparison: CordaVaultQuery.Expression.BinaryComparison) =
