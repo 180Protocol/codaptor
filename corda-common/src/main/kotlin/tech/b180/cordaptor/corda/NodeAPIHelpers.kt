@@ -3,7 +3,6 @@ package tech.b180.cordaptor.corda
 import hu.akarnokd.rxjava3.interop.RxJavaInterop
 import net.corda.core.contracts.ContractState
 import net.corda.core.messaging.DataFeed
-import net.corda.core.node.services.IdentityService
 import net.corda.core.node.services.Vault
 import net.corda.core.node.services.vault.*
 
