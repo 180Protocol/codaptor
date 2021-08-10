@@ -98,7 +98,6 @@ class SchemaServiceTest {
             "ABC",
             123,
             Amount(100, USD),
-            emptyList(),
             UniqueIdentifier()
         )
 
@@ -142,3 +141,4 @@ class NewSchemaService: SchemaService {
         return schemas
     }
 }
+
