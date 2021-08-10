@@ -231,18 +231,48 @@ class IssueComplexStateFlow(
 @StartableByService
 @Suppress("UNUSED")
 class CompoundState(
-    private val participant: Party,
-    private val string: String,
-    private val integer: Int,
-    private val amount: Amount<Currency>,
-    private val nestedEntries: List<ComplexState.Entry> = emptyList(),
+    val participant: Party,
+    val string: String,
+    val integer: Int,
+    val amount: Amount<Currency>,
     override val linearId: UniqueIdentifier
     ) : LinearState, QueryableState {
     override val participants = listOf(participant)
 
     override fun supportedSchemas(): Iterable<MappedSchema> = listOf(ComplexStateSchemaV1)
 
-    override fun generateMappedObject(schema: MappedSchema) = ComplexStateSchemaV1.PersistentComplexState(ComplexState(participant, string, integer, amount, nestedEntries))
+    override fun generateMappedObject(schema: MappedSchema) = ComplexStateSchemaV1.PersistentComplexState(ComplexState(participant, string, integer, amount))
+}
+
+object CompoundStateSchema
+
+@Suppress("unused")
+object CompoundStateSchemaV1 : MappedSchema(
+    schemaFamily = CompoundStateSchema.javaClass,
+    version = 1,
+    mappedTypes = listOf(
+        PersistentCompoundState::class.java
+    )
+) {
+    @Entity
+    @Table(name = "compound_states")
+    class PersistentCompoundState(
+        @Column(name = "participant_name", nullable = false)
+        val participant: Party,
+
+        @Column(name = "string_value", nullable = false, length = 200)
+        val string: String,
+
+        @Column(name = "integer_value", nullable = false)
+        val integer: Int,
+
+        @Column(name = "amount_quantity", nullable = false)
+        val quantity: Long
+
+    ) : PersistentState() {
+        constructor(state: CompoundState) : this(participant = state.participant, string = state.string,
+            integer = state.integer, quantity = state.amount.quantity)
+    }
 }
 
 // FIXME serializer cannot correctly generate flow result type schema for FlowLogic<StateAndRef<ComplexState>>
