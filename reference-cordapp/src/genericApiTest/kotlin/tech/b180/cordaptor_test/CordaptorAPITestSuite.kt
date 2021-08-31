@@ -46,6 +46,7 @@ class CordaptorAPITestSuite(
     testVaultQueryViaGET(client)
     testVaultQueryViaPOST(client)
     testNodeAttachmentViaPOST(client)
+    testVaultQueryWithExpressionViaPOST(client)
   }
 
   private fun testOpenAPISpecification(client: HttpClient) {
@@ -254,6 +255,25 @@ class CordaptorAPITestSuite(
     val page = response.contentAsString.asJsonObject()
     assertEquals(1, page.getInt("totalStatesAvailable"))
   }
+
+    private fun testVaultQueryWithExpressionViaPOST(client: HttpClient) {
+        val req = client.POST(
+            "$baseUrl/node/reference/CompoundState/query")
+
+        val content = """{
+      |"contractStateClass":"tech.b180.ref_cordapp.CompoundState",
+      |"linearStateExternalIds":["TEST-333"],
+      |"expression": {"type": "equals", "column": "CompoundStateSchemaV1.participant", "value": "Bank"}}""".trimMargin()
+
+        req.content(StringContentProvider("application/json", content, Charsets.UTF_8))
+        val response = req.send()
+
+        assertEquals(HttpServletResponse.SC_OK, response.status)
+        assertEquals("application/json", response.mediaType)
+
+        val page = response.contentAsString.asJsonObject()
+        assertEquals(1, page.getInt("totalStatesAvailable"))
+    }
 }
 
 fun String.asJsonObject() = Json.createReader(StringReader(this)).readObject()

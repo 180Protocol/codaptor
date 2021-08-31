@@ -32,45 +32,50 @@ fun <T: ContractState> CordaVaultQuery<T>.toCordaQueryCriteria(locator: PartyLoc
   // for multi-valued fields use collection criteria fields which imply OR composition
 
   val criteria = mutableListOf<QueryCriteria>()
-  criteria.add(
-      QueryCriteria.VaultQueryCriteria(
-          contractStateTypes = setOf(contractStateClass.java),
-          status = stateStatus ?: Vault.StateStatus.UNCONSUMED,
-          relevancyStatus = relevancyStatus ?: Vault.RelevancyStatus.ALL,
-          notary = notaryNames?.map {
-            locator.wellKnownPartyFromX500Name(it)
-                ?: throw IllegalArgumentException("Cannot find notary with name $it")
-          },
-          participants = participantNames?.map {
-            locator.wellKnownPartyFromX500Name(it)
-                ?: throw IllegalArgumentException("Cannot find party with name $it")
-          },
-          timeCondition = when {
-            recordedTimeIsAfter != null -> QueryCriteria.TimeCondition(
-                QueryCriteria.TimeInstantType.RECORDED, Builder.greaterThanOrEqual(recordedTimeIsAfter))
-            consumedTimeIsAfter != null -> QueryCriteria.TimeCondition(
-                QueryCriteria.TimeInstantType.RECORDED, Builder.greaterThanOrEqual(consumedTimeIsAfter))
-            else -> null
-          }
-      ))
 
-  if (linearStateUUIDs?.isNotEmpty() == true || linearStateExternalIds?.isNotEmpty() == true) {
-    criteria.add(QueryCriteria.LinearStateQueryCriteria(
-        contractStateTypes = setOf(contractStateClass.java),
-        status = stateStatus ?: Vault.StateStatus.UNCONSUMED,
-        uuid = linearStateUUIDs,
-        externalId = linearStateExternalIds)
-    )
-  }
+    if (expression != null) {
+        criteria.add(expression.visit(CreateCordaQuery(contractStateClass.java)))
+    } else {
+        criteria.add(
+            QueryCriteria.VaultQueryCriteria(
+                contractStateTypes = setOf(contractStateClass.java),
+                status = stateStatus ?: Vault.StateStatus.UNCONSUMED,
+                relevancyStatus = relevancyStatus ?: Vault.RelevancyStatus.ALL,
+                notary = notaryNames?.map {
+                    locator.wellKnownPartyFromX500Name(it)
+                        ?: throw IllegalArgumentException("Cannot find notary with name $it")
+                },
+                participants = participantNames?.map {
+                    locator.wellKnownPartyFromX500Name(it)
+                        ?: throw IllegalArgumentException("Cannot find party with name $it")
+                },
+                timeCondition = when {
+                    recordedTimeIsAfter != null -> QueryCriteria.TimeCondition(
+                        QueryCriteria.TimeInstantType.RECORDED, Builder.greaterThanOrEqual(recordedTimeIsAfter))
+                    consumedTimeIsAfter != null -> QueryCriteria.TimeCondition(
+                        QueryCriteria.TimeInstantType.RECORDED, Builder.greaterThanOrEqual(consumedTimeIsAfter))
+                    else -> null
+                }
+            ))
 
-  if (ownerNames?.isNotEmpty() == true) {
-    criteria.add(QueryCriteria.FungibleAssetQueryCriteria(
-        owner = ownerNames.map {
-          locator.wellKnownPartyFromX500Name(it)
-              ?: throw IllegalArgumentException("Cannot find party with name $it")
+        if (linearStateUUIDs?.isNotEmpty() == true || linearStateExternalIds?.isNotEmpty() == true) {
+            criteria.add(QueryCriteria.LinearStateQueryCriteria(
+                contractStateTypes = setOf(contractStateClass.java),
+                status = stateStatus ?: Vault.StateStatus.UNCONSUMED,
+                uuid = linearStateUUIDs,
+                externalId = linearStateExternalIds)
+            )
         }
-    ))
-  }
+
+        if (ownerNames?.isNotEmpty() == true) {
+            criteria.add(QueryCriteria.FungibleAssetQueryCriteria(
+                owner = ownerNames.map {
+                    locator.wellKnownPartyFromX500Name(it)
+                        ?: throw IllegalArgumentException("Cannot find party with name $it")
+                }
+            ))
+        }
+    }
 
   return criteria.reduce(QueryCriteria::and)
 }

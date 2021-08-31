@@ -1,6 +1,5 @@
 package tech.b180.cordaptor_test
 
-import com.typesafe.config.ConfigValueFactory
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.utilities.getOrThrow
 import net.corda.core.utilities.loggerFor
