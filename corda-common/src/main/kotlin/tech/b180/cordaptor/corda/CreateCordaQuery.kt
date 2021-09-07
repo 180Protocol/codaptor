@@ -1,19 +1,20 @@
 package tech.b180.cordaptor.corda
 
 import net.corda.core.contracts.ContractState
-import net.corda.core.contracts.FungibleState
-import net.corda.core.contracts.LinearState
 import net.corda.core.node.services.vault.ColumnPredicate
 import net.corda.core.node.services.vault.QueryCriteria
+import net.corda.core.node.services.vault.builder
+import net.corda.core.schemas.MappedSchema
+import net.corda.core.schemas.PersistentState
+import net.corda.node.services.schema.NodeSchemaService
 
-class CreateCordaQuery(private val contractStateType: Class<*>) : CordaVaultQuery.Visitor<QueryCriteria> {
+class CreateCordaQuery(private val contractStateType: Class<out ContractState>) : CordaVaultQuery.Visitor<QueryCriteria> {
 
-    fun checkType() {
-        when(contractStateType) {
-            is LinearState -> "LinearState"
-            is FungibleState<*> -> "FungibleState"
-            else -> "ContractState"
-        }
+    private fun constructDummyContractState() : Pair<MappedSchema, PersistentState>{
+        val contractState = contractStateType.newInstance()
+        val mappedSchemas = NodeSchemaService().selectSchemas(contractState).first()
+        val persistentState = NodeSchemaService().generateMappedObject(contractState, mappedSchemas)
+        return Pair(mappedSchemas, persistentState)
     }
 
     override fun negation(negation: CordaVaultQuery.Expression.Negation) =
@@ -23,8 +24,11 @@ class CreateCordaQuery(private val contractStateType: Class<*>) : CordaVaultQuer
         TODO("Not yet implemented")
 
     override fun equalityComparison(equalityComparison: CordaVaultQuery.Expression.EqualityComparison): QueryCriteria {
-        checkType()
-        TODO("Not yet implemented")
+        val (mappedSchema, persistentState) = constructDummyContractState()
+        val criteria = builder {
+
+        }
+        TODO("Current Blocker")
     }
 
     override fun binaryComparison(binaryComparison: CordaVaultQuery.Expression.BinaryComparison) =
