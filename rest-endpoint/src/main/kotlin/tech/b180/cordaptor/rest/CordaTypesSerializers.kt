@@ -433,29 +433,24 @@ class CordaFlowInstructionSerializerFactory(
 
       override val properties: Map<String, ObjectProperty>
         get() {
-            var bannedClasses = listOf<Class<*>>(ProgressTracker::class.java)
-            val typeInfo = factory.inspectLocalType(flowClass)
-            //val kFlowClass = flowClass as KClass<*>
-            var validConstructor = flowClass.constructors.first()
-            var valid = true
-            flowClass.constructors.forEach { constructor ->
-                constructor.parameters.forEach {
-                        param ->  if(bannedClasses.contains(param::class.java)) valid = false
-                }
-                if(valid) validConstructor = constructor
-            }
-            if(!valid){
-                throw SerializationException("The ${flowClass.canonicalName} has a non composable constructor argument and cannot be serialized")
-            }
-            // expose trackProgress flag explicitly among the properties
-            // FIXME watch out for property name clashes
+            val typeInfo : LocalTypeInformation = factory.inspectLocalType(flowClass)
             val properties: MutableList<Pair<String, ObjectProperty>> = mutableListOf(OPTIONS_PROPERTY_NAME
                     to KotlinObjectProperty(property = CordaFlowInstruction<*>::options))
-            validConstructor.parameters.mapTo(properties) {
+            val constructorParameters = when (typeInfo){
+                is LocalTypeInformation.Composable ->  (typeInfo as? LocalTypeInformation.Composable)?.constructor?.parameters
+                is LocalTypeInformation.NonComposable ->  (typeInfo as? LocalTypeInformation.NonComposable)?.constructor?.
+                parameters?.filterNot{ param ->
+                    typeInfo.nonComposableTypes.map { type -> type.observedType }.contains(param.type.observedType)
+                }
+                else -> throw SerializationException("Flow type identified as $key was not introspected as composable.\n" +
+                        "Introspection details: ${typeInfo.prettyPrint()})")
+            }
+            constructorParameters?.mapTo(properties) {
                 val prop = typeInfo.propertiesOrEmptyMap[it.name]
                     ?: throw SerializationException("Could not find property ${it.name} for type type $key, " +
                             "despite it being referenced in constructor parameters")
-                it.name to ComposableTypeJsonSerializer.createIntrospectedProperty(it.name as PropertyName, prop)
+
+                it.name to ComposableTypeJsonSerializer.createIntrospectedProperty(it.name, prop)
             }
             return properties.toMap()
         }
