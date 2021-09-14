@@ -2,8 +2,10 @@ package tech.b180.ref_cordapp
 
 import net.corda.core.contracts.*
 import net.corda.core.identity.CordaX500Name
+import net.corda.core.internal.declaredField
 import net.corda.core.schemas.MappedSchema
 import net.corda.core.schemas.PersistentState
+import net.corda.core.schemas.PersistentStateRef
 import net.corda.core.schemas.QueryableState
 import net.corda.finance.USD
 import net.corda.node.services.api.SchemaService
@@ -15,6 +17,8 @@ import net.corda.testing.node.TestCordapp
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import kotlin.reflect.full.declaredMemberProperties
+import kotlin.test.assertEquals
 
 class SchemaServiceTest {
     private val network = MockNetwork(
@@ -116,6 +120,24 @@ class SchemaServiceTest {
                 }
             })
         }
+    }
+
+    @Test
+    fun `test MappedSchema introspection`(){
+        val column = "PersistentComplexState.participant"
+
+        val persistentStateName = column.split(".").first()
+        val persistentStateColumnName = column.split(".").last()
+
+        val columnType = ComplexStateSchemaV1.mappedTypes.filter { it.simpleName.equals(persistentStateName) }.first().kotlin.declaredMemberProperties.filter {
+            it.name.equals(persistentStateColumnName)
+        }.first()
+
+        val participant = ComplexStateSchemaV1.PersistentComplexState::participant
+
+        assertEquals(participant, columnType)
+
+        //construct a vault custom query criteria using the above columnType
     }
 }
 
