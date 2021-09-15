@@ -445,13 +445,16 @@ class CordaFlowInstructionSerializerFactory(
                 else -> throw SerializationException("Flow type identified as $key was not introspected as composable.\n" +
                         "Introspection details: ${typeInfo.prettyPrint()})")
             }
+
+            // expose trackProgress flag explicitly among the properties
+            // FIXME watch out for property name clashes
             constructorParameters?.mapTo(properties) {
                 val prop = typeInfo.propertiesOrEmptyMap[it.name]
                     ?: throw SerializationException("Could not find property ${it.name} for type type $key, " +
                             "despite it being referenced in constructor parameters")
-
                 it.name to ComposableTypeJsonSerializer.createIntrospectedProperty(it.name, prop)
             }
+
             return properties.toMap()
         }
 

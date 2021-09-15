@@ -135,7 +135,10 @@ class RPCFlowInitiator<ReturnType: Any> : FlowInitiator<ReturnType>(), Cordaptor
 
       val constructorParameters = when (typeInfo){
           is LocalTypeInformation.Composable ->  (typeInfo as? LocalTypeInformation.Composable)?.constructor?.parameters
-          is LocalTypeInformation.NonComposable ->  (typeInfo as? LocalTypeInformation.NonComposable)?.constructor?.parameters
+          is LocalTypeInformation.NonComposable ->  (typeInfo as? LocalTypeInformation.NonComposable)?.constructor?.
+          parameters?.filterNot{ param ->
+              typeInfo.nonComposableTypes.map { type -> type.observedType }.contains(param.type.observedType)
+          }
           else -> throw IllegalArgumentException("Flow $flowClass is introspected as either composable or non-composable:\n" +
                   typeInfo.prettyPrint(true))
       }
