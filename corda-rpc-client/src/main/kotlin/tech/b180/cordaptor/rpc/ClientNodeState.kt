@@ -131,14 +131,20 @@ class RPCFlowInitiator<ReturnType: Any> : FlowInitiator<ReturnType>(), Cordaptor
     val flowClass = instruction.flowClass.java
     logger.debug("Preparing to initiate flow {} over Corda RPC connection", flowClass)
 
-    val typeInfo = localTypeModel.inspect(flowClass).let {
-      it as? LocalTypeInformation.Composable
-          ?: throw IllegalArgumentException("Flow $flowClass is introspected as non-composable:\n" +
-              it.prettyPrint(true))
-    }
+    val typeInfo: LocalTypeInformation = localTypeModel.inspect(flowClass);
 
-    val actualArgs = arrayOfNulls<Any?>(typeInfo.constructor.parameters.size)
-    typeInfo.constructor.parameters.forEachIndexed { index, param ->
+      val constructorParameters = when (typeInfo){
+          is LocalTypeInformation.Composable ->  (typeInfo as? LocalTypeInformation.Composable)?.constructor?.parameters
+          is LocalTypeInformation.NonComposable ->  (typeInfo as? LocalTypeInformation.NonComposable)?.constructor?.
+          parameters?.filterNot{ param ->
+              typeInfo.nonComposableTypes.map { type -> type.observedType }.contains(param.type.observedType)
+          }
+          else -> throw IllegalArgumentException("Flow $flowClass is introspected as either composable or non-composable:\n" +
+                  typeInfo.prettyPrint(true))
+      }
+
+    val actualArgs = arrayOfNulls<Any?>(constructorParameters!!.size)
+      constructorParameters.forEachIndexed { index, param ->
       val givenValue = instruction.arguments[param.name]
       if (givenValue == null && param.isMandatory) {
         throw IllegalArgumentException("No value provided for mandatory parameter ${param.name}")

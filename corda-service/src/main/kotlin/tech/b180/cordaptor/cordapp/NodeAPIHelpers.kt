@@ -23,14 +23,22 @@ data class FlowInstanceBuilder<ReturnType: Any>(
   fun instantiate(): FlowLogic<ReturnType> {
     val typeInfo = localTypeModel.inspect(flowClass.java)
 
-    val constructor = (typeInfo as? LocalTypeInformation.Composable)?.constructor
-        ?: throw IllegalArgumentException("Unable to instantiate flow class ${flowClass.qualifiedName}.\n" +
-            "Introspection details: ${typeInfo.prettyPrint()})")
+     val constructorParametersPair =  when (typeInfo) {
+          is LocalTypeInformation.Composable -> Pair((typeInfo as? LocalTypeInformation.Composable)?.constructor, (typeInfo as? LocalTypeInformation.Composable)?.constructor!!.parameters)
+          is LocalTypeInformation.NonComposable -> Pair((typeInfo as? LocalTypeInformation.NonComposable)?.constructor,
+                  (typeInfo as? LocalTypeInformation.NonComposable)?.constructor?.parameters?.filterNot { param ->
+                      typeInfo.nonComposableTypes.map { type -> type.observedType }.contains(param.type.observedType)
+                  })
+          else -> throw IllegalArgumentException(
+              "Flow $flowClass is introspected as either composable or non-composable:\n" +
+                      typeInfo.prettyPrint(true)
+          )
+      }
 
-    logger.debug("Instantiating flow class with constructor: {}", constructor)
+    logger.debug("Instantiating flow class with constructor: {}", constructorParametersPair.first)
 
-    val actualArguments = if (constructor.hasParameters) {
-      constructor.parameters.map {
+    val actualArguments = if (constructorParametersPair.second!!.isNotEmpty()) {
+        constructorParametersPair.second?.map {
         flowProperties[it.name]
             ?: if (it.isMandatory)
               throw IllegalArgumentException("Missing value for mandatory constructor parameter [${it.name}]")
@@ -44,6 +52,6 @@ data class FlowInstanceBuilder<ReturnType: Any>(
     logger.debug("Instantiating flow class with arguments: {}", actualArguments)
 
     @Suppress("UNCHECKED_CAST")
-    return constructor.observedMethod.newInstance(*actualArguments.toTypedArray()) as FlowLogic<ReturnType>
+    return constructorParametersPair.first?.observedMethod?.newInstance(*actualArguments!!.toTypedArray()) as FlowLogic<ReturnType>
   }
 }
