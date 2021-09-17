@@ -130,13 +130,15 @@ class SchemaServiceTest {
         val persistentStateName = column.split(".").first()
         val persistentStateColumnName = column.split(".").last()
 
-        val persistentStateClass = (ComplexStateSchemaV1.javaClass.kotlin.nestedClasses as List).filter { it.simpleName.equals(persistentStateName) }.first()
+        val persistentStateClass = (ComplexStateSchemaV1.javaClass.kotlin.nestedClasses as List).first {
+            it.simpleName.equals(persistentStateName)
+        }
 
         try {
             val columnType =
-                persistentStateClass.declaredMemberProperties.map { it as KProperty1<out PersistentState, *> }.filter {
-                    it.name.equals(persistentStateColumnName)
-                }.first()
+                persistentStateClass.declaredMemberProperties.map { it as KProperty1<out PersistentState, *> }.first {
+                    it.name == persistentStateColumnName
+                }
 
             val participant = ComplexStateSchemaV1.PersistentComplexState::string
 
