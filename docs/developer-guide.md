@@ -20,3 +20,21 @@ Note: You have to pass `""` on the first argument if you want the default to bui
 ```
 ./automation.sh "" dockerPush
 ```
+
+### Step to run a docker compose network with custom cordapp & debug along with cordaptor
+ 
+1. You need to run build command to build your corda app which generate build folder. After that you have run deployNodes command to generate nodes folder inside build folder.
+2. You have to change below command to runnodes.sh file which is located inside build/nodes folder.
+
+ "-Dcapsule.jvm.args="-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005" -jar corda.jar --logging-level=DEBUG"   
+
+ i. --logging-level=DEBUG command used for enable logging.
+
+3. Mount corda.jar and runnodes.sh file to your docker container volumes which are described below.
+   volumes: 
+    - ./build/nodes/ParticipantA/corda.jar:/opt/corda/corda.jar
+    - ./build/nodes/runnodes:/opt/corda/runnodes
+4. Bind debug port on docker network ports property.
+   ports:
+    - "6005:5005"
+5. Finally, add Remote JVM Debug to debug your app.
