@@ -5,6 +5,7 @@ import net.corda.core.contracts.StateAndRef
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.node.services.Vault
 import net.corda.core.node.services.vault.*
+import net.corda.core.schemas.MappedSchema
 import tech.b180.cordaptor.kernel.ModuleAPI
 import java.math.BigDecimal
 import java.time.Instant
@@ -118,6 +119,7 @@ data class CordaVaultQuery<T: ContractState>(
     data class EqualityComparison(
         val operator: EqualityComparisonOperator,
         val attributeName: String,
+        val mappedSchema: MappedSchema,
         val value: LiteralValue
     ) : Expression {
       override fun <T> visit(visitor: Visitor<T>) = visitor.equalityComparison(this)
@@ -127,6 +129,7 @@ data class CordaVaultQuery<T: ContractState>(
     data class BinaryComparison(
         val operator: BinaryComparisonOperator,
         val attributeName: String,
+        val mappedSchema: MappedSchema,
         val value: LiteralValue
     ) : Expression {
       override fun <T> visit(visitor: Visitor<T>) = visitor.binaryComparison(this)
@@ -136,6 +139,7 @@ data class CordaVaultQuery<T: ContractState>(
     data class Likeness(
         val operator: LikenessOperator,
         val attributeName: String,
+        val mappedSchema: MappedSchema,
         val value: LiteralValue
     ) : Expression {
       override fun <T> visit(visitor: Visitor<T>) = visitor.likeness(this)
@@ -144,6 +148,7 @@ data class CordaVaultQuery<T: ContractState>(
     /** Maps to 'between' */
     data class Between(
         val attributeName: String,
+        val mappedSchema: MappedSchema,
         val from: LiteralValue,
         val to: LiteralValue
     ) : Expression {
@@ -158,10 +163,11 @@ data class CordaVaultQuery<T: ContractState>(
       override fun <T> visit(visitor: Visitor<T>) = visitor.nullExpression(this)
     }
 
-    /** Maps to 'in', 'notIn', 'inIgnoreCase', 'notInIgnoreCase'  */
+    /** Maps to 'in', 'notIn', 'inIgnoreCase', 'notInIgnoreCase' */
     data class CollectionExpression(
         val operator: CollectionOperator,
         val attributeName: String,
+        val mappedSchema: MappedSchema,
         val values: List<LiteralValue>
     ) : Expression {
       override fun <T> visit(visitor: Visitor<T>) = visitor.collectionExpression(this)

@@ -115,7 +115,9 @@ class CordappInfoBuilder(
                     clazz.canonicalName, contractAnnotation?.value?.qualifiedName ?: "(no annotation)")
 
                 CordappContractStateInfo(stateClass = stateClass)
-              }
+              },
+
+          mappedSchemas = cordapp.customSchemas
       )
     }
   }

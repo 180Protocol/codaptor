@@ -11,6 +11,8 @@ import net.corda.core.crypto.Crypto
 import net.corda.core.flows.FlowLogic
 import net.corda.core.identity.*
 import net.corda.core.node.services.vault.*
+import net.corda.core.schemas.MappedSchema
+import net.corda.core.schemas.PersistentState
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.utilities.OpaqueBytes
 import net.corda.core.utilities.ProgressTracker
@@ -32,6 +34,9 @@ import java.nio.file.Paths
 import java.time.Duration
 import java.time.Instant
 import java.util.*
+import javax.persistence.Column
+import javax.persistence.Entity
+import javax.persistence.Table
 import kotlin.reflect.full.allSuperclasses
 import kotlin.test.*
 
@@ -69,7 +74,7 @@ class CordaTypesTest : KoinTest {
       single { CordaAmountSerializerFactory(get()) } bind CustomSerializerFactory::class
       single { CordaLinearPointerSerializer(get()) } bind CustomSerializerFactory::class
 
-        single { CordaVaultQueryExpressionSerializer() } bind CustomSerializer::class
+      single { CordaVaultQueryExpressionSerializer() } bind CustomSerializer::class
 
       // factory for requesting specific serializers into the non-generic serialization code
       factory<JsonSerializer<*>> { (key: SerializerKey) -> get<SerializationFactory>().getSerializer(key) }
@@ -360,34 +365,15 @@ class CordaTypesTest : KoinTest {
     fun `test corda vault query serialization`() {
         val serializer = getKoin().getSerializer(CordaVaultQuery.Expression::class)
 
-        val testBetweenJson = """{"type": "between", "column": "recordedTime","from": "2020-06-01","to": "2020-07-01"}""".asJsonObject()
+        val testEqualityJson = """{"type": "equals", "column": "CompoundStateSchemaV1.string", "schema": "CompoundStateSchemaV1", "value": "ABC"}""".asJsonObject()
         assertEquals(
-            CordaVaultQuery.Expression.Between("recordedTime", JsonValueLiteral("\"2020-06-01\"".asJsonValue()), JsonValueLiteral("\"2020-07-01\"".asJsonValue())),
-            serializer.fromJson(testBetweenJson)
-        )
-
-        val testEqualityJson = """{"type": "equals", "column": "VaultLinearStates.externalId", "value": "ABC"}""".asJsonObject()
-        assertEquals(
-            CordaVaultQuery.Expression.EqualityComparison(EqualityComparisonOperator.EQUAL, "VaultLinearStates.externalId", JsonValueLiteral("\"ABC\"".asJsonValue())),
+            CordaVaultQuery.Expression.EqualityComparison(
+                EqualityComparisonOperator.EQUAL,
+                "CompoundStateSchemaV1.string",
+                CompoundStateSchemaV1,
+                JsonValueLiteral("\"ABC\"".asJsonValue())
+            ),
             serializer.fromJson(testEqualityJson)
-        )
-
-        val testBinaryJson = """{"type": "greaterThan", "column": "VaultFungibleStates.owner", "value": "ABC"}""".asJsonObject()
-        assertEquals(
-            CordaVaultQuery.Expression.BinaryComparison(BinaryComparisonOperator.GREATER_THAN, "VaultFungibleStates.owner", JsonValueLiteral("\"ABC\"".asJsonValue())),
-            serializer.fromJson(testBinaryJson)
-        )
-
-        val testLikenessJson = """{"type": "like", "column": "VaultLinearStates.externalId", "value": "ABC"}""".asJsonObject()
-        assertEquals(
-            CordaVaultQuery.Expression.Likeness(LikenessOperator.LIKE, "VaultLinearStates.externalId", JsonValueLiteral("\"ABC\"".asJsonValue())),
-            serializer.fromJson(testLikenessJson)
-        )
-
-        val testNullJson = """{"type": "isNull", "column": "VaultLinearStates.externalId"}""".asJsonObject()
-        assertEquals(
-            CordaVaultQuery.Expression.NullExpression(NullOperator.IS_NULL, "VaultLinearStates.externalId"),
-            serializer.fromJson(testNullJson)
         )
     }
 
@@ -401,18 +387,6 @@ class CordaTypesTest : KoinTest {
             QueryCriteria.TimeInstantType.RECORDED,
             ColumnPredicate.Between(Instant.parse("2020-06-01T00:00:00Z"), Instant.parse("2020-07-01T00:00:00Z"))
         )
-
-//        assertEquals(
-//            QueryCriteria.VaultQueryCriteria(timeCondition = testBetweenExpression),
-//            CreateCordaQuery().between(CordaVaultQuery.Expression.Between("recordedTime", JsonValueLiteral("\"2020-06-01\"".asJsonValue()), JsonValueLiteral("\"2020-07-01\"".asJsonValue())))
-//        )
-
-//        val testEqualityJson = """{"type": "equals", "column": "VaultLinearStates.externalId", "value": "ABC"}""".asJsonObject()
-//
-//        assertEquals(
-//            QueryCriteria.LinearStateQueryCriteria(externalId = listOf("ABC")),
-//            CreateCordaQuery().equalityComparison(CordaVaultQuery.Expression.EqualityComparison(EqualityComparisonOperator.EQUAL, "VaultLinearStates.externalId", JsonValueLiteral("\"ABC\"".asJsonValue())))
-//        )
     }
 }
 
@@ -448,4 +422,32 @@ data class TestNonComposableFlow(
     override fun call(): String {
         throw AssertionError("Not expected to be called in the test")
     }
+}
+
+object CompoundStateSchema
+
+@Suppress("unused")
+object CompoundStateSchemaV1 : MappedSchema(
+    schemaFamily = CompoundStateSchema.javaClass,
+    version = 1,
+    mappedTypes = listOf(
+        PersistentCompoundState::class.java
+    )
+) {
+    @Entity
+    @Table(name = "compound_states")
+    class PersistentCompoundState(
+        @Column(name = "participant_name", nullable = false)
+        val participant: Party,
+
+        @Column(name = "string_value", nullable = false, length = 200)
+        val string: String,
+
+        @Column(name = "integer_value", nullable = false)
+        val integer: Int,
+
+        @Column(name = "amount_quantity", nullable = false)
+        val quantity: Long
+
+    ) : PersistentState()
 }

@@ -263,7 +263,7 @@ class CordaptorAPITestSuite(
         val content = """{
       |"contractStateClass":"tech.b180.ref_cordapp.CompoundState",
       |"linearStateExternalIds":["TEST-333"],
-      |"expression": {"type": "equals", "column": "CompoundStateSchemaV1.participant", "value": "Bank"}}""".trimMargin()
+      |"expression": {"type": "equals", "column": "CompoundStateSchemaV1.string", "schema": "CompoundStateSchemaV1", "value": "Bank"}}""".trimMargin()
 
         req.content(StringContentProvider("application/json", content, Charsets.UTF_8))
         val response = req.send()

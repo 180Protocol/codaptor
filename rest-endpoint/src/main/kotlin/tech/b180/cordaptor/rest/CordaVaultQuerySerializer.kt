@@ -1,9 +1,11 @@
 package tech.b180.cordaptor.rest
 
 import net.corda.core.node.services.Vault
-import net.corda.core.node.services.vault.ColumnPredicate
-import net.corda.core.node.services.vault.QueryCriteria
+import net.corda.core.schemas.MappedSchema
+import org.koin.core.inject
+import tech.b180.cordaptor.corda.CordaNodeCatalog
 import tech.b180.cordaptor.corda.CordaVaultQuery
+import tech.b180.cordaptor.kernel.CordaptorComponent
 import tech.b180.cordaptor.shaded.javax.json.JsonNumber
 import tech.b180.cordaptor.shaded.javax.json.JsonObject
 import tech.b180.cordaptor.shaded.javax.json.JsonString
@@ -17,9 +19,21 @@ import kotlin.reflect.KClass
  * Bespoke implementation for JSON deserialization logic for
  * [CordaVaultQuery.Expression] class hierarchy.
  */
-class CordaVaultQueryExpressionSerializer : CustomSerializer<CordaVaultQuery.Expression>, StandaloneTypeSerializer {
+class CordaVaultQueryExpressionSerializer : CustomSerializer<CordaVaultQuery.Expression>, StandaloneTypeSerializer, CordaptorComponent {
+
+  private val nodeCatalog by inject<CordaNodeCatalog>()
 
   override val valueType: SerializerKey = SerializerKey.forType(CordaVaultQuery.Expression::class.java)
+
+  fun getMappedSchemaFromCordapp(schema: String) : MappedSchema {
+    nodeCatalog.cordapps.forEach { cordappInfo ->
+      val matchingSchema = cordappInfo.mappedSchemas.find { it.name == schema }
+      if (matchingSchema != null) {
+        return matchingSchema
+      }
+    }
+    throw IllegalArgumentException("Schema with the name $schema was not found in the list of Schemas")
+  }
 
   override fun fromJson(value: JsonValue): CordaVaultQuery.Expression {
 
@@ -30,12 +44,41 @@ class CordaVaultQueryExpressionSerializer : CustomSerializer<CordaVaultQuery.Exp
     return when (jsonValue.getString("type")) {
       "not" -> TODO()
       "and", "or" -> TODO()
-      "equals", "notEquals", "equalsIgnoreCase", "notEqualsIgnoreCase" -> CordaVaultQuery.Expression.EqualityComparison(getOperatorFromJson.getEqualityOperator(jsonValue.getString("type")), jsonValue.getString("column"), JsonValueLiteral(jsonValue["value"]!!))
-      "greaterThan", "greaterThanOrEquals", "lessThan", "lessThanOrEquals" -> CordaVaultQuery.Expression.BinaryComparison(getOperatorFromJson.getBinaryOperator(jsonValue.getString("type")), jsonValue.getString("column"), JsonValueLiteral(jsonValue["value"]!!))
-      "like", "notLike", "likeIgnoreCase", "notLikeIgnoreCase" -> CordaVaultQuery.Expression.Likeness(getOperatorFromJson.getLikenessOperator(jsonValue.getString("type")), jsonValue.getString("column"), JsonValueLiteral(jsonValue["value"]!!))
-      "between" -> CordaVaultQuery.Expression.Between(jsonValue.getString("column"), JsonValueLiteral(jsonValue["from"]!!), JsonValueLiteral(jsonValue["to"]!!))
-      "isNull", "isNotNull" -> CordaVaultQuery.Expression.NullExpression(getOperatorFromJson.getNullOperator(jsonValue.getString("type")), jsonValue.getString("column"))
-      "in", "notIn", "inIgnoreCase", "notInIgnoreCase" -> CordaVaultQuery.Expression.CollectionExpression(getOperatorFromJson.getCollectionOperator(jsonValue.getString("type")), jsonValue.getString("column"), JsonValueLiteral(jsonValue["values"]!!).asList())
+      "equals", "notEquals", "equalsIgnoreCase", "notEqualsIgnoreCase" -> CordaVaultQuery.Expression.EqualityComparison(
+        getOperatorFromJson.getEqualityOperator(jsonValue.getString("type")),
+        jsonValue.getString("column"),
+        getMappedSchemaFromCordapp(jsonValue.getString("schema")),
+        JsonValueLiteral(jsonValue["value"]!!)
+      )
+      "greaterThan", "greaterThanOrEquals", "lessThan", "lessThanOrEquals" -> CordaVaultQuery.Expression.BinaryComparison(
+        getOperatorFromJson.getBinaryOperator(jsonValue.getString("type")),
+        jsonValue.getString("column"),
+        getMappedSchemaFromCordapp(jsonValue.getString("schema")),
+        JsonValueLiteral(jsonValue["value"]!!)
+      )
+      "like", "notLike", "likeIgnoreCase", "notLikeIgnoreCase" -> CordaVaultQuery.Expression.Likeness(
+        getOperatorFromJson.getLikenessOperator(jsonValue.getString("type")),
+        jsonValue.getString("column"),
+        getMappedSchemaFromCordapp(jsonValue.getString("schema")),
+        JsonValueLiteral(jsonValue["value"]!!)
+      )
+      "between" -> CordaVaultQuery.Expression.Between(
+        jsonValue.getString("column"),
+        getMappedSchemaFromCordapp(jsonValue.getString("schema")),
+        JsonValueLiteral(jsonValue["from"]!!),
+        JsonValueLiteral(jsonValue["to"]!!)
+      )
+      "isNull", "isNotNull" -> CordaVaultQuery.Expression.NullExpression(
+        getOperatorFromJson.getNullOperator(
+          jsonValue.getString("type")),
+        jsonValue.getString("column")
+      )
+      "in", "notIn", "inIgnoreCase", "notInIgnoreCase" -> CordaVaultQuery.Expression.CollectionExpression(
+        getOperatorFromJson.getCollectionOperator(jsonValue.getString("type")),
+        jsonValue.getString("column"),
+        getMappedSchemaFromCordapp(jsonValue.getString("schema")),
+        JsonValueLiteral(jsonValue["values"]!!).asList()
+      )
       else -> throw Exception("placeholder")
     }
   }

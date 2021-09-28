@@ -130,13 +130,13 @@ class SchemaServiceTest {
         val persistentStateName = column.split(".").first()
         val persistentStateColumnName = column.split(".").last()
 
-        val persistentStateClass = (ComplexStateSchemaV1.javaClass.kotlin.nestedClasses as List).first {
+        val persistentStateClass = (ComplexStateSchemaV1.javaClass.kotlin.nestedClasses as List).find {
             it.simpleName.equals(persistentStateName)
         }
 
         try {
             val columnType =
-                persistentStateClass.declaredMemberProperties.map { it as KProperty1<out PersistentState, *> }.first {
+                persistentStateClass!!.declaredMemberProperties.map { it as KProperty1<out PersistentState, *> }.find {
                     it.name == persistentStateColumnName
                 }
 
@@ -145,7 +145,7 @@ class SchemaServiceTest {
             assertEquals(participant, columnType)
 
             //construct a vault custom query criteria using the above columnType
-            val equal = builder { columnType.equal("test") }
+            val equal = builder { columnType!!.equal("test") }
             val equalCriteria = QueryCriteria.VaultCustomQueryCriteria(equal)
 
             val equalWStatic = builder { participant.equal("test") }

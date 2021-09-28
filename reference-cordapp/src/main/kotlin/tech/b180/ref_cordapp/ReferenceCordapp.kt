@@ -239,7 +239,7 @@ class CompoundState(
     ) : LinearState, QueryableState {
     override val participants = listOf(participant)
 
-    override fun supportedSchemas(): Iterable<MappedSchema> = listOf(ComplexStateSchemaV1)
+    override fun supportedSchemas(): Iterable<MappedSchema> = listOf(CompoundStateSchemaV1)
 
     override fun generateMappedObject(schema: MappedSchema) = ComplexStateSchemaV1.PersistentComplexState(ComplexState(participant, string, integer, amount))
 }

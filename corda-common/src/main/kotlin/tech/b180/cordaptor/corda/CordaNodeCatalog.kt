@@ -3,6 +3,7 @@ package tech.b180.cordaptor.corda
 import net.corda.core.contracts.ContractState
 import net.corda.core.crypto.SecureHash
 import net.corda.core.flows.FlowLogic
+import net.corda.core.schemas.MappedSchema
 import tech.b180.cordaptor.kernel.ModuleAPI
 import java.net.URL
 import kotlin.reflect.KClass
@@ -37,6 +38,7 @@ data class CordappInfo(
     val shortName: String,
     val flows: List<CordappFlowInfo>,
     val contractStates: List<CordappContractStateInfo>,
+    val mappedSchemas: Set<MappedSchema>,
     val jarHash: SecureHash.SHA256,
     val jarURL: URL
 )
