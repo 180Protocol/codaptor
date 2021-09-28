@@ -4,17 +4,17 @@ import net.corda.core.contracts.ContractState
 import net.corda.core.node.services.vault.ColumnPredicate
 import net.corda.core.node.services.vault.QueryCriteria
 import net.corda.core.node.services.vault.builder
-import net.corda.core.schemas.MappedSchema
 import net.corda.core.schemas.PersistentState
-import net.corda.node.services.schema.NodeSchemaService
+import kotlin.reflect.KProperty1
+import kotlin.reflect.full.declaredMemberProperties
 
 class CreateCordaQuery(private val contractStateType: Class<out ContractState>) : CordaVaultQuery.Visitor<QueryCriteria> {
 
-    private fun constructDummyContractState() : Pair<MappedSchema, PersistentState>{
-        val contractState = contractStateType.newInstance()
-        val mappedSchemas = NodeSchemaService().selectSchemas(contractState).first()
-        val persistentState = NodeSchemaService().generateMappedObject(contractState, mappedSchemas)
-        return Pair(mappedSchemas, persistentState)
+    private fun splitColumn(column: String) : Pair<String, String> {
+        val columnList = column.split(".")
+        if (columnList.size != 2)
+            throw IllegalArgumentException("The column $column must only have 2 string separated by a .")
+        return Pair(columnList.first(), columnList.last())
     }
 
     override fun negation(negation: CordaVaultQuery.Expression.Negation) =
@@ -24,11 +24,26 @@ class CreateCordaQuery(private val contractStateType: Class<out ContractState>) 
         TODO("Not yet implemented")
 
     override fun equalityComparison(equalityComparison: CordaVaultQuery.Expression.EqualityComparison): QueryCriteria {
-        val (mappedSchema, persistentState) = constructDummyContractState()
-        val criteria = builder {
+        // wrap into a single function ( remove the persistentState )
+        val (persistentName, persistentStateColumnName) = splitColumn(equalityComparison.attributeName)
 
+        val persistentStateClass = (equalityComparison.mappedSchema.javaClass.kotlin.nestedClasses as List).find {
+            it.simpleName!!.equals(persistentName)
         }
-        TODO("Current Blocker")
+        // up to here
+
+        try {
+            // try to create a common function for getting the columnType
+            val columnType =
+                persistentStateClass!!.declaredMemberProperties.map { it as KProperty1<out PersistentState, *> }.find {
+                    it.name == persistentStateColumnName
+                }
+            // up to here
+            val equal = builder { columnType!!.equal(equalityComparison.value) }
+            return QueryCriteria.VaultCustomQueryCriteria(equal)
+        } catch (e: ClassCastException) {
+            throw ClassCastException("Column Type cannot be retrieved from Persistent State" + e.printStackTrace())
+        }
     }
 
     override fun binaryComparison(binaryComparison: CordaVaultQuery.Expression.BinaryComparison) =
