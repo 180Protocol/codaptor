@@ -93,6 +93,7 @@ class RestEndpointModuleProvider : ModuleProvider {
 
     single { CordaFlowInstructionSerializerFactory(get()) } bind CustomSerializerFactory::class
     single { CordaAmountSerializerFactory(get()) } bind CustomSerializerFactory::class
+    single { CordaLinearPointerSerializer(get()) } bind CustomSerializerFactory::class
 
     // factory for requesting specific serializers into the non-generic serialization code
     factory<JsonSerializer<*>> { (key: SerializerKey) -> get<SerializationFactory>().getSerializer(key) }

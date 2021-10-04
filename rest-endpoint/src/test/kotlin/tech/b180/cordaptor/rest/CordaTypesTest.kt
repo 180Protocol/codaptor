@@ -3,6 +3,9 @@ package tech.b180.cordaptor.rest
 import io.mockk.every
 import io.mockk.mockkClass
 import net.corda.core.contracts.Amount
+import net.corda.core.contracts.LinearPointer
+import net.corda.core.contracts.LinearState
+import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.crypto.Crypto
 import net.corda.core.flows.FlowLogic
 import net.corda.core.identity.*
@@ -61,6 +64,7 @@ class CordaTypesTest : KoinTest {
 
       single { CordaFlowInstructionSerializerFactory(get()) } bind CustomSerializerFactory::class
       single { CordaAmountSerializerFactory(get()) } bind CustomSerializerFactory::class
+      single { CordaLinearPointerSerializer(get()) } bind CustomSerializerFactory::class
 
       // factory for requesting specific serializers into the non-generic serialization code
       factory<JsonSerializer<*>> { (key: SerializerKey) -> get<SerializationFactory>().getSerializer(key) }
@@ -239,6 +243,19 @@ class CordaTypesTest : KoinTest {
     val serializer = getKoin().getSerializer(SignedTransaction::class)
   }
 
+    @Test
+    fun `test corda linear pointer serialization`() {
+        val serializer = getKoin().getSerializer(LinearPointer::class, SimpleLinearState::class);
+        val uuid = UniqueIdentifier();
+        assertEquals("""{
+            |"pointer": {"id": "$uuid"},
+            |"type":"tech.b180.cordaptor.rest.SimpleLinearState"}""".trimMargin().asJsonValue(),
+            serializer.toJsonString(LinearPointer(pointer = uuid, type= SimpleLinearState::class.java)).asJsonValue())
+
+        assertEquals(LinearPointer(pointer = uuid, type = SimpleLinearState::class.java),
+            serializer.fromJson("""{"pointer": {"id": "$uuid"}, "type":"tech.b180.cordaptor.rest.SimpleLinearState"}""".asJsonObject()))
+    }
+
   @Test
   fun `test corda flow instruction serialization`() {
     val serializer = getKoin().getSerializer(CordaFlowInstruction::class, TestFlow::class)
@@ -320,6 +337,13 @@ data class TestFlow(
   override fun call(): String {
     throw AssertionError("Not expected to be called in the test")
   }
+}
+
+data class SimpleLinearState(
+    val participant: Party,
+    override val linearId: UniqueIdentifier) : LinearState {
+    override val participants: List<AbstractParty>
+        get() = listOf(participant)
 }
 
 data class TestNonComposableFlow(

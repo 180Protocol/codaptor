@@ -399,6 +399,33 @@ class CordaPublicKeySerializer(
 }
 
 /**
+ * Serializer for a [LinearPointer] representing it as a JSON object.
+ * This object is most commonly serialized as part of a [ContractState].
+ * There is no support for restoring instances of [LinearPointer] from JSON structures.
+ */
+class CordaLinearPointerSerializer(
+    private val factory: SerializationFactory
+) : CustomSerializerFactory<LinearPointer<*>> {
+    override val rawType = LinearPointer::class.java
+
+    override fun doCreateSerializer(key: SerializerKey): JsonSerializer<LinearPointer<*>> {
+        return object : CustomStructuredObjectSerializer<LinearPointer<*>>(
+            factory, explicitValueType = key
+        ) {
+            override val properties: Map<String, ObjectProperty> = mapOf(
+                "pointer" to KotlinObjectProperty(LinearPointer<*>::pointer),
+                "type" to KotlinObjectProperty(LinearPointer<*>::type, deserialize = false)
+            )
+
+            override fun initializeInstance(values: Map<String, Any?>): LinearPointer<*> {
+                val pointer =  (values["pointer"] as? UniqueIdentifier) ?: throw AssertionError("Missing value in mandatory field 'pointer'");
+                return LinearPointer(pointer = pointer , type = LinearState::class.java)
+            }
+        }
+    }
+}
+
+/**
  * Builds a serializer for a specific parameterized type based on [CordaFlowInstruction] class.
  * The purpose is to make it appear in JSON Schema as an instance of the underlying [FlowLogic] class,
  * whereby class name is implicit, and constructor-bound properties are represented inline.
