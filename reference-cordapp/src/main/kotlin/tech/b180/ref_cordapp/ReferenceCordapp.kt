@@ -275,8 +275,43 @@ object CompoundStateSchemaV1 : MappedSchema(
     }
 }
 
+@InitiatingFlow
+@StartableByRPC
+@StartableByService
+@Suppress("UNUSED")
+class CreateCompoundStateFlow(
+    private val string: String,
+    private val integer: Int
+) : FlowLogic<CompoundFlowResult>() {
+
+    override fun call(): CompoundFlowResult {
+        val compoundState = CompoundState(
+            ourIdentity,
+            string,
+            integer,
+            Amount(100, Currency.getInstance("USD")),
+            UniqueIdentifier()
+        )
+
+        val builder = TransactionBuilder(notary = serviceHub.networkMapCache.notaryIdentities.first())
+        builder.addOutputState(compoundState)
+        builder.addCommand(TrivialContract.Commands.RecordState(), ourIdentity.owningKey)
+
+        val pstx = serviceHub.signInitialTransaction(builder, ourIdentity.owningKey)
+        val fstx = subFlow(FinalityFlow(pstx, emptySet<FlowSession>()))
+
+        return CompoundFlowResult(fstx.tx.outRef(0))
+    }
+}
+
 // FIXME serializer cannot correctly generate flow result type schema for FlowLogic<StateAndRef<ComplexState>>
 @CordaSerializable
 data class ComplexFlowResult(
     val output: StateAndRef<SimpleLinearState>
+)
+
+// FIXME serializer cannot correctly generate flow result type schema for FlowLogic<StateAndRef<ComplexState>>
+@CordaSerializable
+data class CompoundFlowResult(
+    val output: StateAndRef<CompoundState>
 )

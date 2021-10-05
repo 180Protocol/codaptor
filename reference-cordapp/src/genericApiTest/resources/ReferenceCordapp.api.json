@@ -63,6 +63,17 @@
           "string"
         ]
       },
+      "CompoundFlowResult": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "$ref": "#/components/schemas/CordaStateAndRef_CompoundState"
+          }
+        },
+        "required": [
+          "output"
+        ]
+      },
       "CompoundState": {
         "type": "object",
         "properties": {
@@ -240,6 +251,25 @@
         },
         "required": []
       },
+      "CordaFlowInstruction_CreateCompoundStateFlow": {
+        "type": "object",
+        "properties": {
+          "options": {
+            "$ref": "#/components/schemas/CordaFlowInstructionOptions"
+          },
+          "string": {
+            "type": "string"
+          },
+          "integer": {
+            "type": "number",
+            "format": "int32"
+          }
+        },
+        "required": [
+          "string",
+          "integer"
+        ]
+      },
       "CordaFlowInstruction_DelayedProgressFlow": {
         "type": "object",
         "properties": {
@@ -321,6 +351,24 @@
           "timestamp"
         ]
       },
+      "CordaFlowResult_CompoundFlowResult": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/Throwable"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "value": {
+            "$ref": "#/components/schemas/CompoundFlowResult"
+          }
+        },
+        "required": [
+          "timestamp"
+        ]
+      },
       "CordaFlowResult_SimpleFlowResult": {
         "type": "object",
         "properties": {
@@ -354,6 +402,33 @@
           },
           "result": {
             "$ref": "#/components/schemas/CordaFlowResult_ComplexFlowResult"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "flowClass",
+          "flowRunId",
+          "startedAt"
+        ]
+      },
+      "CordaFlowSnapshot_CompoundFlowResult": {
+        "type": "object",
+        "properties": {
+          "currentProgress": {
+            "$ref": "#/components/schemas/CordaFlowProgress"
+          },
+          "flowClass": {
+            "type": "string"
+          },
+          "flowRunId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "result": {
+            "$ref": "#/components/schemas/CordaFlowResult_CompoundFlowResult"
           },
           "startedAt": {
             "type": "string",
@@ -1800,6 +1875,138 @@
         "summary": "Finds contract state recorded to the ledger with a given hash and index ",
         "tags": [
           "vaultQuery"
+        ]
+      }
+    },
+    "/node/reference/CreateCompoundStateFlow": {
+      "post": {
+        "operationId": "initiateCreateCompoundStateFlow",
+        "parameters": [
+          {
+            "description": "Timeout for synchronous flow execution, 0 for immediate return",
+            "in": "query",
+            "name": "wait",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CordaFlowInstruction_CreateCompoundStateFlow"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CordaFlowSnapshot_CompoundFlowResult"
+                }
+              }
+            },
+            "description": "Flow execution completed successfully and its result is available",
+            "headers": {
+              "Location": {
+                "description": "URL from which to obtain latest snapshot of the flow",
+                "schema": {
+                  "type": "string",
+                  "format": "url"
+                }
+              }
+            }
+          },
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CordaFlowSnapshot_CompoundFlowResult"
+                }
+              }
+            },
+            "description": "Flow execution stared and its outcome is not yet available",
+            "headers": {
+              "Location": {
+                "description": "URL from which to obtain latest snapshot of the flow",
+                "schema": {
+                  "type": "string",
+                  "format": "url"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CordaFlowSnapshot_CompoundFlowResult"
+                }
+              }
+            },
+            "description": "Flow execution failed and error information is available",
+            "headers": {
+              "Location": {
+                "description": "URL from which to obtain latest snapshot of the flow",
+                "schema": {
+                  "type": "string",
+                  "format": "url"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Initiates and tracks execution of Corda flow CreateCompoundStateFlow with given parameters",
+        "tags": [
+          "flowInitiation"
+        ]
+      }
+    },
+    "/node/reference/CreateCompoundStateFlow/snapshot/{flowRunId}": {
+      "get": {
+        "operationId": "getLatestSnapshotForCreateCompoundStateFlow",
+        "parameters": [
+          {
+            "description": "Flow run id returned by a flow initiation operation",
+            "in": "path",
+            "name": "flowRunId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CordaFlowSnapshot_CompoundFlowResult"
+                }
+              }
+            },
+            "description": "Latest snapshot of the flow with given run id"
+          },
+          "403": {
+            "description": "Permission denied"
+          },
+          "404": {
+            "description": "Snapshot of a flow with given run id was not found, which may mean it was already evicted"
+          }
+        },
+        "summary": "Returns latest snapshot for a flow of type CreateCompoundStateFlow initiated with given run id",
+        "tags": [
+          "flowInitiation"
         ]
       }
     },
