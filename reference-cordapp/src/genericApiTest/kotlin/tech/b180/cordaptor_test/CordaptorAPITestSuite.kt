@@ -45,6 +45,7 @@ class CordaptorAPITestSuite(
     testStateQuery(client, stateRef)
     testVaultQueryViaGET(client)
     testVaultQueryViaPOST(client)
+      createCompoundState(client)
     testNodeAttachmentViaPOST(client)
     testVaultQueryWithExpressionViaPOST(client)
   }
@@ -149,7 +150,7 @@ class CordaptorAPITestSuite(
     val maxRequestTime = Duration.ofSeconds(5)
     val req = client.POST("$baseUrl/node/reference/DelayedProgressFlow?wait=100")
 
-    val content = """{
+      val content = """{
       |"externalId":"TEST-333",
       |"delay":1}""".trimMargin()
 
@@ -256,14 +257,29 @@ class CordaptorAPITestSuite(
     assertEquals(1, page.getInt("totalStatesAvailable"))
   }
 
+    private fun createCompoundState(client: HttpClient) {
+        val req = client.POST("$baseUrl/node/reference/CreateCompoundStateFlow")
+
+        val content = """{
+        |"string":"ABC",
+        |"integer":123}""".trimMargin()
+
+        req.content(StringContentProvider("application/json", content, Charsets.UTF_8))
+        req.send()
+    }
+
     private fun testVaultQueryWithExpressionViaPOST(client: HttpClient) {
+        createCompoundState(client)
+
         val req = client.POST(
             "$baseUrl/node/reference/CompoundState/query")
 
         val content = """{
       |"contractStateClass":"tech.b180.ref_cordapp.CompoundState",
-      |"linearStateExternalIds":["TEST-333"],
-      |"expression": {"type": "equals", "column": "CompoundStateSchemaV1.string", "schema": "CompoundStateSchemaV1", "value": "Bank"}}""".trimMargin()
+      |"expression": {"type": "equals", "column": "CompoundStateSchemaV1.string", "schema": "CompoundStateSchemaV1", "value": "ABC"}}""".trimMargin()
+
+//        val content = """{
+//      |"contractStateClass":"tech.b180.ref_cordapp.CompoundState"}""".trimMargin()
 
         req.content(StringContentProvider("application/json", content, Charsets.UTF_8))
         val response = req.send()
