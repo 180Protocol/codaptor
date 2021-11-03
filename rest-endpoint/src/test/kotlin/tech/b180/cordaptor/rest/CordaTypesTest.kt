@@ -21,11 +21,10 @@ import org.koin.dsl.bind
 import org.koin.dsl.module
 import org.koin.test.KoinTest
 import org.koin.test.KoinTestRule
-import tech.b180.cordaptor.corda.CordaFlowInstruction
-import tech.b180.cordaptor.corda.CordaFlowProgress
-import tech.b180.cordaptor.corda.CordaFlowSnapshot
-import tech.b180.cordaptor.corda.CordaNodeState
+import tech.b180.cordaptor.corda.*
 import tech.b180.cordaptor.kernel.lazyGetAll
+import java.io.File
+import java.io.FileInputStream
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.Duration
@@ -44,6 +43,7 @@ class CordaTypesTest : KoinTest {
 
       // register custom serializers for the factory to discover
       single { BigDecimalSerializer() } bind CustomSerializer::class
+      single { CordaNodeAttachmentSerializer() } bind CustomSerializer::class
       single { CurrencySerializer() } bind CustomSerializer::class
       single { CordaUUIDSerializer() } bind CustomSerializer::class
       single { CordaSecureHashSerializer() } bind CustomSerializer::class
@@ -254,6 +254,21 @@ class CordaTypesTest : KoinTest {
 
         assertEquals(LinearPointer(pointer = uuid, type = SimpleLinearState::class.java),
             serializer.fromJson("""{"pointer": {"id": "$uuid"}, "type":"tech.b180.cordaptor.rest.SimpleLinearState"}""".asJsonObject()))
+    }
+
+    @Test
+    fun `test corda node attachment serialization`() {
+        val stream = FileInputStream(File("C:\\Users\\Demo\\Downloads\\October.csv"));
+
+        val serializer = getKoin().getSerializer(CordaNodeAttachment::class);
+        assertEquals("""{
+            |"inputStream": {"lastMod": 1635792185900,"lastModDate": "2021-11-01T18:43:05.900Z","name": "demo.csv","size": 37735,"type": "application/pdf"},
+            |"uploader":"test",
+            |"filename": "demo"}""".trimMargin().asJsonValue(),
+            serializer.toJsonString(CordaNodeAttachment(inputStream = stream, uploader= "test", filename= "demo")).asJsonValue())
+
+        assertEquals(CordaNodeAttachment(inputStream = stream, uploader= "test", filename= "demo"),
+            serializer.fromJson("""{"inputStream": {"lastMod": 1635792185900,"lastModDate": "2021-11-01T18:43:05.900Z","name": "demo.csv","size": 37735,"type": "application/pdf"}, "uploader":"test", "filename": "demo"}""".asJsonObject()))
     }
 
   @Test

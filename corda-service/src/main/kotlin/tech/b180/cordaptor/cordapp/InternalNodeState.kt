@@ -25,7 +25,14 @@ import org.slf4j.Logger
 import tech.b180.cordaptor.corda.*
 import tech.b180.cordaptor.kernel.CordaptorComponent
 import tech.b180.cordaptor.kernel.loggerFor
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.nio.file.Files
+import java.nio.file.Paths
 import java.security.PublicKey
+import java.util.*
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
 
 /**
  * Implementation of [CordaNodeState] interface providing access to a state
@@ -98,6 +105,26 @@ class CordaNodeStateImpl : CordaNodeStateInner, CordaptorComponent, CordaNodeVau
   ): CordaFlowHandle<ReturnType> {
 
     return get<LocalFlowInitiator<ReturnType>>().initiateFlow(instruction)
+  }
+
+  override fun createAttachment(attachment: CordaNodeAttachment): SecureHash {
+    val zipName = "$attachment.filename-${UUID.randomUUID()}.zip"
+    FileOutputStream(zipName).use { fileOutputStream ->
+      ZipOutputStream(fileOutputStream).use { zipOutputStream ->
+        val zipEntry = ZipEntry(attachment.filename)
+        zipOutputStream.putNextEntry(zipEntry)
+        attachment.inputStream.copyTo(zipOutputStream, 1024)
+      }
+    }
+    return FileInputStream(zipName).use { fileInputStream ->
+      val attachmentHash = appServiceHub.attachments.importAttachment(
+        jar = fileInputStream,
+        uploader = attachment.uploader,
+        filename = attachment.filename
+      )
+      Files.deleteIfExists(Paths.get(zipName))
+      attachmentHash
+    }
   }
 }
 
