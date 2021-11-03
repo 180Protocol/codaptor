@@ -17,6 +17,7 @@ import tech.b180.cordaptor.corda.*
 import tech.b180.cordaptor.kernel.CordaptorComponent
 import tech.b180.cordaptor.kernel.loggerFor
 import tech.b180.cordaptor.shaded.javax.json.JsonObject
+import java.io.InputStream
 import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.math.min
@@ -226,6 +227,57 @@ class FlowInitiationEndpoint<FlowReturnType: Any>(
               )
           ).withForbiddenResponse().withTags(FLOW_INITIATION_TAG)
       )
+}
+
+/**
+ * API endpoint handler allowing to upload attachment on corda node.
+ */
+class NodeAttachmentEndpoint(
+    contextPath: String,
+    private val file: InputStream,
+    private val uploader: String,
+    private val filename: String
+) : OperationEndpoint<CordaNodeAttachment, SecureHash>, CordaptorComponent,
+    ContextMappedResourceEndpoint(contextPath, true) {
+
+    companion object {
+        private val logger = loggerFor<NodeAttachmentEndpoint>()
+    }
+
+    private val cordaNodeState: CordaNodeState by inject()
+
+    override val responseType = SerializerKey(SecureHash::class)
+    override val requestType = SerializerKey(CordaNodeAttachment::class)
+    override val supportedMethods = OperationEndpoint.POST_ONLY
+
+    override fun executeOperation(
+        request: RequestWithPayload<CordaNodeAttachment>
+    ): Single<Response<SecureHash>> {
+        val attachmentInstruction = request.payload
+        logger.debug("Attachment instruction {}", attachmentInstruction)
+
+        val handle = cordaNodeState.createAttachment(attachment = attachmentInstruction)
+        return Single.just(Response(handle, StatusCodes.ACCEPTED, emptyList()))
+    }
+
+    override fun generatePathInfoSpecification(schemaGenerator: JsonSchemaGenerator): OpenAPI.PathItem =
+        OpenAPI.PathItem(
+            post = OpenAPI.Operation(
+                summary = "Initiates and tracks execution of Corda attachment with given parameters",
+                operationId = "initiate"
+            ).withRequestBody(
+                OpenAPI.RequestBody.createJsonRequest(
+                    schemaGenerator.generateSchema(requestType),
+                    required = true
+                )
+            ).withResponse(
+                OpenAPI.HttpStatusCode.OK,
+                OpenAPI.Response.createJsonResponse(
+                    description = "Attachment uploaded successfully and its result is available",
+                    schema = schemaGenerator.generateSchema(responseType)
+                )
+            ).withForbiddenResponse().withTags(FLOW_INITIATION_TAG)
+        )
 }
 
 /**

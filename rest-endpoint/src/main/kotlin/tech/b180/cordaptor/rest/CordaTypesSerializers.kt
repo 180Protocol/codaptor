@@ -20,12 +20,14 @@ import net.corda.serialization.internal.model.LocalConstructorParameterInformati
 import net.corda.serialization.internal.model.LocalTypeInformation
 import net.corda.serialization.internal.model.PropertyName
 import tech.b180.cordaptor.corda.CordaFlowInstruction
+import tech.b180.cordaptor.corda.CordaNodeAttachment
 import tech.b180.cordaptor.corda.CordaNodeState
 import tech.b180.cordaptor.shaded.javax.json.JsonNumber
 import tech.b180.cordaptor.shaded.javax.json.JsonObject
 import tech.b180.cordaptor.shaded.javax.json.JsonString
 import tech.b180.cordaptor.shaded.javax.json.JsonValue
 import tech.b180.cordaptor.shaded.javax.json.stream.JsonGenerator
+import java.io.InputStream
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.security.PublicKey
@@ -98,6 +100,22 @@ class BigDecimalSerializer
   override fun toJson(obj: BigDecimal, generator: JsonGenerator) {
     generator.write(obj)
   }
+}
+
+class CordaNodeAttachmentSerializer : CustomSerializer<CordaNodeAttachment>,
+    SerializationFactory.PrimitiveTypeSerializer<CordaNodeAttachment>("string") {
+    override fun fromJson(value: JsonValue): CordaNodeAttachment {
+        println(value);
+        return when (value.valueType) {
+            // provide limited number of type conversions
+            JsonValue.ValueType.STRING -> value as CordaNodeAttachment;
+            else -> throw AssertionError("Expected number, got ${value.valueType} with value $value")
+        }
+    }
+
+    override fun toJson(obj: CordaNodeAttachment, generator: JsonGenerator) {
+//        generator.write(obj)
+    }
 }
 
 /**

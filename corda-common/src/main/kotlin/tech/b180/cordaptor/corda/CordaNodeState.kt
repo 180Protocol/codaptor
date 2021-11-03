@@ -17,6 +17,7 @@ import net.corda.core.node.services.vault.QueryCriteria
 import net.corda.core.node.services.vault.Sort
 import net.corda.core.transactions.SignedTransaction
 import tech.b180.cordaptor.kernel.ModuleAPI
+import java.io.InputStream
 import java.security.PublicKey
 import java.time.Instant
 import java.util.*
@@ -99,6 +100,8 @@ interface CordaNodeState : PartyLocator {
   fun <T : ContractState> trackStates(query: CordaVaultQuery<T>): CordaDataFeed<T>
 
   fun <ReturnType: Any> initiateFlow(instruction: CordaFlowInstruction<FlowLogic<ReturnType>>): CordaFlowHandle<ReturnType>
+
+  fun createAttachment(attachment: CordaNodeAttachment): SecureHash
 }
 
 /**
@@ -156,6 +159,13 @@ data class CordaFlowInstruction<FlowClass: FlowLogic<Any>>(
       val trackProgress: Boolean?
   )
 }
+
+@ModuleAPI(since = "0.1")
+data class CordaNodeAttachment(
+    val inputStream: InputStream,
+    val uploader: String,
+    val filename: String
+)
 
 /**
  * Container for a result of executing Corda flow, which may be either
