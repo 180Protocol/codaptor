@@ -126,7 +126,7 @@ class ClientNodeStateImpl : CordaNodeStateInner, CordaptorComponent, CordaNodeVa
     return FileInputStream(zipName).use { fileInputStream ->
       val hash = rpc.uploadAttachmentWithMetadata(
         jar = fileInputStream,
-        uploader = attachment.uploader,
+        uploader = attachment.dataType,
         filename = attachment.filename
       )
       Files.deleteIfExists(Paths.get(zipName))

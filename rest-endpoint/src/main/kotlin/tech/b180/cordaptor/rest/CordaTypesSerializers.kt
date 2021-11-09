@@ -1,5 +1,6 @@
 package tech.b180.cordaptor.rest
 
+import io.undertow.server.handlers.form.FormData
 import net.corda.core.contracts.*
 import net.corda.core.crypto.SecureHash
 import net.corda.core.crypto.TransactionSignature
@@ -13,21 +14,14 @@ import net.corda.core.transactions.CoreTransaction
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.WireTransaction
 import net.corda.core.utilities.OpaqueBytes
-import net.corda.core.utilities.ProgressTracker
 import net.corda.core.utilities.toBase58
 import net.corda.core.utilities.toSHA256Bytes
-import net.corda.serialization.internal.model.LocalConstructorParameterInformation
 import net.corda.serialization.internal.model.LocalTypeInformation
-import net.corda.serialization.internal.model.PropertyName
 import tech.b180.cordaptor.corda.CordaFlowInstruction
 import tech.b180.cordaptor.corda.CordaNodeAttachment
 import tech.b180.cordaptor.corda.CordaNodeState
-import tech.b180.cordaptor.shaded.javax.json.JsonNumber
-import tech.b180.cordaptor.shaded.javax.json.JsonObject
-import tech.b180.cordaptor.shaded.javax.json.JsonString
-import tech.b180.cordaptor.shaded.javax.json.JsonValue
+import tech.b180.cordaptor.shaded.javax.json.*
 import tech.b180.cordaptor.shaded.javax.json.stream.JsonGenerator
-import java.io.InputStream
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.security.PublicKey
@@ -102,20 +96,41 @@ class BigDecimalSerializer
   }
 }
 
-class CordaNodeAttachmentSerializer : CustomSerializer<CordaNodeAttachment>,
-    SerializationFactory.PrimitiveTypeSerializer<CordaNodeAttachment>("string") {
+class CordaNodeAttachmentSerializer : MultiPartFormDataSerializer<CordaNodeAttachment> {
     override fun fromJson(value: JsonValue): CordaNodeAttachment {
-        println(value);
-        return when (value.valueType) {
-            // provide limited number of type conversions
-            JsonValue.ValueType.STRING -> value as CordaNodeAttachment;
-            else -> throw AssertionError("Expected number, got ${value.valueType} with value $value")
-        }
+        throw UnsupportedOperationException("Don't know not to restore an untyped object from JSON")
     }
 
     override fun toJson(obj: CordaNodeAttachment, generator: JsonGenerator) {
-//        generator.write(obj)
+        throw UnsupportedOperationException("Don't know not to restore an untyped object from JSON")
     }
+
+    override fun fromMultiPartFormData(data: FormData): CordaNodeAttachment {
+      val file = data.getFirst("data")
+      if (file.isFileItem && file.fileItem != null) {
+        return CordaNodeAttachment(
+          dataType = data.getFirst("dataType").value,
+          uploader = data.getFirst("uploader").value,
+          filename = file.fileItem.file.fileName.toString(),
+          inputStream = file.fileItem.inputStream)
+      }
+      else{
+        throw SerializationException("Exception during multipart form data deserialization")
+      }
+    }
+
+    override val valueType: SerializerKey
+        get() = SerializerKey.forType(CordaNodeAttachment::class.java)
+
+    override fun generateSchema(generator: JsonSchemaGenerator): JsonObject =
+        Json.createObjectBuilder().
+        add("type", "object").
+        addObject("properties"){
+            add("uploader", OpenAPI.PrimitiveTypes.NON_EMPTY_STRING).
+            add("dataType", OpenAPI.PrimitiveTypes.NON_EMPTY_STRING).
+            add("data", OpenAPI.PrimitiveTypes.BINARY_STRING)
+        }.build()
+
 }
 
 /**
@@ -436,7 +451,7 @@ class CordaLinearPointerSerializer(
             )
 
             override fun initializeInstance(values: Map<String, Any?>): LinearPointer<*> {
-                val pointer =  (values["pointer"] as? UniqueIdentifier) ?: throw AssertionError("Missing value in mandatory field 'pointer'");
+                val pointer =  (values["pointer"] as? UniqueIdentifier) ?: throw AssertionError("Missing value in mandatory field 'pointer'")
                 return LinearPointer(pointer = pointer , type = LinearState::class.java)
             }
         }
