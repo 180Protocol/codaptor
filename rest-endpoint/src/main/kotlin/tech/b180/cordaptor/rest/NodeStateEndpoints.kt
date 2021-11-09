@@ -260,14 +260,14 @@ class NodeAttachmentEndpoint(
         return Single.just(Response(handle, StatusCodes.ACCEPTED, emptyList()))
     }
 
-    override fun generatePathInfoSpecification(schemaGenerator: JsonSchemaGenerator): OpenAPI.PathItem =
-        OpenAPI.PathItem(
+    override fun generatePathInfoSpecification(schemaGenerator: JsonSchemaGenerator): OpenAPI.PathItem {
+        return OpenAPI.PathItem(
             post = OpenAPI.Operation(
-                summary = "Initiates and tracks execution of Corda attachment with given parameters",
-                operationId = "initiate"
+                summary = "Uploads Corda attachment with given parameters",
+                operationId = "uploadAttachment"
             ).withRequestBody(
-                OpenAPI.RequestBody.createJsonRequest(
-                    schemaGenerator.generateSchema(requestType),
+                OpenAPI.RequestBody.createMultiPartFormDataRequest(
+                    schemaGenerator.generateSchema(requestType), //can be multiPartFormDataSchema
                     required = true
                 )
             ).withResponse(
@@ -278,6 +278,7 @@ class NodeAttachmentEndpoint(
                 )
             ).withForbiddenResponse().withTags(FLOW_INITIATION_TAG)
         )
+    }
 }
 
 /**
