@@ -33,11 +33,10 @@ data class OpenAPI(
   val openapi = VERSION
 
   companion object {
-    const val VERSION = "3.0.3"
-
-    const val JSON_CONTENT_TYPE: ContentType = "application/json"
-
-    const val COMPONENTS_SCHEMA_PREFIX = "#/components/schemas/"
+      const val VERSION = "3.0.3"
+      const val JSON_CONTENT_TYPE: ContentType = "application/json"
+      const val MULTI_PART_FORM_DATA_CONTENT_TYPE: ContentType = "multipart/form-data"
+      const val COMPONENTS_SCHEMA_PREFIX = "#/components/schemas/"
   }
 
   /** [https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.3.md#infoObject] */
@@ -192,8 +191,11 @@ data class OpenAPI(
       val description: String? = null
   ) {
     companion object {
-      fun createJsonRequest(schema: JsonObject, required: Boolean) =
+        fun createJsonRequest(schema: JsonObject, required: Boolean) =
           RequestBody(content = sortedMapOf(JSON_CONTENT_TYPE to MediaType(schema)), required = required)
+
+        fun createMultiPartFormDataRequest(schema: JsonObject, required: Boolean) =
+            RequestBody(content = sortedMapOf(MULTI_PART_FORM_DATA_CONTENT_TYPE to MediaType(schema)), required = required)
     }
   }
 
@@ -275,5 +277,11 @@ data class OpenAPI(
         .add("type", "string")
         .add("format", "url")
         .build()
+
+    val BINARY_STRING: JsonObject = Json.createObjectBuilder()
+    .add("type", "string")
+    .add("format", "binary")
+    .build()
+
   }
 }

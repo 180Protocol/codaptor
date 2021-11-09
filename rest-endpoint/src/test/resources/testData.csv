@@ -1,0 +1,5 @@
+﻿sec,at,country,cur,time,dur,mat,cr,demand_amount,held_value,portfolio,fund_name,pm_name,originator_name,client_name
+RESIDENTIAL_MORTGAGE,B,US,USD,2,2,2,AAA,1562700.62,1562700618,P003,Global Opportunities 3,Sue Gamber,Alex Denton,Pension Co
+RESIDENTIAL_MORTGAGE,B,US,USD,1,1,1,AAA,797469.18,797469178.3,P003,Global Opportunities 3,Sue Gamber,Alex Denton,Pension Co
+RESIDENTIAL_MORTGAGE,B,US,USD,2,2,2,AAA,731693.05,731693046.2,P003,Global Opportunities 3,Sue Gamber,Alex Denton,Pension Co
+RESIDENTIAL_MORTGAGE,B,US,USD,2,2,26,AAA,632034.14,632034140.7,P003,Global Opportunities 3,Sue Gamber,Alex Denton,Pension Co

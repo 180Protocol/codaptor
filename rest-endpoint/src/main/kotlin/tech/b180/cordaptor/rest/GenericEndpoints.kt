@@ -4,6 +4,7 @@ import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.internal.operators.single.SingleJust
 import io.undertow.server.HttpServerExchange
+import io.undertow.server.handlers.form.FormParserFactory
 import io.undertow.util.*
 import tech.b180.cordaptor.kernel.CordaptorComponent
 import tech.b180.cordaptor.kernel.ModuleAPI
@@ -13,6 +14,7 @@ import tech.b180.cordaptor.shaded.javax.json.stream.JsonParsingException
 import java.beans.Transient
 import java.io.OutputStreamWriter
 import java.io.StringReader
+
 
 @ModuleAPI(since = "0.1")
 enum class OperationErrorType(val protocolStatusCode: Int) {
@@ -606,9 +608,19 @@ class OperationEndpointHandler<RequestType: Any, ResponseType: Any>(
     }
 
     val endpointRequest = try {
+      val requestPayload = when(exchange.requestHeaders.getFirst(Headers.CONTENT_TYPE)){
+        "application/json" -> {
+          val requestJsonPayload = Json.createReader(StringReader(payloadString)).readObject()
+          requestSerializer.fromJson(requestJsonPayload)
+        }
+        "multipart/form-data" -> {
+          val parser = FormParserFactory.builder().build().createParser(exchange)
+          val data = parser.parseBlocking()
+          (requestSerializer as MultiPartFormDataSerializer).fromMultiPartFormData(data)
+        }
+        else -> throw UnsupportedOperationException("Content-Type is Unsupported")
 
-      val requestJsonPayload = Json.createReader(StringReader(payloadString)).readObject()
-      val requestPayload = requestSerializer.fromJson(requestJsonPayload)
+      }
 
       HttpRequestWithPayload(exchange, subject, requestPayload)
 
@@ -623,6 +635,12 @@ class OperationEndpointHandler<RequestType: Any, ResponseType: Any>(
       logger.debug("Exception during payload deserialization, which will be returned to the client", e)
       sendError(exchange, EndpointErrorMessage("Unable to deserialize the request payload",
           cause = e, errorType = OperationErrorType.BAD_REQUEST))
+      return
+    } catch (e: java.lang.UnsupportedOperationException) {
+
+      logger.debug("Exception during payload deserialization, which will be returned to the client", e)
+      sendError(exchange, EndpointErrorMessage("Request Content-Type is Unsupported",
+        cause = e, errorType = OperationErrorType.BAD_REQUEST))
       return
     }
 

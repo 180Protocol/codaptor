@@ -2,6 +2,7 @@ package tech.b180.cordaptor.rest
 
 import io.mockk.every
 import io.mockk.mockkClass
+import io.undertow.server.handlers.form.FormData
 import net.corda.core.contracts.Amount
 import net.corda.core.contracts.LinearPointer
 import net.corda.core.contracts.LinearState
@@ -16,6 +17,7 @@ import net.corda.core.utilities.toBase58
 import net.corda.core.utilities.toSHA256Bytes
 import net.corda.finance.flows.AbstractCashFlow
 import net.corda.testing.core.TestIdentity
+import org.apache.commons.io.IOUtils
 import org.junit.Rule
 import org.koin.dsl.bind
 import org.koin.dsl.module
@@ -23,15 +25,15 @@ import org.koin.test.KoinTest
 import org.koin.test.KoinTestRule
 import tech.b180.cordaptor.corda.*
 import tech.b180.cordaptor.kernel.lazyGetAll
-import java.io.File
-import java.io.FileInputStream
 import java.math.BigDecimal
 import java.math.RoundingMode
+import java.nio.file.Paths
 import java.time.Duration
 import java.time.Instant
 import java.util.*
 import kotlin.reflect.full.allSuperclasses
 import kotlin.test.*
+
 
 class CordaTypesTest : KoinTest {
 
@@ -245,30 +247,41 @@ class CordaTypesTest : KoinTest {
 
     @Test
     fun `test corda linear pointer serialization`() {
-        val serializer = getKoin().getSerializer(LinearPointer::class, SimpleLinearState::class);
-        val uuid = UniqueIdentifier();
-        assertEquals("""{
-            |"pointer": {"id": "$uuid"},
-            |"type":"tech.b180.cordaptor.rest.SimpleLinearState"}""".trimMargin().asJsonValue(),
-            serializer.toJsonString(LinearPointer(pointer = uuid, type= SimpleLinearState::class.java)).asJsonValue())
+      val serializer = getKoin().getSerializer(LinearPointer::class, SimpleLinearState::class)
+      val uuid = UniqueIdentifier()
+      assertEquals("""{
+          |"pointer": {"id": "$uuid"},
+          |"type":"tech.b180.cordaptor.rest.SimpleLinearState"}""".trimMargin().asJsonValue(),
+          serializer.toJsonString(LinearPointer(pointer = uuid, type= SimpleLinearState::class.java)).asJsonValue())
 
-        assertEquals(LinearPointer(pointer = uuid, type = SimpleLinearState::class.java),
-            serializer.fromJson("""{"pointer": {"id": "$uuid"}, "type":"tech.b180.cordaptor.rest.SimpleLinearState"}""".asJsonObject()))
+      assertEquals(LinearPointer(pointer = uuid, type = SimpleLinearState::class.java),
+          serializer.fromJson("""{"pointer": {"id": "$uuid"}, "type":"tech.b180.cordaptor.rest.SimpleLinearState"}""".asJsonObject()))
     }
 
     @Test
     fun `test corda node attachment serialization`() {
-        val stream = FileInputStream(File("C:\\Users\\Demo\\Downloads\\October.csv"));
+      val testInputStream = CordaTypesTest::class.java.classLoader.getResourceAsStream("testData.csv")
+      val testPath = Paths.get(CordaTypesTest::class.java.classLoader.getResource("testData.csv").toURI())
+      val serializer = getKoin().getSerializer(CordaNodeAttachment::class) as MultiPartFormDataSerializer
 
-        val serializer = getKoin().getSerializer(CordaNodeAttachment::class);
-        assertEquals("""{
-            |"inputStream": {"lastMod": 1635792185900,"lastModDate": "2021-11-01T18:43:05.900Z","name": "demo.csv","size": 37735,"type": "application/pdf"},
-            |"uploader":"test",
-            |"filename": "demo"}""".trimMargin().asJsonValue(),
-            serializer.toJsonString(CordaNodeAttachment(inputStream = stream, uploader= "test", filename= "demo")).asJsonValue())
 
-        assertEquals(CordaNodeAttachment(inputStream = stream, uploader= "test", filename= "demo"),
-            serializer.fromJson("""{"inputStream": {"lastMod": 1635792185900,"lastModDate": "2021-11-01T18:43:05.900Z","name": "demo.csv","size": 37735,"type": "application/pdf"}, "uploader":"test", "filename": "demo"}""".asJsonObject()))
+      val formData = FormData(4)
+      formData.add("dataType", "testDataType")
+      formData.add("filename", "testData.csv")
+      formData.add("uploader", "User")
+      formData.add("data", testPath,  "testData.csv", null)
+
+      val expectedCordaNodeAttachment = CordaNodeAttachment(
+        inputStream = testInputStream,
+        uploader= "User",
+        filename= "testData.csv",
+        dataType = "testDataType")
+
+      val serializerOutputCordaNodeAttachment = serializer.fromMultiPartFormData(formData)
+
+      assertEquals(true,
+        IOUtils.contentEquals(expectedCordaNodeAttachment.inputStream,
+          serializerOutputCordaNodeAttachment.inputStream))
     }
 
   @Test

@@ -119,7 +119,7 @@ class CordaNodeStateImpl : CordaNodeStateInner, CordaptorComponent, CordaNodeVau
     return FileInputStream(zipName).use { fileInputStream ->
       val attachmentHash = appServiceHub.attachments.importAttachment(
         jar = fileInputStream,
-        uploader = attachment.uploader,
+        uploader = attachment.dataType,
         filename = attachment.filename
       )
       Files.deleteIfExists(Paths.get(zipName))

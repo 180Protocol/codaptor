@@ -27,6 +27,8 @@ dependencies {
     implementation "org.koin:koin-core:$koin_version"
     implementation "io.reactivex.rxjava3:rxjava:$rxjava3_version"
 
+    implementation 'org.apache.httpcomponents:httpmime:4.5.13'
+
     compileOnly "net.corda:corda-core:$corda_core_release_version"
     compileOnly "net.corda:corda-serialization:$corda_core_release_version"
 

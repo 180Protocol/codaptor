@@ -164,7 +164,8 @@ data class CordaFlowInstruction<FlowClass: FlowLogic<Any>>(
 data class CordaNodeAttachment(
     val inputStream: InputStream,
     val uploader: String,
-    val filename: String
+    val filename: String,
+    val dataType: String
 )
 
 /**

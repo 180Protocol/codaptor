@@ -1,5 +1,6 @@
 package tech.b180.cordaptor.rest
 
+import io.undertow.server.handlers.form.FormData
 import net.corda.core.contracts.TransactionState
 import net.corda.serialization.internal.AllWhitelist
 import net.corda.serialization.internal.amqp.CachingCustomSerializerRegistry
@@ -553,6 +554,10 @@ interface JsonSchemaGenerator {
  */
 @ModuleAPI(since = "0.1")
 interface CustomSerializer<T> : JsonSerializer<T>
+
+interface MultiPartFormDataSerializer<T>: CustomSerializer<T>{
+  fun fromMultiPartFormData(data: FormData) : T
+}
 
 /**
  * Alternative to [CustomSerializer] when custom serializers need to be created for
