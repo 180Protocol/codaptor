@@ -3,11 +3,14 @@ package tech.b180.cordaptor_test
 import net.corda.core.contracts.StateRef
 import net.corda.core.crypto.SecureHash
 import org.eclipse.jetty.client.HttpClient
+import org.eclipse.jetty.client.util.MultiPartContentProvider
+import org.eclipse.jetty.client.util.PathContentProvider
 import org.eclipse.jetty.client.util.StringContentProvider
 import org.eclipse.jetty.http.HttpHeader
 import tech.b180.ref_cordapp.DelayedProgressFlow
 import tech.b180.ref_cordapp.SimpleFlow
 import java.io.StringReader
+import java.nio.file.Paths
 import java.time.Duration
 import java.time.Instant
 import javax.json.Json
@@ -41,6 +44,7 @@ class CordaptorAPITestSuite(
     testStateQuery(client, stateRef)
     testVaultQueryViaGET(client)
     testVaultQueryViaPOST(client)
+    testNodeAttachmentViaPOST(client)
   }
 
   private fun testOpenAPISpecification(client: HttpClient) {
@@ -211,9 +215,32 @@ class CordaptorAPITestSuite(
     assertEquals(1, page.getInt("totalStatesAvailable"))
   }
 
+  private fun testNodeAttachmentViaPOST(client: HttpClient) {
+    val req = client.POST(
+        "$baseUrl/node/uploadNodeAttachment")
+
+    val multiPartContentProvider = MultiPartContentProvider()
+
+    multiPartContentProvider.addFieldPart("filename",  StringContentProvider("testData.csv"), null)
+    multiPartContentProvider.addFieldPart("dataType",  StringContentProvider("testDataType"), null)
+    multiPartContentProvider.addFieldPart("uploader",  StringContentProvider("User"), null)
+    multiPartContentProvider.addFilePart("data",  "testData.csv",
+      PathContentProvider(Paths.get(CordaptorAPITestSuite::class.java.classLoader.getResource("testData.csv").toURI())), null)
+
+    multiPartContentProvider.close()
+    req.content(multiPartContentProvider)
+    val response = req.send()
+
+    assertEquals(HttpServletResponse.SC_OK, response.status)
+    assertEquals("application/json", response.mediaType)
+
+    /*val page = response.contentAsString.asJsonObject()
+    assertEquals(1, page.getInt("totalStatesAvailable"))*/
+  }
+
   private fun testVaultQueryViaPOST(client: HttpClient) {
     val req = client.POST(
-        "$baseUrl/node/reference/SimpleLinearState/query")
+      "$baseUrl/node/reference/SimpleLinearState/query")
 
     val content = """{
       |"contractStateClass":"tech.b180.ref_cordapp.SimpleLinearState",
