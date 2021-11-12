@@ -43,14 +43,25 @@ class NodeStateAPIProvider(contextPath: String) : EndpointProvider, CordaptorCom
 
   init {
     val flowSnapshotsEnabled = settings.isFlowSnapshotsEndpointEnabled
+    val nodeAttachmentEndpointEnabled = settings.isNodeAttachmentEndpointEnabled
     if (!flowSnapshotsEnabled) {
       logger.info("Flow snapshots endpoint is disabled. Flow initiation operations will never return a Location header")
+    }
+
+    if (!nodeAttachmentEndpointEnabled) {
+      logger.info("Node Attachment endpoint is disabled.")
     }
 
     operationEndpoints = mutableListOf()
     queryEndpoints = mutableListOf()
 
     for (cordapp in nodeCatalog.cordapps) {
+
+      if(nodeAttachmentEndpointEnabled){
+        val handlerPath = "$contextPath/uploadNodeAttachment"
+        operationEndpoints.add(NodeAttachmentEndpoint(handlerPath))
+      }
+
       for (flowInfo in cordapp.flows) {
         val handlerPath = "$contextPath/${cordapp.shortName}/${flowInfo.flowClass.simpleName}"
 
@@ -233,10 +244,7 @@ class FlowInitiationEndpoint<FlowReturnType: Any>(
  * API endpoint handler allowing to upload attachment on corda node.
  */
 class NodeAttachmentEndpoint(
-    contextPath: String,
-    private val file: InputStream,
-    private val uploader: String,
-    private val filename: String
+    contextPath: String
 ) : OperationEndpoint<CordaNodeAttachment, SecureHash>, CordaptorComponent,
     ContextMappedResourceEndpoint(contextPath, true) {
 
@@ -253,31 +261,35 @@ class NodeAttachmentEndpoint(
     override fun executeOperation(
         request: RequestWithPayload<CordaNodeAttachment>
     ): Single<Response<SecureHash>> {
-        val attachmentInstruction = request.payload
-        logger.debug("Attachment instruction {}", attachmentInstruction)
+      if (!request.subject.isPermitted(OPERATION_UPLOAD_NODE_ATTACHMENT)) {
+        throw UnauthorizedOperationException(OPERATION_UPLOAD_NODE_ATTACHMENT)
+      }
 
-        val handle = cordaNodeState.createAttachment(attachment = attachmentInstruction)
-        return Single.just(Response(handle, StatusCodes.ACCEPTED, emptyList()))
+      val attachmentInstruction = request.payload
+      logger.debug("Attachment instruction {}", attachmentInstruction)
+
+      val handle = cordaNodeState.createAttachment(attachment = attachmentInstruction)
+      return Single.just(Response(handle, StatusCodes.ACCEPTED, emptyList()))
     }
 
     override fun generatePathInfoSpecification(schemaGenerator: JsonSchemaGenerator): OpenAPI.PathItem {
-        return OpenAPI.PathItem(
-            post = OpenAPI.Operation(
-                summary = "Uploads Corda attachment with given parameters",
-                operationId = "uploadAttachment"
-            ).withRequestBody(
-                OpenAPI.RequestBody.createMultiPartFormDataRequest(
-                    schemaGenerator.generateSchema(requestType), //can be multiPartFormDataSchema
-                    required = true
-                )
-            ).withResponse(
-                OpenAPI.HttpStatusCode.OK,
-                OpenAPI.Response.createJsonResponse(
-                    description = "Attachment uploaded successfully and its result is available",
-                    schema = schemaGenerator.generateSchema(responseType)
-                )
-            ).withForbiddenResponse().withTags(FLOW_INITIATION_TAG)
-        )
+      return OpenAPI.PathItem(
+          post = OpenAPI.Operation(
+              summary = "Uploads Corda attachment with given parameters",
+              operationId = "uploadNodeAttachment"
+          ).withRequestBody(
+              OpenAPI.RequestBody.createMultiPartFormDataRequest(
+                  schemaGenerator.generateSchema(requestType), //can be multiPartFormDataSchema
+                  required = true
+              )
+          ).withResponse(
+              OpenAPI.HttpStatusCode.OK,
+              OpenAPI.Response.createJsonResponse(
+                  description = "Attachment uploaded successfully and its result is available",
+                  schema = schemaGenerator.generateSchema(responseType)
+              )
+          ).withForbiddenResponse().withTags(FLOW_INITIATION_TAG)
+      )
     }
 }
 

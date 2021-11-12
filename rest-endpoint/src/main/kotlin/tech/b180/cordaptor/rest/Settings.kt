@@ -25,14 +25,16 @@ data class Settings(
     val isSwaggerUIEnabled: Boolean,
     val isFlowSnapshotsEndpointEnabled: Boolean,
     val maxFlowInitiationTimeout: Duration,
-    val maxVaultQueryPageSize: Int
+    val maxVaultQueryPageSize: Int,
+    val isNodeAttachmentEndpointEnabled: Boolean
 ) {
   constructor(ourConfig: Config) : this(
       isOpenAPISpecificationEnabled = ourConfig.getBoolean("spec.enabled"),
       isSwaggerUIEnabled = ourConfig.getBoolean("swaggerUI.enabled"),
       isFlowSnapshotsEndpointEnabled = ourConfig.getBoolean("flowSnapshots.enabled"),
       maxFlowInitiationTimeout = ourConfig.getDuration("flowInitiation.maxTimeout"),
-      maxVaultQueryPageSize = ourConfig.getInt("vaultQueries.maxPageSize")
+      maxVaultQueryPageSize = ourConfig.getInt("vaultQueries.maxPageSize"),
+      isNodeAttachmentEndpointEnabled = ourConfig.getBoolean("nodeAttachment.enabled")
   )
 }
 

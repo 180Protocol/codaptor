@@ -2063,6 +2063,52 @@
         ]
       }
     },
+    "/node/uploadNodeAttachment": {
+      "post": {
+        "operationId": "uploadNodeAttachment",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "uploader": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "dataType": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "data": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CordaSecureHash"
+                }
+              }
+            },
+            "description": "Attachment uploaded successfully and its result is available"
+          },
+          "403": {
+            "description": "Permission denied"
+          }
+        },
+        "summary": "Uploads Corda attachment with given parameters",
+        "tags": ["flowInitiation"]
+      }
+    },
     "/node/version": {
       "get": {
         "operationId": "getNodeVersion",
