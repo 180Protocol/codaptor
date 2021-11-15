@@ -108,7 +108,7 @@ class CordaNodeStateImpl : CordaNodeStateInner, CordaptorComponent, CordaNodeVau
   }
 
   override fun createAttachment(attachment: CordaNodeAttachment): SecureHash {
-    val zipName = "$attachment.filename-${UUID.randomUUID()}.zip"
+    val zipName = "${attachment.filename}-${UUID.randomUUID()}.zip"
     FileOutputStream(zipName).use { fileOutputStream ->
       ZipOutputStream(fileOutputStream).use { zipOutputStream ->
         val zipEntry = ZipEntry(attachment.filename)
