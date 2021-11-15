@@ -3,11 +3,8 @@ package tech.b180.cordaptor.rest
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.internal.operators.single.SingleJust
-import io.undertow.server.HttpHandler
 import io.undertow.server.HttpServerExchange
-import io.undertow.server.handlers.BlockingHandler
-import io.undertow.server.handlers.form.FormDataParser
-import io.undertow.server.handlers.form.MultiPartParserDefinition
+import io.undertow.server.handlers.form.FormParserFactory
 import io.undertow.util.*
 import tech.b180.cordaptor.kernel.CordaptorComponent
 import tech.b180.cordaptor.kernel.ModuleAPI
@@ -597,32 +594,68 @@ class OperationEndpointHandler<RequestType: Any, ResponseType: Any>(
     if (tryHandlingAsQuery(exchange, subject)) {
       return
     }
-
     // we have to use non-blocking IO to read request payload and not switch to a blocking mode
     // because API operations are performed asynchronously
-    val asyncReceiver = exchange.requestReceiver
-    asyncReceiver.receiveFullString({ e, s -> receiveRequestPayload(subject, e, s) }, Charsets.UTF_8)
+    // however, if the request is of MultiPart Form Data type then parsing is blocking in Undertow
+    val mimeType = exchange.requestHeaders.getFirst(Headers.CONTENT_TYPE)
+    if (mimeType != null && mimeType.startsWith(OpenAPI.MULTI_PART_FORM_DATA_CONTENT_TYPE)) {
+      receiveFormDataRequestPayload(subject, exchange)
+    }
+    else{
+      val receiver = exchange.requestReceiver
+      receiver.receiveFullString({ e, s -> receiveJsonRequestPayload(subject, e, s) }, Charsets.UTF_8)
+    }
   }
 
-  private fun receiveRequestPayload(subject: Subject, exchange: HttpServerExchange, payloadString: String) {
+  private fun receiveFormDataRequestPayload(subject: Subject, exchange: HttpServerExchange) {
+    try {
+      exchange.startBlocking()
+      val parser = FormParserFactory.builder().build().createParser(exchange)
+      val formData = parser.parseBlocking()
+      val endpointRequest = HttpRequestWithPayload(exchange, subject,
+        (requestSerializer as MultiPartFormDataSerializer).fromMultiPartFormData(formData))
+      executeOperationFromEndpointRequest(exchange, endpointRequest)
+    } catch (e: IOException) {
+
+      logger.debug("Error parsing multipart/form-data request, which will be returned to the client", e)
+      sendError(exchange, EndpointErrorMessage("Malformed form data in the request payload",
+        cause = e, errorType = OperationErrorType.BAD_REQUEST))
+      return
+    } catch (e: SerializationException) {
+
+      logger.debug("Exception during payload deserialization, which will be returned to the client", e)
+      sendError(exchange, EndpointErrorMessage("Unable to deserialize the request payload",
+        cause = e, errorType = OperationErrorType.BAD_REQUEST))
+      return
+    } catch (e: java.lang.UnsupportedOperationException) {
+
+      logger.debug("Exception during payload deserialization, which will be returned to the client", e)
+      sendError(exchange, EndpointErrorMessage("Request Content-Type is Unsupported",
+        cause = e, errorType = OperationErrorType.BAD_REQUEST))
+      return
+    }
+  }
+
+  private fun receiveJsonRequestPayload(subject: Subject, exchange: HttpServerExchange, payloadString: String) {
     if (payloadString.isEmpty()) {
       sendError(exchange, EndpointErrorMessage(
           "Empty request payload", errorType = OperationErrorType.BAD_REQUEST))
       return
     }
     try {
-      parseRequestAndExecuteOperation(subject, exchange, payloadString)
+      val requestJsonPayload = Json.createReader(
+        StringReader(
+          payloadString
+        )
+      ).readObject()
+      val endpointRequest = HttpRequestWithPayload(exchange, subject, requestSerializer.fromJson(requestJsonPayload))
+      logger.debug("Invoking operation with request: {}", endpointRequest)
+      executeOperationFromEndpointRequest(exchange, endpointRequest)
     } catch (e: JsonParsingException) {
 
       logger.debug("JSON parsing exception, which will be returned to the client", e)
       sendError(exchange, EndpointErrorMessage("Malformed JSON in the request payload",
           cause = e, errorType = OperationErrorType.BAD_REQUEST))
-      return
-    } catch (e: IOException) {
-
-      logger.debug("Error parsing multipart/form-data request, which will be returned to the client", e)
-      sendError(exchange, EndpointErrorMessage("Malformed form data in the request payload",
-        cause = e, errorType = OperationErrorType.BAD_REQUEST))
       return
     } catch (e: SerializationException) {
 
@@ -636,38 +669,6 @@ class OperationEndpointHandler<RequestType: Any, ResponseType: Any>(
       sendError(exchange, EndpointErrorMessage("Request Content-Type is Unsupported",
         cause = e, errorType = OperationErrorType.BAD_REQUEST))
       return
-    }
-
-  }
-
-  private fun parseRequestAndExecuteOperation(subject: Subject, exchange: HttpServerExchange, payloadString: String){
-    with(exchange.requestHeaders.getFirst(Headers.CONTENT_TYPE)){
-      when{
-        contains("application/json") -> {
-          val requestJsonPayload = Json.createReader(
-            StringReader(
-              payloadString
-            )
-          ).readObject()
-          val endpointRequest = HttpRequestWithPayload(exchange, subject, requestSerializer.fromJson(requestJsonPayload))
-          logger.debug("Invoking operation with request: {}", endpointRequest)
-          executeOperationFromEndpointRequest(exchange, endpointRequest)
-        }
-        contains("multipart/form-data") -> {
-          if (exchange.isInIoThread) {
-            //Blocking
-            exchange.dispatch(BlockingHandler(MultiPartFormHandler(requestSerializer, subject)))
-
-            //Non-blocking
-/*
-            val parser = MultiPartParserDefinition().create(exchange)
-            parser.parse(MultiPartFormHandlerNonBlocking(requestSerializer, subject))
-*/
-            return
-          }
-        }
-        else -> throw UnsupportedOperationException("Content-Type is Unsupported")
-      }
     }
   }
 
@@ -717,42 +718,6 @@ class OperationEndpointHandler<RequestType: Any, ResponseType: Any>(
   override fun toString(): String {
     return "OperationEndpointHandler(requestType=${endpoint.requestType}, " +
         "responseType=${endpoint.responseType}, endpoint=${endpoint})"
-  }
-
-  inner class MultiPartFormHandler(private val requestSerializer: JsonSerializer<RequestType>,
-                                   private val subject: Subject): HttpHandler{
-    override fun handleRequest(exchange: HttpServerExchange){
-      val parser = MultiPartParserDefinition().create(exchange)
-      try{
-        parser.parseBlocking()
-        val endpointRequest = HttpRequestWithPayload(exchange, subject,
-          (requestSerializer as MultiPartFormDataSerializer).fromMultiPartFormData(
-            exchange.getAttachment(FormDataParser.FORM_DATA)
-          )
-        )
-        executeOperationFromEndpointRequest(exchange, endpointRequest)
-      } catch (e : Throwable) {
-        throw IOException("Multi Part Form parsing failed")
-      } finally {
-        parser.close()
-      }
-    }
-  }
-
-  inner class MultiPartFormHandlerNonBlocking(private val requestSerializer: JsonSerializer<RequestType>,
-                                   private val subject: Subject): HttpHandler{
-    override fun handleRequest(exchange: HttpServerExchange){
-      try{
-        val endpointRequest = HttpRequestWithPayload(exchange, subject,
-          (requestSerializer as MultiPartFormDataSerializer).fromMultiPartFormData(
-            exchange.getAttachment(FormDataParser.FORM_DATA)
-          )
-        )
-        executeOperationFromEndpointRequest(exchange, endpointRequest)
-      } catch (e : Throwable) {
-        throw IOException("Multi Part Form parsing failed")
-      }
-    }
   }
 
 }

@@ -279,7 +279,7 @@ class NodeAttachmentEndpoint(
               operationId = "uploadNodeAttachment"
           ).withRequestBody(
               OpenAPI.RequestBody.createMultiPartFormDataRequest(
-                  schemaGenerator.generateSchema(requestType), //can be multiPartFormDataSchema
+                  schemaGenerator.generateSchema(requestType),
                   required = true
               )
           ).withResponse(

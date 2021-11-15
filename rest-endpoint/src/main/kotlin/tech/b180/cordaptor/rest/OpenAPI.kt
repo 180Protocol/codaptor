@@ -283,5 +283,10 @@ data class OpenAPI(
     .add("format", "binary")
     .build()
 
+    val BASE64_STRING: JsonObject = Json.createObjectBuilder()
+      .add("type", "string")
+      .add("format", "base64")
+      .build()
+
   }
 }
