@@ -114,7 +114,7 @@ class ClientNodeStateImpl : CordaNodeStateInner, CordaptorComponent, CordaNodeVa
   }
 
   override fun createAttachment(attachment: CordaNodeAttachment): SecureHash {
-    val zipName = "$attachment.filename-${UUID.randomUUID()}.zip"
+    val zipName = "${attachment.filename}-${UUID.randomUUID()}.zip"
     FileOutputStream(zipName).use { fileOutputStream ->
       ZipOutputStream(fileOutputStream).use { zipOutputStream ->
         val zipEntry = ZipEntry(attachment.filename)
@@ -159,7 +159,7 @@ class RPCFlowInitiator<ReturnType: Any> : FlowInitiator<ReturnType>(), Cordaptor
     val flowClass = instruction.flowClass.java
     logger.debug("Preparing to initiate flow {} over Corda RPC connection", flowClass)
 
-    val typeInfo: LocalTypeInformation = localTypeModel.inspect(flowClass);
+    val typeInfo: LocalTypeInformation = localTypeModel.inspect(flowClass)
 
       val constructorParameters = when (typeInfo){
           is LocalTypeInformation.Composable ->  (typeInfo as? LocalTypeInformation.Composable)?.constructor?.parameters

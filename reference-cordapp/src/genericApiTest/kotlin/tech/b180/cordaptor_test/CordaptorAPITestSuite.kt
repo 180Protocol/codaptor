@@ -7,6 +7,7 @@ import org.eclipse.jetty.client.util.MultiPartContentProvider
 import org.eclipse.jetty.client.util.PathContentProvider
 import org.eclipse.jetty.client.util.StringContentProvider
 import org.eclipse.jetty.http.HttpHeader
+import org.junit.jupiter.api.assertDoesNotThrow
 import tech.b180.ref_cordapp.DelayedProgressFlow
 import tech.b180.ref_cordapp.SimpleFlow
 import java.io.StringReader
@@ -231,8 +232,9 @@ class CordaptorAPITestSuite(
     req.content(multiPartContentProvider)
     val response = req.send()
 
-    assertEquals(HttpServletResponse.SC_OK, response.status)
     assertEquals("application/json", response.mediaType)
+    assertEquals(HttpServletResponse.SC_ACCEPTED, response.status)
+    assertDoesNotThrow { SecureHash.parse(response.contentAsString) }
 
     /*val page = response.contentAsString.asJsonObject()
     assertEquals(1, page.getInt("totalStatesAvailable"))*/
