@@ -2106,7 +2106,7 @@
           }
         },
         "summary": "Uploads Corda attachment with given parameters",
-        "tags": ["flowInitiation"]
+        "tags": ["nodeAttachment"]
       }
     },
     "/node/version": {

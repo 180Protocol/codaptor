@@ -17,7 +17,6 @@ import tech.b180.cordaptor.corda.*
 import tech.b180.cordaptor.kernel.CordaptorComponent
 import tech.b180.cordaptor.kernel.loggerFor
 import tech.b180.cordaptor.shaded.javax.json.JsonObject
-import java.io.InputStream
 import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.math.min
@@ -25,6 +24,7 @@ import kotlin.reflect.KClass
 
 const val FLOW_INITIATION_TAG = "flowInitiation"
 const val VAULT_QUERY_TAG = "vaultQuery"
+const val NODE_ATTACHMENT_TAG = "nodeAttachment"
 
 /**
  * Factory class for specific Jetty handlers created for flows and contract states of CorDapps found on the node.
@@ -269,7 +269,7 @@ class NodeAttachmentEndpoint(
       logger.debug("Attachment instruction {}", attachmentInstruction)
 
       val handle = cordaNodeState.createAttachment(attachment = attachmentInstruction)
-      return Single.just(Response(handle, StatusCodes.ACCEPTED, emptyList()))
+      return Single.just(Response(handle, StatusCodes.OK, emptyList()))
     }
 
     override fun generatePathInfoSpecification(schemaGenerator: JsonSchemaGenerator): OpenAPI.PathItem {
@@ -288,7 +288,7 @@ class NodeAttachmentEndpoint(
                   description = "Attachment uploaded successfully and its result is available",
                   schema = schemaGenerator.generateSchema(responseType)
               )
-          ).withForbiddenResponse().withTags(FLOW_INITIATION_TAG)
+          ).withForbiddenResponse().withTags(NODE_ATTACHMENT_TAG)
       )
     }
 }

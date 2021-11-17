@@ -116,15 +116,15 @@ class CordaNodeStateImpl : CordaNodeStateInner, CordaptorComponent, CordaNodeVau
         attachment.inputStream.copyTo(zipOutputStream, 1024)
       }
     }
-    return FileInputStream(zipName).use { fileInputStream ->
-      val attachmentHash = appServiceHub.attachments.importAttachment(
-        jar = fileInputStream,
-        uploader = attachment.dataType,
-        filename = attachment.filename
-      )
-      Files.deleteIfExists(Paths.get(zipName))
-      attachmentHash
-    }
+    val inputStream = FileInputStream(zipName)
+    val hash = appServiceHub.attachments.importAttachment(
+      jar = inputStream,
+      uploader = attachment.dataType,
+      filename = attachment.filename
+    )
+    inputStream.close()
+    Files.deleteIfExists(Paths.get(zipName))
+    return hash
   }
 }
 
