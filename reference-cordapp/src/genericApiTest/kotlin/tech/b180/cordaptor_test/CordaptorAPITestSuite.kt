@@ -233,11 +233,8 @@ class CordaptorAPITestSuite(
     val response = req.send()
 
     assertEquals("application/json", response.mediaType)
-    assertEquals(HttpServletResponse.SC_ACCEPTED, response.status)
-    assertDoesNotThrow { SecureHash.parse(response.contentAsString) }
-
-    /*val page = response.contentAsString.asJsonObject()
-    assertEquals(1, page.getInt("totalStatesAvailable"))*/
+    assertEquals(HttpServletResponse.SC_OK, response.status)
+    assertDoesNotThrow { SecureHash.parse(response.contentAsString.replace("\"", "")) }
   }
 
   private fun testVaultQueryViaPOST(client: HttpClient) {

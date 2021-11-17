@@ -122,16 +122,15 @@ class ClientNodeStateImpl : CordaNodeStateInner, CordaptorComponent, CordaNodeVa
         attachment.inputStream.copyTo(zipOutputStream, 1024)
       }
     }
-
-    return FileInputStream(zipName).use { fileInputStream ->
-      val hash = rpc.uploadAttachmentWithMetadata(
-        jar = fileInputStream,
-        uploader = attachment.dataType,
-        filename = attachment.filename
-      )
-      Files.deleteIfExists(Paths.get(zipName))
-      hash
-    }
+    val inputStream = FileInputStream(zipName)
+    val hash = rpc.uploadAttachmentWithMetadata(
+      jar = inputStream,
+      uploader = attachment.dataType,
+      filename = attachment.filename
+    )
+    inputStream.close()
+    Files.deleteIfExists(Paths.get(zipName))
+    return hash
   }
 }
 
