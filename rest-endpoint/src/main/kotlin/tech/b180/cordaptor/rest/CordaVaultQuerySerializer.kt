@@ -2,6 +2,7 @@ package tech.b180.cordaptor.rest
 
 import net.corda.core.node.services.Vault
 import net.corda.core.schemas.MappedSchema
+import net.corda.node.services.vault.VaultSchemaV1
 import org.koin.core.inject
 import tech.b180.cordaptor.corda.CordaNodeCatalog
 import tech.b180.cordaptor.corda.CordaVaultQuery
@@ -26,10 +27,14 @@ class CordaVaultQueryExpressionSerializer : CustomSerializer<CordaVaultQuery.Exp
   override val valueType: SerializerKey = SerializerKey.forType(CordaVaultQuery.Expression::class.java)
 
   fun getMappedSchemaFromCordapp(schema: String) : MappedSchema {
-    nodeCatalog.cordapps.forEach { cordappInfo ->
-      val matchingSchema = cordappInfo.mappedSchemas.find { it.name == schema }
-      if (matchingSchema != null) {
-        return matchingSchema
+    if (schema == "net.corda.node.services.vault.VaultSchemaV1") {
+      return VaultSchemaV1
+    } else {
+      nodeCatalog.cordapps.forEach { cordappInfo ->
+        val matchingSchema = cordappInfo.mappedSchemas.find { it.name == schema }
+        if (matchingSchema != null) {
+          return matchingSchema
+        }
       }
     }
     throw IllegalArgumentException("Schema with the name $schema was not found in the list of Schemas")

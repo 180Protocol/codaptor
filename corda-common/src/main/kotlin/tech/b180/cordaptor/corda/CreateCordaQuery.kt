@@ -4,9 +4,11 @@ import net.corda.core.contracts.ContractState
 import net.corda.core.node.services.vault.ColumnPredicate
 import net.corda.core.node.services.vault.QueryCriteria
 import net.corda.core.node.services.vault.builder
+import net.corda.core.schemas.MappedSchema
 import net.corda.core.schemas.PersistentState
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.declaredMemberProperties
+import kotlin.reflect.jvm.javaType
 
 class CreateCordaQuery(private val contractStateType: Class<out ContractState>) : CordaVaultQuery.Visitor<QueryCriteria> {
 
@@ -17,6 +19,34 @@ class CreateCordaQuery(private val contractStateType: Class<out ContractState>) 
         return Pair(columnList.first(), columnList.last())
     }
 
+    private fun getColumnKProperty(attributeName: String, mappedSchema: MappedSchema): KProperty1<out PersistentState, *>? {
+        val (persistentName, persistentStateColumnName) = splitColumn(attributeName)
+
+        val persistentStateClass = (mappedSchema.javaClass.kotlin.nestedClasses as List).find {
+            it.simpleName!!.equals(persistentName)
+        }
+
+        try {
+            val columnKProperty =
+                persistentStateClass!!.declaredMemberProperties.map { it as KProperty1<out PersistentState, *> }.find {
+                    it.name == persistentStateColumnName
+                }
+
+            return columnKProperty;
+        } catch (e: ClassCastException) {
+            throw ClassCastException("Column Type cannot be retrieved from Persistent State" + e.printStackTrace())
+        }
+    }
+
+    private fun castOperatorLiteralValue(columnType: KProperty1<out PersistentState, *>?, value: CordaVaultQuery.LiteralValue): Any {
+        return when (columnType?.returnType?.javaType?.typeName) {
+            "java.lang.String" -> value.asString()
+            "int" -> value.asInt()
+            "long" -> value.asLong()
+            else -> throw AssertionError("Expected type not found")
+        }
+    }
+
     override fun negation(negation: CordaVaultQuery.Expression.Negation) =
         TODO("Not yet implemented")
 
@@ -24,22 +54,9 @@ class CreateCordaQuery(private val contractStateType: Class<out ContractState>) 
         TODO("Not yet implemented")
 
     override fun equalityComparison(equalityComparison: CordaVaultQuery.Expression.EqualityComparison): QueryCriteria {
-        // wrap into a single function ( remove the persistentState )
-        val (persistentName, persistentStateColumnName) = splitColumn(equalityComparison.attributeName)
-
-        val persistentStateClass = (equalityComparison.mappedSchema.javaClass.kotlin.nestedClasses as List).find {
-            it.simpleName!!.equals(persistentName)
-        }
-        // up to here
-
         try {
-            // try to create a common function for getting the columnType
-            val columnType =
-                persistentStateClass!!.declaredMemberProperties.map { it as KProperty1<out PersistentState, *> }.find {
-                    it.name == persistentStateColumnName
-                }
-            // up to here
-            val equal = builder { columnType!!.equal(equalityComparison.value) }
+            val columnKProperty = getColumnKProperty(equalityComparison.attributeName, equalityComparison.mappedSchema);
+            val equal = builder { columnKProperty!!.equal(castOperatorLiteralValue(columnKProperty, equalityComparison.value)) }
             return QueryCriteria.VaultCustomQueryCriteria(equal)
         } catch (e: ClassCastException) {
             throw ClassCastException("Column Type cannot be retrieved from Persistent State" + e.printStackTrace())
