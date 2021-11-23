@@ -272,14 +272,12 @@ class CordaptorAPITestSuite(
         createCompoundState(client)
 
         val req = client.POST(
-            "$baseUrl/node/reference/CompoundState/query")
+            "$baseUrl/node/reference/SimpleLinearState/query")
 
         val content = """{
-      |"contractStateClass":"tech.b180.ref_cordapp.CompoundState",
-      |"expression": {"type": "equals", "column": "CompoundStateSchemaV1.string", "schema": "CompoundStateSchemaV1", "value": "ABC"}}""".trimMargin()
-
-//        val content = """{
-//      |"contractStateClass":"tech.b180.ref_cordapp.CompoundState"}""".trimMargin()
+      |"contractStateClass":"tech.b180.ref_cordapp.SimpleLinearState",
+      |"linearStateExternalIds":["TEST-111"],
+      |"expression": {"type": "equals", "column": "VaultLinearStates.externalId", "schema": "net.corda.node.services.vault.VaultSchemaV1", "value": "TEST-111"}}""".trimMargin()
 
         req.content(StringContentProvider("application/json", content, Charsets.UTF_8))
         val response = req.send()
