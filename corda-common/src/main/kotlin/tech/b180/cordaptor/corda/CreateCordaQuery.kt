@@ -39,11 +39,13 @@ class CreateCordaQuery(private val contractStateType: Class<out ContractState>) 
     }
 
     private fun castOperatorLiteralValue(columnType: KProperty1<out PersistentState, *>?, value: CordaVaultQuery.LiteralValue): Any {
-        return when (columnType?.returnType?.javaType?.typeName) {
-            "java.lang.String" -> value.asString()
-            "int" -> value.asInt()
-            "long" -> value.asLong()
-            else -> throw AssertionError("Expected type not found")
+        return with(columnType?.returnType?.javaType?.typeName!!) {
+            when {
+                contains("string", ignoreCase = true) -> value.asString()
+                contains("int", ignoreCase = true) -> value.asInt()
+                contains("long", ignoreCase = true) -> value.asLong()
+                else -> throw AssertionError("Expected type not found")
+            }
         }
     }
 
