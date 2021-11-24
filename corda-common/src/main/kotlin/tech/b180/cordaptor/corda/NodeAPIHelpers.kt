@@ -34,7 +34,7 @@ fun <T: ContractState> CordaVaultQuery<T>.toCordaQueryCriteria(locator: PartyLoc
   val criteria = mutableListOf<QueryCriteria>()
 
     if (expression != null) {
-        criteria.add(expression.visit(CreateCordaQuery(contractStateClass.java)))
+        criteria.add(expression.visit(CreateCordaQuery()))
     } else {
         criteria.add(
             QueryCriteria.VaultQueryCriteria(

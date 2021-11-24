@@ -26,7 +26,7 @@ class CordaVaultQueryExpressionSerializer : CustomSerializer<CordaVaultQuery.Exp
 
   override val valueType: SerializerKey = SerializerKey.forType(CordaVaultQuery.Expression::class.java)
 
-  fun getMappedSchemaFromCordapp(schema: String) : MappedSchema {
+  private fun getMappedSchemaFromCordApp(schema: String) : MappedSchema {
     if (schema == "net.corda.node.services.vault.VaultSchemaV1") {
       return VaultSchemaV1
     } else {
@@ -52,24 +52,24 @@ class CordaVaultQueryExpressionSerializer : CustomSerializer<CordaVaultQuery.Exp
       "equals", "notEquals", "equalsIgnoreCase", "notEqualsIgnoreCase" -> CordaVaultQuery.Expression.EqualityComparison(
         getOperatorFromJson.getEqualityOperator(jsonValue.getString("type")),
         jsonValue.getString("column"),
-        getMappedSchemaFromCordapp(jsonValue.getString("schema")),
+        getMappedSchemaFromCordApp(jsonValue.getString("schema")),
         JsonValueLiteral(jsonValue["value"]!!)
       )
       "greaterThan", "greaterThanOrEquals", "lessThan", "lessThanOrEquals" -> CordaVaultQuery.Expression.BinaryComparison(
         getOperatorFromJson.getBinaryOperator(jsonValue.getString("type")),
         jsonValue.getString("column"),
-        getMappedSchemaFromCordapp(jsonValue.getString("schema")),
+        getMappedSchemaFromCordApp(jsonValue.getString("schema")),
         JsonValueLiteral(jsonValue["value"]!!)
       )
       "like", "notLike", "likeIgnoreCase", "notLikeIgnoreCase" -> CordaVaultQuery.Expression.Likeness(
         getOperatorFromJson.getLikenessOperator(jsonValue.getString("type")),
         jsonValue.getString("column"),
-        getMappedSchemaFromCordapp(jsonValue.getString("schema")),
+        getMappedSchemaFromCordApp(jsonValue.getString("schema")),
         JsonValueLiteral(jsonValue["value"]!!)
       )
       "between" -> CordaVaultQuery.Expression.Between(
         jsonValue.getString("column"),
-        getMappedSchemaFromCordapp(jsonValue.getString("schema")),
+        getMappedSchemaFromCordApp(jsonValue.getString("schema")),
         JsonValueLiteral(jsonValue["from"]!!),
         JsonValueLiteral(jsonValue["to"]!!)
       )
@@ -81,7 +81,7 @@ class CordaVaultQueryExpressionSerializer : CustomSerializer<CordaVaultQuery.Exp
       "in", "notIn", "inIgnoreCase", "notInIgnoreCase" -> CordaVaultQuery.Expression.CollectionExpression(
         getOperatorFromJson.getCollectionOperator(jsonValue.getString("type")),
         jsonValue.getString("column"),
-        getMappedSchemaFromCordapp(jsonValue.getString("schema")),
+        getMappedSchemaFromCordApp(jsonValue.getString("schema")),
         JsonValueLiteral(jsonValue["values"]!!).asList()
       )
       else -> throw Exception("placeholder")

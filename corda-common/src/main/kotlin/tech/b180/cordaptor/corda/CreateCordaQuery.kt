@@ -6,11 +6,12 @@ import net.corda.core.node.services.vault.QueryCriteria
 import net.corda.core.node.services.vault.builder
 import net.corda.core.schemas.MappedSchema
 import net.corda.core.schemas.PersistentState
+import java.util.*
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.declaredMemberProperties
 import kotlin.reflect.jvm.javaType
 
-class CreateCordaQuery(private val contractStateType: Class<out ContractState>) : CordaVaultQuery.Visitor<QueryCriteria> {
+class CreateCordaQuery() : CordaVaultQuery.Visitor<QueryCriteria> {
 
     private fun splitColumn(column: String) : Pair<String, String> {
         val columnList = column.split(".")
@@ -32,7 +33,7 @@ class CreateCordaQuery(private val contractStateType: Class<out ContractState>) 
                     it.name == persistentStateColumnName
                 }
 
-            return columnKProperty;
+            return columnKProperty
         } catch (e: ClassCastException) {
             throw ClassCastException("Column Type cannot be retrieved from Persistent State" + e.printStackTrace())
         }
@@ -44,6 +45,7 @@ class CreateCordaQuery(private val contractStateType: Class<out ContractState>) 
                 contains("string", ignoreCase = true) -> value.asString()
                 contains("int", ignoreCase = true) -> value.asInt()
                 contains("long", ignoreCase = true) -> value.asLong()
+                contains("UUID", ignoreCase = true) -> UUID.fromString(value.asString())
                 else -> throw AssertionError("Expected type not found")
             }
         }
@@ -57,7 +59,7 @@ class CreateCordaQuery(private val contractStateType: Class<out ContractState>) 
 
     override fun equalityComparison(equalityComparison: CordaVaultQuery.Expression.EqualityComparison): QueryCriteria {
         try {
-            val columnKProperty = getColumnKProperty(equalityComparison.attributeName, equalityComparison.mappedSchema);
+            val columnKProperty = getColumnKProperty(equalityComparison.attributeName, equalityComparison.mappedSchema)
             val equal = builder { columnKProperty!!.equal(castOperatorLiteralValue(columnKProperty, equalityComparison.value)) }
             return QueryCriteria.VaultCustomQueryCriteria(equal)
         } catch (e: ClassCastException) {
