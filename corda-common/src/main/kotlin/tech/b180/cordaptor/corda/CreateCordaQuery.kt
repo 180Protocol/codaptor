@@ -1,6 +1,5 @@
 package tech.b180.cordaptor.corda
 
-import net.corda.core.contracts.ContractState
 import net.corda.core.node.services.vault.ColumnPredicate
 import net.corda.core.node.services.vault.QueryCriteria
 import net.corda.core.node.services.vault.builder
@@ -67,8 +66,15 @@ class CreateCordaQuery() : CordaVaultQuery.Visitor<QueryCriteria> {
         }
     }
 
-    override fun binaryComparison(binaryComparison: CordaVaultQuery.Expression.BinaryComparison) =
-        TODO("Not yet implemented")
+    override fun binaryComparison(binaryComparison: CordaVaultQuery.Expression.BinaryComparison): QueryCriteria {
+        try {
+            val columnKProperty = getColumnKProperty(binaryComparison.attributeName, binaryComparison.mappedSchema)
+            val equal = builder { ColumnPredicate.BinaryComparison(binaryComparison.operator(columnKProperty, castOperatorLiteralValue(columnKProperty, binaryComparison.value))) }
+            return QueryCriteria.VaultCustomQueryCriteria(equal)
+        } catch (e: ClassCastException) {
+            throw ClassCastException("Column Type cannot be retrieved from Persistent State" + e.printStackTrace())
+        }
+    }
 
     override fun likeness(likeness: CordaVaultQuery.Expression.Likeness) =
         TODO("Not yet implemented")
