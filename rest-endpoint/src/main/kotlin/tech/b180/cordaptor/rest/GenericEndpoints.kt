@@ -6,6 +6,7 @@ import io.reactivex.rxjava3.internal.operators.single.SingleJust
 import io.undertow.server.HttpServerExchange
 import io.undertow.server.handlers.form.FormParserFactory
 import io.undertow.util.*
+import org.koin.core.inject
 import tech.b180.cordaptor.kernel.CordaptorComponent
 import tech.b180.cordaptor.kernel.ModuleAPI
 import tech.b180.cordaptor.kernel.loggerFor
@@ -361,6 +362,7 @@ abstract class AbstractEndpointHandler<ResponseType: Any>(
 
   private val responseSerializer by injectSerializer<ResponseType>(responseType)
   private val errorMessageSerializer by injectSerializer(EndpointErrorMessage::class)
+  private val settings by inject<Settings>()
 
   override fun handleRequest(exchange: HttpServerExchange) {
     if (exchange.isInIoThread) {
@@ -471,6 +473,11 @@ abstract class AbstractEndpointHandler<ResponseType: Any>(
     // in this block we actually send back the response
     try {
       exchange.statusCode = endpointResponse.statusCode
+      if(settings.isCorsEnabled){
+        exchange.responseHeaders.put(HttpString("Access-Control-Allow-Origin"), "*")
+        exchange.responseHeaders.put(HttpString("Access-Control-Allow-Methods"),
+          "GET,POST,PUT,DELETE,OPTIONS")
+      }
       for (header in endpointResponse.headers) {
         exchange.responseHeaders.put(HttpString(header.header), header.value)
       }
