@@ -66,7 +66,7 @@ class CreateCordaQuery() : CordaVaultQuery.Visitor<QueryCriteria> {
         }
     }
 
-    override fun binaryComparison(binaryComparison: CordaVaultQuery.Expression.BinaryComparison): =
+    override fun binaryComparison(binaryComparison: CordaVaultQuery.Expression.BinaryComparison) =
         TODO("Not yet implemented")
 
     override fun likeness(likeness: CordaVaultQuery.Expression.Likeness) =
