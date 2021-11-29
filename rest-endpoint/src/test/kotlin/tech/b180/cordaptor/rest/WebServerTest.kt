@@ -4,6 +4,7 @@ import io.reactivex.rxjava3.core.Single
 import io.undertow.server.HttpHandler
 import io.undertow.server.HttpServerExchange
 import io.undertow.util.Headers
+import org.apache.logging.log4j.core.appender.rolling.action.Duration
 import org.eclipse.jetty.client.HttpClient
 import org.eclipse.jetty.client.util.StringContentProvider
 import org.junit.After
@@ -45,6 +46,13 @@ class WebServerTest : KoinTest {
       // initialize a server with plain HTTP connection
       single { WebServer() }
       single { NoopLifecycleControl as LifecycleControl }
+      single { Settings(isOpenAPISpecificationEnabled = true,
+        isSwaggerUIEnabled = true,
+        isFlowSnapshotsEndpointEnabled = true,
+        maxFlowInitiationTimeout = java.time.Duration.ZERO,
+        maxVaultQueryPageSize = 500,
+        isNodeAttachmentEndpointEnabled = true,
+        isCorsEnabled = true) }
       single { WebServerSettings(HostAndPort("localhost", 9000),
           SecureTransportSettings(TypesafeConfig.fromMap(mapOf("enabled" to false))), 1, 1) }
       single { SecuritySettings(securityHandlerName = SECURITY_CONFIGURATION_NONE) }

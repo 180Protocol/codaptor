@@ -26,7 +26,8 @@ data class Settings(
     val isFlowSnapshotsEndpointEnabled: Boolean,
     val maxFlowInitiationTimeout: Duration,
     val maxVaultQueryPageSize: Int,
-    val isNodeAttachmentEndpointEnabled: Boolean
+    val isNodeAttachmentEndpointEnabled: Boolean,
+    val isCorsEnabled: Boolean
 ) {
   constructor(ourConfig: Config) : this(
       isOpenAPISpecificationEnabled = ourConfig.getBoolean("spec.enabled"),
@@ -34,7 +35,8 @@ data class Settings(
       isFlowSnapshotsEndpointEnabled = ourConfig.getBoolean("flowSnapshots.enabled"),
       maxFlowInitiationTimeout = ourConfig.getDuration("flowInitiation.maxTimeout"),
       maxVaultQueryPageSize = ourConfig.getInt("vaultQueries.maxPageSize"),
-      isNodeAttachmentEndpointEnabled = ourConfig.getBoolean("nodeAttachment.enabled")
+      isNodeAttachmentEndpointEnabled = ourConfig.getBoolean("nodeAttachment.enabled"),
+      isCorsEnabled = ourConfig.getBoolean("cors.enabled")
   )
 }
 
