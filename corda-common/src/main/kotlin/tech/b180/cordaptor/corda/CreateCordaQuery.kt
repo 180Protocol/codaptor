@@ -66,15 +66,8 @@ class CreateCordaQuery() : CordaVaultQuery.Visitor<QueryCriteria> {
         }
     }
 
-    override fun binaryComparison(binaryComparison: CordaVaultQuery.Expression.BinaryComparison): QueryCriteria {
-        try {
-            val columnKProperty = getColumnKProperty(binaryComparison.attributeName, binaryComparison.mappedSchema)
-            val equal = builder { ColumnPredicate.BinaryComparison(binaryComparison.operator(columnKProperty, castOperatorLiteralValue(columnKProperty, binaryComparison.value))) }
-            return QueryCriteria.VaultCustomQueryCriteria(equal)
-        } catch (e: ClassCastException) {
-            throw ClassCastException("Column Type cannot be retrieved from Persistent State" + e.printStackTrace())
-        }
-    }
+    override fun binaryComparison(binaryComparison: CordaVaultQuery.Expression.BinaryComparison): =
+        TODO("Not yet implemented")
 
     override fun likeness(likeness: CordaVaultQuery.Expression.Likeness) =
         TODO("Not yet implemented")
