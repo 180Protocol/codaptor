@@ -25,6 +25,8 @@ class CordappInfoBuilder(
 
   companion object {
     private val logger = loggerFor<CordappInfoBuilder>()
+    private val packageNamesToFilterOut = listOf("kotlin", "java", "[", "org.apache", "org.xerial", "org.brotli",
+      "org.osgi", "org.jetbrains")
   }
 
   fun build(): List<CordappInfo> {
@@ -92,7 +94,7 @@ class CordappInfoBuilder(
 
           contractStates = cordapp.cordappClasses
               // filtering out SDK classes that could be picked up by the introspecting scanner
-              .filterNot { it.startsWith("kotlin") || it.startsWith("java") || it.startsWith("[") }
+              .filterNot { pkg -> packageNamesToFilterOut.any{pkg.startsWith(it)} }
               .map { Class.forName(it) }
               .filter { clazz ->
                 ContractState::class.java.isAssignableFrom(clazz).also {
