@@ -1,7 +1,7 @@
 package tech.b180.cordaptor.rest
 
 import io.undertow.server.handlers.form.FormData
-import net.corda.core.contracts.TransactionState
+import net.corda.core.utilities.base64ToByteArray
 import net.corda.serialization.internal.AllWhitelist
 import net.corda.serialization.internal.amqp.CachingCustomSerializerRegistry
 import net.corda.serialization.internal.amqp.DefaultDescriptorBasedSerializerRegistry
@@ -74,6 +74,7 @@ class SerializationFactory(
     val map = ConcurrentHashMap<SerializerKey, JsonSerializer<Any>>()
 
     map[SerializerKey(String::class.java)] = StringSerializer as JsonSerializer<Any>
+    map[SerializerKey(ByteArray::class.java)] = ByteArraySerializer as JsonSerializer<Any>
     map[SerializerKey(Int::class.java)] = IntSerializer as JsonSerializer<Any>
     map[SerializerKey(Long::class.java)] = LongSerializer as JsonSerializer<Any>
     map[SerializerKey(Double::class.java)] = DoubleSerializer as JsonSerializer<Any>
@@ -154,6 +155,25 @@ class SerializationFactory(
 
     override fun toJson(obj: String, generator: JsonGenerator) {
       generator.write(obj)
+    }
+  }
+
+  /** Built-in serializer for atomic value of type [ByteArray] */
+  object ByteArraySerializer : PrimitiveTypeSerializer<ByteArray>("string") {
+    override fun fromJson(value: JsonValue): ByteArray {
+      return when (value.valueType) {
+        // provide limited number of type conversions
+        JsonValue.ValueType.TRUE -> true.toString().base64ToByteArray()
+        JsonValue.ValueType.FALSE -> false.toString().base64ToByteArray()
+        JsonValue.ValueType.NULL -> "".base64ToByteArray()
+        JsonValue.ValueType.NUMBER -> value.toString().base64ToByteArray()
+        JsonValue.ValueType.STRING -> (value as JsonString).string.base64ToByteArray()
+        else -> throw AssertionError("Expected string, got ${value.valueType} with value $value")
+      }
+    }
+
+    override fun toJson(obj: ByteArray, generator: JsonGenerator) {
+      generator.write(String(obj))
     }
   }
 
