@@ -174,6 +174,7 @@ class ListSerializer private constructor(
         when (parameterizedType.rawType) {
           Collection::class.java -> ::newArrayList
           List::class.java -> ::newArrayList
+          Set::class.java -> ::newArrayList
           else -> ::instantiationNotSupported
         }
       } else {
