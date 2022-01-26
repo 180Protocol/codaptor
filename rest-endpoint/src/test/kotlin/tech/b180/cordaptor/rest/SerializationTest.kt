@@ -334,7 +334,7 @@ class SerializationTest {
 
     assertEquals(
       """{
-      |"type":"array",
+      |"type":"object",
       |"additionalProperties":{"type":"number","format":"int32"}
       |}""".trimMargin().asJsonObject(), mapSerializer.generateRecursiveSchema(f)
     )

@@ -13,7 +13,7 @@
         "readOnly": true
       },
       "paths": {
-        "type": "array",
+        "type": "object",
         "additionalProperties": {
           "$ref": "#/components/schemas/OpenAPIPathItem"
         }
@@ -36,25 +36,25 @@
     "type": "object",
     "properties": {
       "headers": {
-        "type": "array",
+        "type": "object",
         "additionalProperties": {
           "$ref": "#/components/schemas/OpenAPIHeader"
         }
       },
       "parameters": {
-        "type": "array",
+        "type": "object",
         "additionalProperties": {
           "$ref": "#/components/schemas/OpenAPIParameter"
         }
       },
       "responses": {
-        "type": "array",
+        "type": "object",
         "additionalProperties": {
           "$ref": "#/components/schemas/OpenAPIResponse"
         }
       },
       "schemas": {
-        "type": "array",
+        "type": "object",
         "additionalProperties": {
           "type": "object",
           "description": "JSON object generated dynamically by the application",
@@ -62,7 +62,7 @@
         }
       },
       "securitySchemes": {
-        "type": "array",
+        "type": "object",
         "additionalProperties": {
           "$ref": "#/components/schemas/OpenAPISecurityScheme"
         }
@@ -183,7 +183,7 @@
         "$ref": "#/components/schemas/OpenAPIRequestBody"
       },
       "responses": {
-        "type": "array",
+        "type": "object",
         "additionalProperties": {
           "$ref": "#/components/schemas/OpenAPIResponse"
         }
@@ -307,7 +307,7 @@
     "type": "object",
     "properties": {
       "content": {
-        "type": "array",
+        "type": "object",
         "additionalProperties": {
           "$ref": "#/components/schemas/OpenAPIMediaType"
         }
@@ -328,7 +328,7 @@
     "type": "object",
     "properties": {
       "content": {
-        "type": "array",
+        "type": "object",
         "additionalProperties": {
           "$ref": "#/components/schemas/OpenAPIMediaType"
         }
@@ -337,7 +337,7 @@
         "type": "string"
       },
       "headers": {
-        "type": "array",
+        "type": "object",
         "additionalProperties": {
           "$ref": "#/components/schemas/OpenAPIHeader"
         }
@@ -396,7 +396,7 @@
         "type": "string"
       },
       "variables": {
-        "type": "array",
+        "type": "object",
         "additionalProperties": {
           "$ref": "#/components/schemas/OpenAPIServerVariable"
         }
