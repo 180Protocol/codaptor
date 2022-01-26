@@ -277,7 +277,7 @@ class MapSerializer(
 
   override fun generateSchema(generator: JsonSchemaGenerator): JsonObject {
     return Json.createObjectBuilder()
-        .add("type", "array")
+        .add("type", "object")
         .add("additionalProperties", generator.generateSchema(valueSerializer.valueType))
         .build()
   }
