@@ -25,8 +25,6 @@ class CordappInfoBuilder(
 
   companion object {
     private val logger = loggerFor<CordappInfoBuilder>()
-    private val packageNamesToFilterOut = listOf("kotlin", "java", "[", "org.apache", "org.xerial", "org.brotli",
-      "org.osgi", "org.jetbrains")
   }
 
   fun build(): List<CordappInfo> {
@@ -39,62 +37,80 @@ class CordappInfoBuilder(
           shortName = settings.urlPath,
           jarHash = cordapp.jarHash,
           jarURL = cordapp.jarPath,
-          flows = cordapp.allFlows
-              .filter { flowClass ->
-                if (!FlowLogic::class.java.isAssignableFrom(flowClass)) {
-                  throw AssertionError("Class ${flowClass.canonicalName} " +
-                      "was identified as a flow by Corda, but cannot be cast to FlowLogic<*>")
-                }
-
-                val canStartByService = flowClass.getAnnotation(StartableByService::class.java) != null
-                val canStartByRPC = flowClass.getAnnotation(StartableByRPC::class.java) != null
-
-                if (isEmbedded) {
+          flows = when(isEmbedded) {
+            true -> {
+              cordapp.serviceFlows
+                .filter {
+                  flowClass ->
+                  if (!FlowLogic::class.java.isAssignableFrom(flowClass)) {
+                    throw AssertionError(
+                      "Class ${flowClass.canonicalName} " +
+                              "was identified as a flow by Corda, but cannot be cast to FlowLogic<*>"
+                    )
+                  }
+                  val canStartByService = flowClass.getAnnotation(StartableByService::class.java) != null
+                  val canStartByRPC = flowClass.getAnnotation(StartableByRPC::class.java) != null
                   // ignore the flow as it is not available to Corda service
                   // and provide further information in the log to help with troubleshooting
                   if (!canStartByService) {
                     if (canStartByRPC) {
-                      logger.warn("Flow class ${flowClass.canonicalName} can be started by RPC, " +
-                          "but is not available to Cordaptor running as a service within the node. " +
-                          "Annotate the flow class with @StartableByService to make it available")
+                      logger.warn(
+                        "Flow class ${flowClass.canonicalName} can be started by RPC, " +
+                                "but is not available to Cordaptor running as a service within the node. " +
+                                "Annotate the flow class with @StartableByService to make it available"
+                      )
                     }
-
-                    logger.debug("Ignoring flow class {} as it is not available to Corda services",
-                        flowClass.canonicalName)
+                    logger.debug(
+                      "Ignoring flow class {} as it is not available to Corda services",
+                      flowClass.canonicalName
+                    )
                   }
-
                   canStartByService
-                } else {
+                }
+            }
+              false -> {
+              cordapp.rpcFlows
+                .filter {
+                  flowClass ->
+                  if (!FlowLogic::class.java.isAssignableFrom(flowClass)) {
+                    throw AssertionError(
+                      "Class ${flowClass.canonicalName} " +
+                              "was identified as a flow by Corda, but cannot be cast to FlowLogic<*>"
+                    )
+                  }
+                  val canStartByService = flowClass.getAnnotation(StartableByService::class.java) != null
+                  val canStartByRPC = flowClass.getAnnotation(StartableByRPC::class.java) != null
                   // ignore the flow as it is not available to Corda RPC
                   // and provide further information in the log to help with troubleshooting
                   if (!canStartByRPC) {
                     if (canStartByService) {
-                      logger.warn("Flow class ${flowClass.canonicalName} can be started by a Corda service, " +
-                          "but is not available to Cordaptor running as a standalone gateway. " +
-                          "Annotate the flow class with @StartableByRPC to make it available")
+                      logger.warn(
+                        "Flow class ${flowClass.canonicalName} can be started by a Corda service, " +
+                                "but is not available to Cordaptor running as a standalone gateway. " +
+                                "Annotate the flow class with @StartableByRPC to make it available"
+                      )
                     }
-
-                    logger.debug("Ignoring flow class {} as it is not available to Corda RPC clients",
-                        flowClass.canonicalName)
+                    logger.debug(
+                      "Ignoring flow class {} as it is not available to Corda RPC clients",
+                      flowClass.canonicalName
+                    )
                   }
-
                   canStartByRPC
                 }
-              }
-              .map { flowClass ->
-                @Suppress("UNCHECKED_CAST")
-                val flowKClass = flowClass.kotlin as KClass<out FlowLogic<Any>>
-                val flowResultClass = determineFlowResultClass(flowKClass)
+            }
+          }.map { flowClass ->
+            @Suppress("UNCHECKED_CAST")
+            val flowKClass = flowClass.kotlin as KClass<out FlowLogic<Any>>
+            val flowResultClass = determineFlowResultClass(flowKClass)
 
-                logger.debug("Registering flow class {} returning instances of {}",
-                    flowClass.canonicalName, flowResultClass.qualifiedName)
+            logger.debug("Registering flow class {} returning instances of {}",
+                flowClass.canonicalName, flowResultClass.qualifiedName)
 
-                CordappFlowInfo(flowClass = flowKClass, flowResultClass = flowResultClass)
-              },
-
+            CordappFlowInfo(flowClass = flowKClass, flowResultClass = flowResultClass)
+          },
           contractStates = cordapp.cordappClasses
               // filtering out SDK classes that could be picked up by the introspecting scanner
-              .filterNot { pkg -> packageNamesToFilterOut.any{pkg.startsWith(it)} }
+              .filter { pkg -> pkg.contains("state") }
               .map { Class.forName(it) }
               .filter { clazz ->
                 ContractState::class.java.isAssignableFrom(clazz).also {
