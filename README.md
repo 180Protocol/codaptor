@@ -31,10 +31,10 @@ reliability, and flexibility of the overall system.
 At the moment Codaptor is a pre-1.0 technology preview made available to the community to gather feedback and identify
 areas for improvement. It is not considered production-ready yet.
 
-Latest Codaptor release is [0.1.0](https://github.com/b180tech/cordaptor/releases/tag/v0.1.0). You can download
+Latest Codaptor release is [0.4.0](https://github.com/b180tech/cordaptor/releases/tag/v0.4.0). You can download
 standalone bundle archive from the release page on GitHub. All Codaptor modules are 
-[available in Maven Central](https://search.maven.org/search?q=g:tech.b180.cordaptor%20AND%20v:0.1.0).
-Embedded CorDapp bundle can be added using coordinates `tech.b180.cordaptor:cordaptor-bundle-rest-embedded:0.1.0` (
+[available in Maven Central](https://search.maven.org/search?q=g:tech.b180.cordaptor%20AND%20v:0.4.0).
+Embedded CorDapp bundle can be added using coordinates `tech.b180.cordaptor:cordaptor-bundle-rest-embedded:0.4.0` (
 see [getting started guide](./docs/getting-started.md))
 
 Branch [0.1.x](https://github.com/b180tech/cordaptor/tree/0.1.x) was created for bug fixes, and subsequent
@@ -42,8 +42,8 @@ releases of the 0.1.x are going to be bugfix only. Snapshot versions of all arti
 are available from [Sonatype OSS Snapshots](https://oss.sonatype.org/content/repositories/snapshots/)
 Maven repository if you do not want to wait for the release. Published snapshot versions pass all automated tests.
 
-All new functionality is developed in `master` branch, and the next milestone release is going to be 0.2.0.
-Snapshot versions of all artifacts (`0.2-SNAPSHOT`) are available from
+All new functionality is developed in `master` branch, and the next milestone release is going to be 0.5.0.
+Snapshot versions of all artifacts (`0.4-SNAPSHOT`) are available from
 [Sonatype OSS Snapshots](https://oss.sonatype.org/content/repositories/snapshots/)
 Maven repository if you do not want to wait for the release. Published snapshot versions pass all automated tests.
 
