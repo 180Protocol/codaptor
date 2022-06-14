@@ -38,13 +38,13 @@ Embedded CorDapp bundle can be added using coordinates `tech.b180.cordaptor:cord
 see [getting started guide](./docs/getting-started.md))
 
 Branch [0.1.x](https://github.com/b180tech/cordaptor/tree/0.1.x) was created for bug fixes, and subsequent
-releases of the 0.1.x are going to be bugfix only. Snapshot versions of all artifacts (`0.1-SNAPSHOT`)
-are available from [Sonatype OSS Snapshots](https://oss.sonatype.org/content/repositories/snapshots/)
+releases of the 0.x.x are going to be bugfix only. Snapshot versions of all artifacts (`0.4.0-corda4.7-SNAPSHOT`)
+are available from [OSS Sonatype Cordaptor](https://oss.sonatype.org/#nexus-search;gav~tech.b180.cordaptor)
 Maven repository if you do not want to wait for the release. Published snapshot versions pass all automated tests.
 
 All new functionality is developed in `master` branch, and the next milestone release is going to be 0.5.0.
-Snapshot versions of all artifacts (`0.4-SNAPSHOT`) are available from
-[Sonatype OSS Snapshots](https://oss.sonatype.org/content/repositories/snapshots/)
+Snapshot versions of all artifacts (`0.4.0-corda4.7-SNAPSHOT`) are available from
+[OSS Sonatype Cordaptor](https://oss.sonatype.org/#nexus-search;gav~tech.b180.cordaptor)
 Maven repository if you do not want to wait for the release. Published snapshot versions pass all automated tests.
 
 ## Getting started
