@@ -32,9 +32,9 @@ At the moment Codaptor is a pre-1.0 technology preview made available to the com
 areas for improvement. It is not considered production-ready yet.
 
 Latest Codaptor release is [0.4.0](https://github.com/b180tech/cordaptor/releases/tag/v0.4.0). You can download
-standalone bundle archive from the release page on GitHub. All Codaptor modules are 
-[available in Maven Central](https://search.maven.org/search?q=g:tech.b180.cordaptor%20AND%20v:0.4.0).
-Embedded CorDapp bundle can be added using coordinates `tech.b180.cordaptor:cordaptor-bundle-rest-embedded:0.4.0` (
+standalone bundle archive from the release page on GitHub. From version 0.4.0 cordaptor releases are tagged with the corda platform version they are built under. For ex, the current 0.4.0 version is tagged as `0.4.0-corda4.7`. All Codaptor modules are 
+[available in Maven Central](https://search.maven.org/search?q=g:tech.b180.cordaptor%20AND%20v:0.4.0-corda4.7).
+Embedded CorDapp bundle can be added using coordinates `tech.b180.cordaptor:cordaptor-bundle-rest-embedded:0.4.0-corda4.7` (
 see [getting started guide](./docs/getting-started.md))
 
 Branch [0.1.x](https://github.com/b180tech/cordaptor/tree/0.1.x) was created for bug fixes, and subsequent
