@@ -22,6 +22,8 @@ import tech.b180.cordaptor.corda.CordaNodeAttachment
 import tech.b180.cordaptor.corda.CordaNodeState
 import tech.b180.cordaptor.shaded.javax.json.*
 import tech.b180.cordaptor.shaded.javax.json.stream.JsonGenerator
+import java.io.File
+import java.io.InputStream
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.security.PublicKey
@@ -131,6 +133,26 @@ class CordaNodeAttachmentSerializer : MultiPartFormDataSerializer<CordaNodeAttac
             add("data", OpenAPI.PrimitiveTypes.BINARY_STRING)
         }.build()
 
+}
+
+class InputStreamSerializer : CustomSerializer<InputStream> {
+    override fun fromJson(value: JsonValue): InputStream {
+        throw UnsupportedOperationException("Don't know not to restore an untyped object from JSON")
+    }
+
+    override fun toJson(obj: InputStream, generator: JsonGenerator) {
+        throw UnsupportedOperationException("Don't know not to restore an untyped object from JSON")
+    }
+
+    override val valueType: SerializerKey
+        get() = SerializerKey.forType(InputStream::class.java)
+
+    override fun generateSchema(generator: JsonSchemaGenerator): JsonObject {
+        return mapOf(
+            "type" to "string",
+            "format" to OpenAPI.PrimitiveTypes.BINARY_STRING
+        ).asJsonObject()
+    }
 }
 
 /**
