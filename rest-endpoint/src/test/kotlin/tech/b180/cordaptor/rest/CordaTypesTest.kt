@@ -28,6 +28,7 @@ import org.koin.test.KoinTest
 import org.koin.test.KoinTestRule
 import tech.b180.cordaptor.corda.*
 import tech.b180.cordaptor.kernel.lazyGetAll
+import java.io.InputStream
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.nio.file.Paths
@@ -52,6 +53,7 @@ class CordaTypesTest : KoinTest {
       // register custom serializers for the factory to discover
       single { BigDecimalSerializer() } bind CustomSerializer::class
       single { CordaNodeAttachmentSerializer() } bind CustomSerializer::class
+      single { InputStreamSerializer() } bind CustomSerializer::class
       single { CurrencySerializer() } bind CustomSerializer::class
       single { CordaUUIDSerializer() } bind CustomSerializer::class
       single { CordaSecureHashSerializer() } bind CustomSerializer::class
@@ -290,6 +292,24 @@ class CordaTypesTest : KoinTest {
       assertEquals(true,
         IOUtils.contentEquals(expectedCordaNodeAttachment.inputStream,
           serializerOutputCordaNodeAttachment.inputStream))
+    }
+
+    @Test
+    fun `test input stream serialization`() {
+        val testInputStream = CordaTypesTest::class.java.classLoader.getResourceAsStream("testData.csv")
+        val testPath = Paths.get(CordaTypesTest::class.java.classLoader.getResource("testData.csv").toURI())
+        val serializer = getKoin().getSerializer(InputStream::class) as MultiPartFormDataSerializer
+
+        val formData = FormData(1)
+        formData.add("data", testPath,  "testData.csv", null)
+
+        val expectedFile = testInputStream;
+
+        val serializerOutputJavaFileSerializer = serializer.fromMultiPartFormData(formData)
+
+        assertEquals(true,
+            IOUtils.contentEquals(expectedFile,
+                serializerOutputJavaFileSerializer))
     }
 
   @Test
