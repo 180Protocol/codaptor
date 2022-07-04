@@ -135,23 +135,32 @@ class CordaNodeAttachmentSerializer : MultiPartFormDataSerializer<CordaNodeAttac
 
 }
 
-class InputStreamSerializer : CustomSerializer<InputStream> {
-    override fun fromJson(value: JsonValue): InputStream {
+class JavaFileSerializer : MultiPartFormDataSerializer<File> {
+    override fun fromJson(value: JsonValue): File {
         throw UnsupportedOperationException("Don't know not to restore an untyped object from JSON")
     }
 
-    override fun toJson(obj: InputStream, generator: JsonGenerator) {
+    override fun toJson(obj: File, generator: JsonGenerator) {
         throw UnsupportedOperationException("Don't know not to restore an untyped object from JSON")
     }
 
     override val valueType: SerializerKey
-        get() = SerializerKey.forType(InputStream::class.java)
+        get() = SerializerKey.forType(File::class.java)
 
     override fun generateSchema(generator: JsonSchemaGenerator): JsonObject {
         return mapOf(
             "type" to "string",
-            "format" to OpenAPI.PrimitiveTypes.BINARY_STRING
+            "format" to "binary"
         ).asJsonObject()
+    }
+
+    override fun fromMultiPartFormData(data: FormData): File {
+        val file = data.getFirst("data")
+        if (file.isFileItem && file.fileItem != null) {
+            return file.fileItem.file.toFile()
+        }else{
+            throw SerializationException("Exception during multipart form data deserialization")
+        }
     }
 }
 

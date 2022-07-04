@@ -10,7 +10,6 @@ import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.crypto.Crypto
 import net.corda.core.flows.FlowLogic
 import net.corda.core.identity.*
-import net.corda.core.node.services.vault.*
 import net.corda.core.schemas.MappedSchema
 import net.corda.core.schemas.PersistentState
 import net.corda.core.transactions.SignedTransaction
@@ -28,7 +27,7 @@ import org.koin.test.KoinTest
 import org.koin.test.KoinTestRule
 import tech.b180.cordaptor.corda.*
 import tech.b180.cordaptor.kernel.lazyGetAll
-import java.io.InputStream
+import java.io.File
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.nio.file.Paths
@@ -53,7 +52,7 @@ class CordaTypesTest : KoinTest {
       // register custom serializers for the factory to discover
       single { BigDecimalSerializer() } bind CustomSerializer::class
       single { CordaNodeAttachmentSerializer() } bind CustomSerializer::class
-      single { InputStreamSerializer() } bind CustomSerializer::class
+      single { JavaFileSerializer() } bind CustomSerializer::class
       single { CurrencySerializer() } bind CustomSerializer::class
       single { CordaUUIDSerializer() } bind CustomSerializer::class
       single { CordaSecureHashSerializer() } bind CustomSerializer::class
@@ -295,22 +294,16 @@ class CordaTypesTest : KoinTest {
     }
 
     @Test
-    fun `test input stream serialization`() {
-        val testInputStream = CordaTypesTest::class.java.classLoader.getResourceAsStream("testData.csv")
-        val testPath = Paths.get(CordaTypesTest::class.java.classLoader.getResource("testData.csv").toURI())
-        val serializer = getKoin().getSerializer(InputStream::class) as MultiPartFormDataSerializer
+    fun `test java file serialization`() {
+        val serializer = getKoin().getSerializer(CordaFlowInstruction::class, TestFileFlow::class)
 
-        val formData = FormData(1)
-        formData.add("data", testPath,  "testData.csv", null)
+        println("Serializer Schema: " + serializer.generateRecursiveSchema(getKoin().get()));
 
-        val expectedFile = testInputStream;
-
-        val serializerOutputJavaFileSerializer = serializer.fromMultiPartFormData(formData)
-
-        assertEquals(true,
-            IOUtils.contentEquals(expectedFile,
-                serializerOutputJavaFileSerializer))
+        assertEquals(CordaFlowInstruction(flowClass = TestFileFlow::class,
+            arguments = mapOf("file" to "ABC")),
+            serializer.fromJson("""{"file":"ABC"}""".asJsonObject()))
     }
+
 
   @Test
   fun `test corda flow instruction serialization`() {
@@ -419,6 +412,21 @@ data class TestNonComposableFlow(
     ))
 
     override fun call(): String {
+        throw AssertionError("Not expected to be called in the test")
+    }
+}
+
+data class TestFileFlow(
+    val file: File,
+    override val progressTracker: ProgressTracker
+) : FlowLogic<File>() {
+    constructor(file: File) : this(file, ProgressTracker(
+        AbstractCashFlow.Companion.GENERATING_TX,
+        AbstractCashFlow.Companion.SIGNING_TX,
+        AbstractCashFlow.Companion.FINALISING_TX
+    ))
+
+    override fun call(): File {
         throw AssertionError("Not expected to be called in the test")
     }
 }
