@@ -95,6 +95,8 @@ interface Request {
 
   val method: String
 
+  val contentType: String
+
   val queryParameters: Map<String, List<String>>
 
   /** Caller's security subject associated with the request */
@@ -356,6 +358,7 @@ abstract class AbstractEndpointHandler<ResponseType: Any>(
 
   companion object {
     const val JSON_CONTENT_TYPE = "application/json"
+    const val MULTI_PART_FORM_DATA_CONTENT_TYPE = "multipart/form-data"
 
     private val logger = loggerFor<AbstractEndpointHandler<*>>()
   }
@@ -429,7 +432,7 @@ abstract class AbstractEndpointHandler<ResponseType: Any>(
 
     try {
       exchange.statusCode = error.statusCode
-      exchange.responseHeaders.put(Headers.CONTENT_TYPE, JSON_CONTENT_TYPE)
+      exchange.responseHeaders.put(Headers.CONTENT_TYPE, exchange.requestHeaders.getFirst(Headers.CONTENT_TYPE))
 
       // we switch to blocking mode to simplify stream handling, because
       // generation of JSON is presumed to be fast and will not hold the worker thread for long
@@ -483,7 +486,7 @@ abstract class AbstractEndpointHandler<ResponseType: Any>(
       }
 
       payload?.let {
-        exchange.responseHeaders.put(Headers.CONTENT_TYPE, JSON_CONTENT_TYPE)
+        exchange.responseHeaders.put(Headers.CONTENT_TYPE, exchange.requestHeaders.getFirst(Headers.CONTENT_TYPE))
 
         // we switch to blocking mode to simplify stream handling, because
         // generation of JSON is presumed to be fast and will not hold the worker thread for long
@@ -511,6 +514,8 @@ abstract class AbstractEndpointHandler<ResponseType: Any>(
       get() = exchange.requestMethod.toString()
     override val resolvedPath: String
       get() = exchange.resolvedPath
+    override val contentType: String
+      get() = exchange.requestHeaders.getFirst(Headers.CONTENT_TYPE)
 
     override val queryParameters: Map<String, List<String>> = (exchange.pathParameters + exchange.queryParameters)
         .mapValues { (_, values) -> ArrayList(values) }
@@ -518,7 +523,7 @@ abstract class AbstractEndpointHandler<ResponseType: Any>(
     override fun getParameterValue(name: String): String? = queryParameters[name]?.first()
     override fun getAllParameterValues(name: String): List<String>? = queryParameters[name]
 
-    override fun toString(): String = "HttpRequest(method=$method, relativePath=$relativePath, " +
+    override fun toString(): String = "HttpRequest(method=$method, contentType=$contentType relativePath=$relativePath, " +
         "resolvedPath=$resolvedPath, parameters=$queryParameters)"
   }
 
@@ -531,7 +536,7 @@ abstract class AbstractEndpointHandler<ResponseType: Any>(
       override val payload: T
   ) : HttpRequest(exchange, subject), RequestWithPayload<T> {
 
-    override fun toString(): String = "HttpRequest(method=$method, relativePath=$relativePath, " +
+    override fun toString(): String = "HttpRequest(method=$method, contentType=$contentType, relativePath=$relativePath, " +
         "resolvedPath=$resolvedPath, parameters=$queryParameters, payload=$payload)"
   }
 }
@@ -619,6 +624,9 @@ class OperationEndpointHandler<RequestType: Any, ResponseType: Any>(
       exchange.startBlocking()
       val parser = FormParserFactory.builder().build().createParser(exchange)
       val formData = parser.parseBlocking()
+      if(!(requestSerializer::class.java.isAssignableFrom(MultiPartFormDataSerializer::class.java))){
+        throw SerializationException("$requestSerializer is not of type MultiPartFormDataSerializer and cannot handle multipart/form-data")
+      }
       val endpointRequest = HttpRequestWithPayload(exchange, subject,
         (requestSerializer as MultiPartFormDataSerializer).fromMultiPartFormData(formData))
       executeOperationFromEndpointRequest(exchange, endpointRequest)
