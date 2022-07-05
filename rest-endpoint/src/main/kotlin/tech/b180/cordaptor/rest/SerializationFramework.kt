@@ -1,5 +1,6 @@
 package tech.b180.cordaptor.rest
 
+import io.undertow.server.handlers.form.FormData
 import tech.b180.cordaptor.kernel.ModuleAPI
 import tech.b180.cordaptor.shaded.javax.json.Json
 import tech.b180.cordaptor.shaded.javax.json.JsonObject
@@ -99,7 +100,7 @@ abstract class StructuredObjectSerializer<T: Any>(
 
     /** If null, it will be inferred from the type parameter passed in by the superclass */
     explicitValueType: SerializerKey? = null
-) : JsonSerializer<T>, StandaloneTypeSerializer {
+) : MultiPartFormDataSerializer<T>, JsonSerializer<T>, StandaloneTypeSerializer {
 
   data class PropertyWithSerializer(
       private val property: ObjectProperty,
@@ -175,6 +176,10 @@ abstract class StructuredObjectSerializer<T: Any>(
         }
 
     return initializeInstance(values)
+  }
+
+  override fun fromMultiPartFormData(data: FormData): T {
+    TODO("Parse FormData and replicate above logic to map each property and call its fromMultiFormData function")
   }
 
   open fun initializeInstance(values: Map<String, Any?>): T {
