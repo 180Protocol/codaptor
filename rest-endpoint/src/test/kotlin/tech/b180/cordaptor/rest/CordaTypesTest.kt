@@ -294,19 +294,22 @@ class CordaTypesTest : KoinTest {
     }
 
     @Test
-    fun `test java file serialization`() {
-        val serializer = getKoin().getSerializer(CordaFlowInstruction::class, TestFileFlow::class)
+    fun `test multi part form data corda flow instruction serialization`() {
+      val serializer = getKoin().getSerializer(CordaFlowInstruction::class, TestFileFlow::class) as MultiPartFormDataSerializer
+      val testPath = Paths.get(CordaTypesTest::class.java.classLoader.getResource("testData.csv").toURI())
+      val formData = FormData(1)
+      formData.add("file", testPath,  "testData.csv", null)
 
-        println("Serializer Schema: " + serializer.generateRecursiveSchema(getKoin().get()));
+      println("Serializer Schema: " + serializer.generateRecursiveSchema(getKoin().get()));
 
-        assertEquals(CordaFlowInstruction(flowClass = TestFileFlow::class,
-            arguments = mapOf("file" to "ABC")),
-            serializer.fromJson("""{"file":"ABC"}""".asJsonObject()))
+      assertEquals(CordaFlowInstruction(flowClass = TestFileFlow::class,
+          arguments = mapOf("file" to testPath.toFile())),
+          serializer.fromMultiPartFormData(formData))
     }
 
 
   @Test
-  fun `test corda flow instruction serialization`() {
+  fun `test json corda flow instruction serialization`() {
     val serializer = getKoin().getSerializer(CordaFlowInstruction::class, TestFlow::class)
 
     assertEquals("""{"type":"object",

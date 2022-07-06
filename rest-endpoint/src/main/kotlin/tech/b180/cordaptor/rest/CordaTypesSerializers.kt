@@ -135,7 +135,7 @@ class CordaNodeAttachmentSerializer : MultiPartFormDataSerializer<CordaNodeAttac
 
 }
 
-class JavaFileSerializer : MultiPartFormDataSerializer<File> {
+class JavaFileSerializer : MultiPartFormValueSerializer<File> {
     override fun fromJson(value: JsonValue): File {
         throw UnsupportedOperationException("Don't know not to restore an untyped object from JSON")
     }
@@ -154,14 +154,13 @@ class JavaFileSerializer : MultiPartFormDataSerializer<File> {
         ).asJsonObject()
     }
 
-    override fun fromMultiPartFormData(data: FormData): File {
-        val file = data.getFirst("data")
-        if (file.isFileItem && file.fileItem != null) {
-            return file.fileItem.file.toFile()
-        }else{
-            throw SerializationException("Exception during multipart form data deserialization")
-        }
+  override fun fromMultiPartFormValue(formValue: FormData.FormValue): File {
+    if(formValue.isFileItem && formValue.fileItem != null) {
+      return formValue.fileItem.file.toFile()
+    } else{
+      throw SerializationException("Exception during multipart form data deserialization")
     }
+  }
 }
 
 /**
