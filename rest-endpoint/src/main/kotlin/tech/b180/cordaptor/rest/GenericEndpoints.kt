@@ -432,7 +432,7 @@ abstract class AbstractEndpointHandler<ResponseType: Any>(
 
     try {
       exchange.statusCode = error.statusCode
-      exchange.responseHeaders.put(Headers.CONTENT_TYPE, exchange.requestHeaders.getFirst(Headers.CONTENT_TYPE))
+      exchange.responseHeaders.put(Headers.CONTENT_TYPE, JSON_CONTENT_TYPE)
 
       // we switch to blocking mode to simplify stream handling, because
       // generation of JSON is presumed to be fast and will not hold the worker thread for long
@@ -486,7 +486,7 @@ abstract class AbstractEndpointHandler<ResponseType: Any>(
       }
 
       payload?.let {
-        exchange.responseHeaders.put(Headers.CONTENT_TYPE, exchange.requestHeaders.getFirst(Headers.CONTENT_TYPE))
+        exchange.responseHeaders.put(Headers.CONTENT_TYPE, JSON_CONTENT_TYPE)
 
         // we switch to blocking mode to simplify stream handling, because
         // generation of JSON is presumed to be fast and will not hold the worker thread for long

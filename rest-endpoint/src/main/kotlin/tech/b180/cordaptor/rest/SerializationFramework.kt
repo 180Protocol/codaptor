@@ -179,7 +179,32 @@ abstract class StructuredObjectSerializer<T: Any>(
   }
 
   override fun fromMultiPartFormData(data: FormData): T {
-    TODO("Parse FormData and replicate above logic to map each property and call its fromMultiFormData function")
+    if (!deserialize) {
+      throw UnsupportedOperationException("Cannot deserialize $valueType from JSON")
+    }
+
+    // this logic driven from the introspection, so any unknown properties are silently ignored
+    val values = structure.filterNot { (data.get(it.key) == null && !it.value.isMandatory) || !it.value.deserialize }
+      .mapValues { (propertyName, prop) ->
+
+        val propValue = data.get(propertyName)
+
+        // absence of value or explicit null are treated the same way
+        if (!data.contains(propertyName) || propValue == null ) {
+          if (prop.isMandatory) {
+            throw SerializationException("Received null value for mandatory property $propertyName " +
+                    "of type $valueType")
+          }
+        }
+
+        // by this point if it's null, we know it's legitimate
+        if(prop.serializer !is MultiPartFormValueSerializer){
+          throw SerializationException("${prop.serializer} is not of type MultiPartFormDataSerializer and cannot handle multipart/form-data")
+        }
+        propValue?.let { prop.serializer.fromMultiPartFormValue(it.first) }
+      }
+
+    return initializeInstance(values)
   }
 
   open fun initializeInstance(values: Map<String, Any?>): T {
