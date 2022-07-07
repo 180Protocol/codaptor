@@ -624,7 +624,7 @@ class OperationEndpointHandler<RequestType: Any, ResponseType: Any>(
       exchange.startBlocking()
       val parser = FormParserFactory.builder().build().createParser(exchange)
       val formData = parser.parseBlocking()
-      if(!(requestSerializer::class.java.isAssignableFrom(MultiPartFormDataSerializer::class.java))){
+      if(requestSerializer !is MultiPartFormDataSerializer){
         throw SerializationException("$requestSerializer is not of type MultiPartFormDataSerializer and cannot handle multipart/form-data")
       }
       val endpointRequest = HttpRequestWithPayload(exchange, subject,

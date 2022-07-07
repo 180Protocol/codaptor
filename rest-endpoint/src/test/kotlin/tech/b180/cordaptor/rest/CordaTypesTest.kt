@@ -13,10 +13,7 @@ import net.corda.core.identity.*
 import net.corda.core.schemas.MappedSchema
 import net.corda.core.schemas.PersistentState
 import net.corda.core.transactions.SignedTransaction
-import net.corda.core.utilities.OpaqueBytes
-import net.corda.core.utilities.ProgressTracker
-import net.corda.core.utilities.toBase58
-import net.corda.core.utilities.toSHA256Bytes
+import net.corda.core.utilities.*
 import net.corda.finance.flows.AbstractCashFlow
 import net.corda.testing.core.TestIdentity
 import org.apache.commons.io.IOUtils
@@ -420,18 +417,17 @@ data class TestNonComposableFlow(
 }
 
 data class TestFileFlow(
-    val file: File,
-    override val progressTracker: ProgressTracker
-) : FlowLogic<File>() {
-    constructor(file: File) : this(file, ProgressTracker(
-        AbstractCashFlow.Companion.GENERATING_TX,
-        AbstractCashFlow.Companion.SIGNING_TX,
-        AbstractCashFlow.Companion.FINALISING_TX
-    ))
+  val file: File,
+  override val progressTracker: ProgressTracker
+) : FlowLogic<Boolean>() {
 
-    override fun call(): File {
-        throw AssertionError("Not expected to be called in the test")
-    }
+  companion object {
+    private val flowLogger = loggerFor<TestFileFlow>()
+  }
+
+  override fun call(): Boolean {
+    return file.isFile
+  }
 }
 
 object CompoundStateSchema

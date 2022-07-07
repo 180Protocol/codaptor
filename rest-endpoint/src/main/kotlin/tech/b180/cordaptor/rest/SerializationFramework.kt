@@ -199,7 +199,7 @@ abstract class StructuredObjectSerializer<T: Any>(
 
         // by this point if it's null, we know it's legitimate
         if(prop.serializer !is MultiPartFormValueSerializer){
-          throw SerializationException("${prop.serializer} is not of type MultiPartFormDataSerializer and cannot handle multipart/form-data")
+          throw SerializationException("${prop.serializer} is not of type MultiPartFormValueSerializer and cannot handle multipart/form-data")
         }
         propValue?.let { prop.serializer.fromMultiPartFormValue(it.first) }
       }
