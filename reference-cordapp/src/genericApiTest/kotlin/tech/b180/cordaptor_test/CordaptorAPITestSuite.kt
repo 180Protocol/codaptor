@@ -47,6 +47,7 @@ class CordaptorAPITestSuite(
     testVaultQueryViaPOST(client)
       createCompoundState(client)
     testNodeAttachmentViaPOST(client)
+    testFlowMultiPartForm(client)
     testVaultQueryWithExpressionViaPOST(client)
   }
 
@@ -239,12 +240,26 @@ class CordaptorAPITestSuite(
     assertDoesNotThrow { SecureHash.parse(response.contentAsString.replace("\"", "")) }
   }
 
+  private fun testFlowMultiPartForm(client: HttpClient){
+    val req = client.POST("$baseUrl/node/reference/TestFileFlow")
+
+    val multiPartContentProvider = MultiPartContentProvider()
+    multiPartContentProvider.addFilePart("file",  "testData.csv",
+      PathContentProvider(Paths.get(CordaptorAPITestSuite::class.java.classLoader.getResource("testData.csv").toURI())), null)
+    multiPartContentProvider.close()
+    req.content(multiPartContentProvider)
+    val response = req.send()
+    assertEquals("application/json", response.mediaType)
+    assertEquals(HttpServletResponse.SC_OK, response.status)
+    //assertEquals(true.toString(), response.contentAsString)
+  }
+
   private fun testVaultQueryViaPOST(client: HttpClient) {
     val req = client.POST(
       "$baseUrl/node/reference/SimpleLinearState/query")
 
     val content = """{
-      |"contractStateClass":"tech.b180.ref_cordapp.SimpleLinearState",
+      |"contractStateClass":"tech.b180.ref_cordapp.state.SimpleLinearState",
       |"linearStateExternalIds":["TEST-333"]}""".trimMargin()
 
     req.content(StringContentProvider("application/json", content, Charsets.UTF_8))
@@ -275,7 +290,7 @@ class CordaptorAPITestSuite(
             "$baseUrl/node/reference/SimpleLinearState/query")
 
         val content = """{
-      |"contractStateClass":"tech.b180.ref_cordapp.SimpleLinearState",
+      |"contractStateClass":"tech.b180.ref_cordapp.state.SimpleLinearState",
       |"linearStateExternalIds":["TEST-111"],
       |"expression": {"type": "equals", "column": "VaultLinearStates.externalId", "schema": "net.corda.node.services.vault.VaultSchemaV1", "value": "TEST-111"}}""".trimMargin()
 

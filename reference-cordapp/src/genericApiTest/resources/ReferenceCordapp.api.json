@@ -317,6 +317,19 @@
           "externalId"
         ]
       },
+      "CordaFlowInstruction_TestFileFlow": {
+        "type": "object",
+        "properties": {
+          "options": {
+            "$ref": "#/components/schemas/CordaFlowInstructionOptions"
+          },
+          "file": {
+            "type": "string",
+            "format": "binary"
+          }
+        },
+        "required": ["file"]
+      },
       "CordaFlowProgress": {
         "type": "object",
         "properties": {
@@ -386,6 +399,22 @@
         "required": [
           "timestamp"
         ]
+      },
+      "CordaFlowResult_TestFileFlowResult": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/Throwable"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "value": {
+            "$ref": "#/components/schemas/TestFileFlowResult"
+          }
+        },
+        "required": ["timestamp"]
       },
       "CordaFlowSnapshot_ComplexFlowResult": {
         "type": "object",
@@ -467,6 +496,29 @@
           "flowRunId",
           "startedAt"
         ]
+      },
+      "CordaFlowSnapshot_TestFileFlowResult": {
+        "type": "object",
+        "properties": {
+          "currentProgress": {
+            "$ref": "#/components/schemas/CordaFlowProgress"
+          },
+          "flowClass": {
+            "type": "string"
+          },
+          "flowRunId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "result": {
+            "$ref": "#/components/schemas/CordaFlowResult_TestFileFlowResult"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": ["flowClass", "flowRunId", "startedAt"]
       },
       "CordaHashAttachmentConstraint": {
         "type": "object",
@@ -1444,6 +1496,15 @@
           "linearId",
           "participant"
         ]
+      },
+      "TestFileFlowResult": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "boolean"
+          }
+        },
+        "required": ["output"]
       },
       "Throwable": {
         "type": "object",
@@ -2596,6 +2657,130 @@
         "tags": [
           "vaultQuery"
         ]
+      }
+    },
+    "/node/reference/TestFileFlow": {
+      "post": {
+        "operationId": "initiateTestFileFlow",
+        "parameters": [{
+          "description": "Timeout for synchronous flow execution, 0 for immediate return",
+          "in": "query",
+          "name": "wait",
+          "required": false,
+          "schema": {
+            "type": "number",
+            "minimum": 0
+          }
+        }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CordaFlowInstruction_TestFileFlow"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CordaFlowSnapshot_TestFileFlowResult"
+                }
+              }
+            },
+            "description": "Flow execution completed successfully and its result is available",
+            "headers": {
+              "Location": {
+                "description": "URL from which to obtain latest snapshot of the flow",
+                "schema": {
+                  "type": "string",
+                  "format": "url"
+                }
+              }
+            }
+          },
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CordaFlowSnapshot_TestFileFlowResult"
+                }
+              }
+            },
+            "description": "Flow execution stared and its outcome is not yet available",
+            "headers": {
+              "Location": {
+                "description": "URL from which to obtain latest snapshot of the flow",
+                "schema": {
+                  "type": "string",
+                  "format": "url"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CordaFlowSnapshot_TestFileFlowResult"
+                }
+              }
+            },
+            "description": "Flow execution failed and error information is available",
+            "headers": {
+              "Location": {
+                "description": "URL from which to obtain latest snapshot of the flow",
+                "schema": {
+                  "type": "string",
+                  "format": "url"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Initiates and tracks execution of Corda flow TestFileFlow with given parameters",
+        "tags": ["flowInitiation"]
+      }
+    },
+    "/node/reference/TestFileFlow/snapshot/{flowRunId}": {
+      "get": {
+        "operationId": "getLatestSnapshotForTestFileFlow",
+        "parameters": [{
+          "description": "Flow run id returned by a flow initiation operation",
+          "in": "path",
+          "name": "flowRunId",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CordaFlowSnapshot_TestFileFlowResult"
+                }
+              }
+            },
+            "description": "Latest snapshot of the flow with given run id"
+          },
+          "403": {
+            "description": "Permission denied"
+          },
+          "404": {
+            "description": "Snapshot of a flow with given run id was not found, which may mean it was already evicted"
+          }
+        },
+        "summary": "Returns latest snapshot for a flow of type TestFileFlow initiated with given run id",
+        "tags": ["flowInitiation"]
       }
     },
     "/node/tx/{hash}": {
