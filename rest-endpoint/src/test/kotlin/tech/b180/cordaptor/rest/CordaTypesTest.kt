@@ -24,7 +24,6 @@ import org.koin.test.KoinTest
 import org.koin.test.KoinTestRule
 import tech.b180.cordaptor.corda.*
 import tech.b180.cordaptor.kernel.lazyGetAll
-import java.io.File
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.nio.file.Paths
@@ -299,9 +298,8 @@ class CordaTypesTest : KoinTest {
 
       println("Serializer Schema: " + serializer.generateRecursiveSchema(getKoin().get()));
 
-      assertEquals(CordaFlowInstruction(flowClass = TestFileFlow::class,
-          arguments = mapOf("file" to testPath.toFile())),
-          serializer.fromMultiPartFormData(formData))
+      assertTrue { testPath.toFile().readBytes().contentEquals(
+        serializer.fromMultiPartFormData(formData).arguments["file"] as ByteArray) }
     }
 
 
@@ -417,16 +415,16 @@ data class TestNonComposableFlow(
 }
 
 data class TestFileFlow(
-  val file: File,
+  val file: ByteArray,
   override val progressTracker: ProgressTracker
-) : FlowLogic<Boolean>() {
+) : FlowLogic<ByteArray>() {
 
   companion object {
     private val flowLogger = loggerFor<TestFileFlow>()
   }
 
-  override fun call(): Boolean {
-    return file.isFile
+  override fun call(): ByteArray {
+    return file
   }
 }
 

@@ -17,6 +17,10 @@ import net.corda.testing.node.TestCordapp
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import tech.b180.ref_cordapp.state.ComplexState
+import tech.b180.ref_cordapp.state.ComplexStateSchemaV1
+import tech.b180.ref_cordapp.state.CompoundState
+import tech.b180.ref_cordapp.state.SimpleLinearState
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.declaredMemberProperties
 import kotlin.test.assertEquals

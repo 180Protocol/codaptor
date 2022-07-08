@@ -23,7 +23,6 @@ import tech.b180.cordaptor.corda.CordaNodeState
 import tech.b180.cordaptor.shaded.javax.json.*
 import tech.b180.cordaptor.shaded.javax.json.stream.JsonGenerator
 import java.io.File
-import java.io.InputStream
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.security.PublicKey
@@ -135,7 +134,8 @@ class CordaNodeAttachmentSerializer : MultiPartFormDataSerializer<CordaNodeAttac
 
 }
 
-class JavaFileSerializer : MultiPartFormValueSerializer<File> {
+class JavaFileSerializer : MultiPartFormTransformValueSerializer<File, ByteArray> {
+
     override fun fromJson(value: JsonValue): File {
         throw UnsupportedOperationException("Don't know not to restore an untyped object from JSON")
     }
@@ -145,7 +145,7 @@ class JavaFileSerializer : MultiPartFormValueSerializer<File> {
     }
 
     override val valueType: SerializerKey
-        get() = SerializerKey.forType(File::class.java)
+        get() = SerializerKey.forType(ByteArray::class.java)
 
     override fun generateSchema(generator: JsonSchemaGenerator): JsonObject {
         return mapOf(
@@ -154,14 +154,15 @@ class JavaFileSerializer : MultiPartFormValueSerializer<File> {
         ).asJsonObject()
     }
 
-  override fun fromMultiPartFormValue(formValue: FormData.FormValue): File {
-    if(formValue.isFileItem && formValue.fileItem != null) {
-      return formValue.fileItem.file.toFile()
-    } else{
-      throw SerializationException("Exception during multipart form data deserialization")
-    }
+    override fun transformValue(formValue: FormData.FormValue): ByteArray {
+        if (formValue.isFileItem && formValue.fileItem != null) {
+          return formValue.fileItem.file.toFile().readBytes()
+      } else{
+        throw SerializationException("Exception during multipart form data deserialization")
+      }
   }
 }
+
 
 /**
  * Serializes a [Currency] as a JSON string representing its ISO code.

@@ -583,6 +583,10 @@ interface MultiPartFormValueSerializer<T>: CustomSerializer<T>{
   fun fromMultiPartFormValue(formValue: FormData.FormValue) : T
 }
 
+interface MultiPartFormTransformValueSerializer<T, R>: CustomSerializer<T>{
+  fun transformValue(formValue: FormData.FormValue) : R
+}
+
 /**
  * Alternative to [CustomSerializer] when custom serializers need to be created for
  * parameterized types where parameters are determined at runtime and the schema
