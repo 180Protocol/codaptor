@@ -185,7 +185,7 @@ data class TestFileFlowResult(
 @StartableByService
 @Suppress("UNUSED")
 class TestFileFlow(
-  private val file: File
+  private val file: ByteArray
 ) : FlowLogic<TestFileFlowResult>() {
 
   companion object {
@@ -193,6 +193,6 @@ class TestFileFlow(
   }
 
   override fun call(): TestFileFlowResult {
-    return TestFileFlowResult(file.isFile)
+    return TestFileFlowResult(file.isNotEmpty())
   }
 }

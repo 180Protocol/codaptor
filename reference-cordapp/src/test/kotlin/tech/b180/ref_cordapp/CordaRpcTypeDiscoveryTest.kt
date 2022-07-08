@@ -10,7 +10,7 @@ import net.corda.serialization.internal.carpenter.ClassCarpenterImpl
 import net.corda.testing.driver.*
 import net.corda.testing.node.NotarySpec
 import net.corda.testing.node.User
-import java.net.URLClassLoader
+import tech.b180.ref_cordapp.state.SimpleLinearState
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull

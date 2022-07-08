@@ -250,7 +250,7 @@ class CordaptorAPITestSuite(
     req.content(multiPartContentProvider)
     val response = req.send()
     assertEquals("application/json", response.mediaType)
-    assertEquals(HttpServletResponse.SC_OK, response.status)
+    assertEquals(HttpServletResponse.SC_ACCEPTED, response.status)
     //assertEquals(true.toString(), response.contentAsString)
   }
 
