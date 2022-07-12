@@ -203,6 +203,9 @@ abstract class StructuredObjectSerializer<T: Any>(
             is MultiPartFormValueSerializer -> {
               prop.serializer.fromMultiPartFormValue(it.first)
             }
+            is SerializationFactory.PrimitiveTypeSerializer -> {
+              prop.serializer.fromMultiPartFormValue(it.first)
+            }
             is MultiPartFormTransformValueSerializer<*,*> -> {
               prop.serializer.transformValue(it.first)
             }

@@ -185,7 +185,9 @@ data class TestFileFlowResult(
 @StartableByService
 @Suppress("UNUSED")
 class TestFileFlow(
-  private val file: ByteArray
+  private val file: ByteArray,
+  private val testInt: Int,
+  private val testString: String
 ) : FlowLogic<TestFileFlowResult>() {
 
   companion object {

@@ -326,9 +326,16 @@
           "file": {
             "type": "string",
             "format": "binary"
+          },
+          "testInt": {
+            "type": "number",
+            "format": "int32"
+          },
+          "testString": {
+            "type": "string"
           }
         },
-        "required": ["file"]
+        "required": ["file", "testInt", "testString"]
       },
       "CordaFlowProgress": {
         "type": "object",

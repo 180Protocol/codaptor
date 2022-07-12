@@ -244,6 +244,8 @@ class CordaptorAPITestSuite(
     val req = client.POST("$baseUrl/node/reference/TestFileFlow")
 
     val multiPartContentProvider = MultiPartContentProvider()
+    multiPartContentProvider.addFieldPart("testString",  StringContentProvider("test"), null)
+    multiPartContentProvider.addFieldPart("testInt",  StringContentProvider("2"), null)
     multiPartContentProvider.addFilePart("file",  "testData.csv",
       PathContentProvider(Paths.get(CordaptorAPITestSuite::class.java.classLoader.getResource("testData.csv").toURI())), null)
     multiPartContentProvider.close()

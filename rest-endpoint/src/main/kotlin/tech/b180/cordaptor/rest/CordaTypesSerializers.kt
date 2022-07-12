@@ -96,6 +96,13 @@ class BigDecimalSerializer
   override fun toJson(obj: BigDecimal, generator: JsonGenerator) {
     generator.write(obj)
   }
+
+  override fun fromMultiPartFormValue(formValue: FormData.FormValue): BigDecimal {
+    return when(formValue.value.isNotEmpty()) {
+      true -> formValue.value.toBigDecimal()
+      false -> BigDecimal(0)
+    }
+  }
 }
 
 class CordaNodeAttachmentSerializer : MultiPartFormDataSerializer<CordaNodeAttachment> {
