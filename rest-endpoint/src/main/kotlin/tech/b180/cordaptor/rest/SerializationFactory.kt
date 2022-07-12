@@ -581,6 +581,8 @@ interface MultiPartFormDataSerializer<T>: CustomSerializer<T>{
 
 interface MultiPartFormValueSerializer<T>: CustomSerializer<T>{
   fun fromMultiPartFormValue(formValue: FormData.FormValue) : T
+
+  fun generateSchemaForMultiPart(generator: JsonSchemaGenerator): JsonObject
 }
 
 interface MultiPartFormTransformValueSerializer<T, R>: CustomSerializer<T>{

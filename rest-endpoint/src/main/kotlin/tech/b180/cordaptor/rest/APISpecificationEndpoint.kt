@@ -136,7 +136,10 @@ class CollectingJsonSchemaGenerator(
             serializer.schemaTypeName, key, serializer.generateSchema(this))
 
         createReference(serializer.schemaTypeName)
-      } else {
+      } else if (serializer is MultiPartFormValueSerializer){
+        serializer.generateSchemaForMultiPart(this)
+      }
+      else {
         // this is a simple type (e.g. collection), so its schema will be generated inline
         serializer.generateSchema(this)
       }

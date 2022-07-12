@@ -1960,6 +1960,11 @@
               "schema": {
                 "$ref": "#/components/schemas/CordaFlowInstruction_CreateCompoundStateFlow"
               }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/CordaFlowInstruction_CreateCompoundStateFlow"
+              }
             }
           },
           "required": true
@@ -2089,6 +2094,11 @@
         "requestBody": {
           "content": {
             "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CordaFlowInstruction_DelayedProgressFlow"
+              }
+            },
+            "multipart/form-data": {
               "schema": {
                 "$ref": "#/components/schemas/CordaFlowInstruction_DelayedProgressFlow"
               }
@@ -2224,6 +2234,11 @@
               "schema": {
                 "$ref": "#/components/schemas/CordaFlowInstruction_IssueComplexStateFlow"
               }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/CordaFlowInstruction_IssueComplexStateFlow"
+              }
             }
           },
           "required": true
@@ -2353,6 +2368,11 @@
         "requestBody": {
           "content": {
             "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CordaFlowInstruction_SimpleFlow"
+              }
+            },
+            "multipart/form-data": {
               "schema": {
                 "$ref": "#/components/schemas/CordaFlowInstruction_SimpleFlow"
               }
@@ -2675,6 +2695,11 @@
         "requestBody": {
           "content": {
             "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CordaFlowInstruction_TestFileFlow"
+              }
+            },
+            "multipart/form-data": {
               "schema": {
                 "$ref": "#/components/schemas/CordaFlowInstruction_TestFileFlow"
               }

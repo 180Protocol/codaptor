@@ -14,6 +14,7 @@ import net.corda.core.transactions.CoreTransaction
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.WireTransaction
 import net.corda.core.utilities.OpaqueBytes
+import net.corda.core.utilities.base64ToByteArray
 import net.corda.core.utilities.toBase58
 import net.corda.core.utilities.toSHA256Bytes
 import net.corda.serialization.internal.model.LocalTypeInformation
@@ -134,33 +135,47 @@ class CordaNodeAttachmentSerializer : MultiPartFormDataSerializer<CordaNodeAttac
 
 }
 
-class JavaFileSerializer : MultiPartFormTransformValueSerializer<File, ByteArray> {
-
-    override fun fromJson(value: JsonValue): File {
-        throw UnsupportedOperationException("Don't know not to restore an untyped object from JSON")
-    }
-
-    override fun toJson(obj: File, generator: JsonGenerator) {
-        throw UnsupportedOperationException("Don't know not to restore an untyped object from JSON")
-    }
+class ByteArrayJsonMultiPartSerializer : MultiPartFormValueSerializer<ByteArray> {
 
     override val valueType: SerializerKey
-        get() = SerializerKey.forType(ByteArray::class.java)
+      get() = SerializerKey.forType(ByteArray::class.java)
+
+    override fun fromJson(value: JsonValue): ByteArray {
+        return when (value.valueType) {
+          // provide limited number of type conversions
+          JsonValue.ValueType.TRUE -> true.toString().base64ToByteArray()
+          JsonValue.ValueType.FALSE -> false.toString().base64ToByteArray()
+          JsonValue.ValueType.NULL -> "".base64ToByteArray()
+          JsonValue.ValueType.NUMBER -> value.toString().base64ToByteArray()
+          JsonValue.ValueType.STRING -> (value as JsonString).string.base64ToByteArray()
+          else -> throw AssertionError("Expected string, got ${value.valueType} with value $value")
+        }
+    }
+
+    override fun fromMultiPartFormValue(formValue: FormData.FormValue): ByteArray {
+        if (formValue.isFileItem && formValue.fileItem != null) {
+            return formValue.fileItem.file.toFile().readBytes()
+        } else{
+            throw SerializationException("Exception during multipart form data deserialization")
+        }
+    }
+
+    override fun toJson(obj: ByteArray, generator: JsonGenerator) {
+        generator.write(String(obj))
+    }
 
     override fun generateSchema(generator: JsonSchemaGenerator): JsonObject {
         return mapOf(
-            "type" to "string",
-            "format" to "binary"
+            "type" to "string"
         ).asJsonObject()
     }
 
-    override fun transformValue(formValue: FormData.FormValue): ByteArray {
-        if (formValue.isFileItem && formValue.fileItem != null) {
-          return formValue.fileItem.file.toFile().readBytes()
-      } else{
-        throw SerializationException("Exception during multipart form data deserialization")
-      }
-  }
+    override fun generateSchemaForMultiPart(generator: JsonSchemaGenerator): JsonObject {
+        return mapOf(
+          "type" to "string",
+          "format" to "binary"
+        ).asJsonObject()
+    }
 }
 
 

@@ -48,7 +48,7 @@ class CordaTypesTest : KoinTest {
       // register custom serializers for the factory to discover
       single { BigDecimalSerializer() } bind CustomSerializer::class
       single { CordaNodeAttachmentSerializer() } bind CustomSerializer::class
-      single { JavaFileSerializer() } bind CustomSerializer::class
+      single { ByteArrayJsonMultiPartSerializer() } bind CustomSerializer::class
       single { CurrencySerializer() } bind CustomSerializer::class
       single { CordaUUIDSerializer() } bind CustomSerializer::class
       single { CordaSecureHashSerializer() } bind CustomSerializer::class
@@ -245,10 +245,6 @@ class CordaTypesTest : KoinTest {
             currentProgress = CordaFlowProgress("Step 1", now))).asJsonValue())
   }
 
-  @Test
-  fun `test corda transaction serialization`() {
-    val serializer = getKoin().getSerializer(SignedTransaction::class)
-  }
 
     @Test
     fun `test corda linear pointer serialization`() {
@@ -296,7 +292,7 @@ class CordaTypesTest : KoinTest {
       val formData = FormData(1)
       formData.add("file", testPath,  "testData.csv", null)
 
-      println("Serializer Schema: " + serializer.generateRecursiveSchema(getKoin().get()));
+      println("Serializer Schema: " + serializer.generateRecursiveSchema(getKoin().get()))
 
       assertTrue { testPath.toFile().readBytes().contentEquals(
         serializer.fromMultiPartFormData(formData).arguments["file"] as ByteArray) }
