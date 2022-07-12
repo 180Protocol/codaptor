@@ -289,9 +289,10 @@ class CordaTypesTest : KoinTest {
     fun `test multi part form data corda flow instruction serialization`() {
       val serializer = getKoin().getSerializer(CordaFlowInstruction::class, TestFileFlow::class) as MultiPartFormDataSerializer
       val testPath = Paths.get(CordaTypesTest::class.java.classLoader.getResource("testData.csv").toURI())
-      val formData = FormData(1)
+      val formData = FormData(3)
       formData.add("file", testPath,  "testData.csv", null)
-
+      formData.add("testString", "test")
+      formData.add("testInt", "2")
       println("Serializer Schema: " + serializer.generateRecursiveSchema(getKoin().get()))
 
       assertTrue { testPath.toFile().readBytes().contentEquals(
@@ -412,6 +413,8 @@ data class TestNonComposableFlow(
 
 data class TestFileFlow(
   val file: ByteArray,
+  val testInt: Int,
+  val testString: String,
   override val progressTracker: ProgressTracker
 ) : FlowLogic<ByteArray>() {
 

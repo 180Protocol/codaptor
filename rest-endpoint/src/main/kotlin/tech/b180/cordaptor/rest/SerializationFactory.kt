@@ -74,7 +74,6 @@ class SerializationFactory(
     val map = ConcurrentHashMap<SerializerKey, JsonSerializer<Any>>()
 
     map[SerializerKey(String::class.java)] = StringSerializer as JsonSerializer<Any>
-    map[SerializerKey(ByteArray::class.java)] = ByteArraySerializer as JsonSerializer<Any>
     map[SerializerKey(Int::class.java)] = IntSerializer as JsonSerializer<Any>
     map[SerializerKey(Long::class.java)] = LongSerializer as JsonSerializer<Any>
     map[SerializerKey(Double::class.java)] = DoubleSerializer as JsonSerializer<Any>
@@ -137,6 +136,8 @@ class SerializationFactory(
 
     override val valueType = SerializerKey.fromSuperclassTypeArgument(PrimitiveTypeSerializer::class, this::class)
     override fun generateSchema(generator: JsonSchemaGenerator) = schema
+
+    abstract fun fromMultiPartFormValue(formValue: FormData.FormValue) : T
   }
 
   /** Built-in serializer for atomic value of type [String] */
@@ -156,24 +157,12 @@ class SerializationFactory(
     override fun toJson(obj: String, generator: JsonGenerator) {
       generator.write(obj)
     }
-  }
 
-  /** Built-in serializer for atomic value of type [ByteArray] */
-  object ByteArraySerializer : PrimitiveTypeSerializer<ByteArray>("string") {
-    override fun fromJson(value: JsonValue): ByteArray {
-      return when (value.valueType) {
-        // provide limited number of type conversions
-        JsonValue.ValueType.TRUE -> true.toString().base64ToByteArray()
-        JsonValue.ValueType.FALSE -> false.toString().base64ToByteArray()
-        JsonValue.ValueType.NULL -> "".base64ToByteArray()
-        JsonValue.ValueType.NUMBER -> value.toString().base64ToByteArray()
-        JsonValue.ValueType.STRING -> (value as JsonString).string.base64ToByteArray()
-        else -> throw AssertionError("Expected string, got ${value.valueType} with value $value")
+    override fun fromMultiPartFormValue(formValue: FormData.FormValue): String {
+      return when(formValue.value.isNotEmpty()) {
+        true -> formValue.value
+        false -> ""
       }
-    }
-
-    override fun toJson(obj: ByteArray, generator: JsonGenerator) {
-      generator.write(String(obj))
     }
   }
 
@@ -191,6 +180,13 @@ class SerializationFactory(
     override fun toJson(obj: Int, generator: JsonGenerator) {
       generator.write(obj)
     }
+
+    override fun fromMultiPartFormValue(formValue: FormData.FormValue): Int {
+      return when(formValue.value.isNotEmpty()) {
+        true -> Integer.parseInt(formValue.value)
+        false -> 0
+      }
+    }
   }
 
   /** Built-in serializer for atomic value of type [Long] */
@@ -206,6 +202,13 @@ class SerializationFactory(
 
     override fun toJson(obj: Long, generator: JsonGenerator) {
       generator.write(obj)
+    }
+
+    override fun fromMultiPartFormValue(formValue: FormData.FormValue): Long {
+      return when(formValue.value.isNotEmpty()) {
+        true -> formValue.value.toLong()
+        false -> 0
+      }
     }
   }
 
@@ -223,6 +226,13 @@ class SerializationFactory(
     override fun toJson(obj: Double, generator: JsonGenerator) {
       generator.write(obj)
     }
+
+    override fun fromMultiPartFormValue(formValue: FormData.FormValue): Double {
+      return when(formValue.value.isNotEmpty()) {
+        true -> formValue.value.toDouble()
+        false -> 0.0
+      }
+    }
   }
 
   /** Built-in serializer for atomic value of type [Float] */
@@ -238,6 +248,13 @@ class SerializationFactory(
 
     override fun toJson(obj: Float, generator: JsonGenerator) {
       generator.write(obj.toDouble())
+    }
+
+    override fun fromMultiPartFormValue(formValue: FormData.FormValue): Float {
+      return when(formValue.value.isNotEmpty()) {
+        true -> formValue.value.toFloat()
+        false -> 0.0.toFloat()
+      }
     }
   }
 
@@ -255,6 +272,13 @@ class SerializationFactory(
     override fun toJson(obj: Boolean, generator: JsonGenerator) {
       generator.write(obj)
     }
+
+    override fun fromMultiPartFormValue(formValue: FormData.FormValue): Boolean {
+      return when (formValue.value.isNotEmpty()) {
+        true -> formValue.value.toBoolean()
+        else -> throw AssertionError("Expected , boolean got ${formValue.value}")
+      }
+    }
   }
 
   /** Serializer for Kotlin type [Unit] */
@@ -268,6 +292,13 @@ class SerializationFactory(
 
     override fun toJson(obj: Unit, generator: JsonGenerator) {
       generator.write(obj.toString())
+    }
+
+    override fun fromMultiPartFormValue(formValue: FormData.FormValue) {
+      return when (formValue.value.isNullOrEmpty()) {
+        true -> Unit
+        else -> throw AssertionError("Expected unit, got ${formValue.value}")
+      }
     }
   }
 
