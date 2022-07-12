@@ -7,6 +7,7 @@ import tech.b180.cordaptor.shaded.javax.json.Json
 import tech.b180.cordaptor.shaded.javax.json.JsonObject
 import java.net.URL
 import java.util.*
+import kotlin.collections.HashMap
 
 typealias SemanticVersion = String
 typealias ResourcePath = String
@@ -195,7 +196,10 @@ data class OpenAPI(
           RequestBody(content = sortedMapOf(JSON_CONTENT_TYPE to MediaType(schema)), required = required)
 
         fun createMultiPartFormDataRequest(schema: JsonObject, required: Boolean) =
-            RequestBody(content = sortedMapOf(MULTI_PART_FORM_DATA_CONTENT_TYPE to MediaType(schema)), required = required)
+          RequestBody(content = sortedMapOf(MULTI_PART_FORM_DATA_CONTENT_TYPE to MediaType(schema)), required = required)
+
+        fun createMultiMediaTypeRequest(contentTypeToSchema: Map<ContentType, MediaType>, required: Boolean) =
+          RequestBody(content = contentTypeToSchema.toSortedMap(), required = required)
     }
   }
 

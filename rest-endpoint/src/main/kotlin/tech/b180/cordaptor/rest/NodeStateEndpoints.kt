@@ -200,9 +200,10 @@ class FlowInitiationEndpoint<FlowReturnType: Any>(
               summary = "Initiates and tracks execution of Corda flow ${flowClass.simpleName} with given parameters",
               operationId = "initiate${flowClass.simpleName}"
           ).withRequestBody(
-              OpenAPI.RequestBody.createJsonRequest(
-                  schemaGenerator.generateSchema(requestType),
-                  required = true)
+            OpenAPI.RequestBody.createMultiMediaTypeRequest(
+              mapOf(OpenAPI.JSON_CONTENT_TYPE to OpenAPI.MediaType(schemaGenerator.generateSchema(requestType)),
+                OpenAPI.MULTI_PART_FORM_DATA_CONTENT_TYPE to OpenAPI.MediaType(schemaGenerator.generateSchema(requestType))),
+              required = true)
           ).withParameter(OpenAPI.Parameter(name = "wait", `in` = OpenAPI.ParameterLocation.QUERY,
               description = "Timeout for synchronous flow execution, 0 for immediate return", required = false,
               schema = OpenAPI.PrimitiveTypes.POSITIVE_INTEGER)
