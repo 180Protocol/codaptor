@@ -31,25 +31,25 @@ reliability, and flexibility of the overall system.
 At the moment Codaptor is a pre-1.0 technology preview made available to the community to gather feedback and identify
 areas for improvement. It is not considered production-ready yet.
 
-Latest Codaptor release is [0.4.0](https://github.com/b180tech/cordaptor/releases/tag/v0.4.0). You can download
-standalone bundle archive from the release page on GitHub. From version 0.4.0 cordaptor releases are tagged with the corda platform version they are built under. For ex, the current 0.4.0 version is tagged as `0.4.0-corda4.7`. All Codaptor modules are 
-[available in Maven Central](https://search.maven.org/search?q=g:tech.b180.cordaptor%20AND%20v:0.4.0-corda4.7).
-Embedded CorDapp bundle can be added using coordinates `tech.b180.cordaptor:cordaptor-bundle-rest-embedded:0.4.0-corda4.7` (
+Latest Codaptor release is [0.4.1](https://github.com/180Protocol/codaptor/releases/tag/0.4.1). You can download
+standalone bundle archive from the release page on GitHub. From version 0.4.1 cordaptor releases are tagged with the corda platform version they are built under. For ex, the current 0.4.1 version is tagged as `0.4.1-corda4.7`. All Codaptor modules are 
+[available in Maven Central](https://search.maven.org/search?q=g:tech.b180.cordaptor%20AND%20v:0.4.1-corda4.7).
+Embedded CorDapp bundle can be added using coordinates `tech.b180.cordaptor:cordaptor-bundle-rest-embedded:0.4.1-corda4.7` (
 see [getting started guide](./docs/getting-started.md))
 
 Branch [0.1.x](https://github.com/b180tech/cordaptor/tree/0.1.x) was created for bug fixes, and subsequent
-releases of the 0.x.x are going to be bugfix only. Snapshot versions of all artifacts (`0.4.0-corda4.7-SNAPSHOT`)
+releases of the 0.x.x are going to be bugfix only. Snapshot versions of all artifacts (`0.4.1-corda4.7-SNAPSHOT`)
 are available from [OSS Sonatype Cordaptor](https://oss.sonatype.org/#nexus-search;gav~tech.b180.cordaptor)
 Maven repository if you do not want to wait for the release. Published snapshot versions pass all automated tests.
 
-All new functionality is developed in `master` branch, and the next milestone release is going to be 0.5.0.
-Snapshot versions of all artifacts (`0.4.0-corda4.7-SNAPSHOT`) are available from
+All new functionality is developed in `master` branch, and the next major milestone release is going to be 0.5.0.
+Snapshot versions of all artifacts (`0.4.1-corda4.7-SNAPSHOT`) are available from
 [OSS Sonatype Cordaptor](https://oss.sonatype.org/#nexus-search;gav~tech.b180.cordaptor)
 Maven repository if you do not want to wait for the release. Published snapshot versions pass all automated tests.
 
 ## Getting started
 
-Codaptor is designed from the ground up to be unobstructive, so there is **no code or configuration required**!
+Codaptor is designed from the ground up to be unobstructed, so there is **no code or configuration required**!
 Simply download the embedded CorDapp bundle JAR file from the
 [latest release page](https://github.com/b180tech/cordaptor/releases) and drop it into `cordapps` 
 directory of your Corda node. Restart the node and fire up your browser to access the Swagger UI.
