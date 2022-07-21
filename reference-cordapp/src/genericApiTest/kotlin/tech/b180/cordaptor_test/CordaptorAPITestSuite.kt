@@ -72,7 +72,7 @@ class CordaptorAPITestSuite(
     val nodeInfo = response.contentAsString.asJsonObject()
     assertEquals("localhost".asJsonValue(), nodeInfo.getValue("/addresses/0/host"))
     assertEquals(nodeName.asJsonValue(), nodeInfo.getValue("/legalIdentitiesAndCerts/0/party/name"))
-    assertEquals(7.asJsonValue(), nodeInfo.getValue("/platformVersion"))
+    assertEquals(9.asJsonValue(), nodeInfo.getValue("/platformVersion"))
     assertEquals(JsonValue.ValueType.NUMBER, nodeInfo.getValue("/serial").valueType)
   }
 
