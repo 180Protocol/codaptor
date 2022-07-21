@@ -3,8 +3,8 @@ apply plugin: 'net.corda.plugins.cordapp'
 apply plugin: 'net.corda.plugins.cordformation'
 
 cordapp {
-    targetPlatformVersion 7
-    minimumPlatformVersion 7
+ 	targetPlatformVersion 9
+ 	minimumPlatformVersion 9
     workflow {
         // this name becomes part of API endpoint URLs used in tests
         name "Reference CorDapp"
