@@ -206,7 +206,10 @@ abstract class StructuredObjectSerializer<T: Any>(
             is SerializationFactory.PrimitiveTypeSerializer -> {
               prop.serializer.fromMultiPartFormValue(it.first)
             }
-            is MultiPartFormTransformValueSerializer<*,*> -> {
+            is MultiPartFormDataSerializer -> {
+              prop.serializer.fromMultiPartFormData(data)
+            }
+            is MultiPartFormTransformValueSerializer<*, *> -> {
               prop.serializer.transformValue(it.first)
             }
             else -> throw SerializationException("${prop.serializer} is not of type MultiPartFormValueSerializer or MultiPartFormTransformValueSerializer and cannot handle multipart/form-data")
