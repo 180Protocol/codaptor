@@ -12,7 +12,6 @@ import net.corda.core.flows.FlowLogic
 import net.corda.core.identity.*
 import net.corda.core.schemas.MappedSchema
 import net.corda.core.schemas.PersistentState
-import net.corda.core.transactions.SignedTransaction
 import net.corda.core.utilities.*
 import net.corda.finance.flows.AbstractCashFlow
 import net.corda.testing.core.TestIdentity
@@ -30,6 +29,7 @@ import java.nio.file.Paths
 import java.time.Duration
 import java.time.Instant
 import java.util.*
+import javax.json.Json
 import javax.persistence.Column
 import javax.persistence.Entity
 import javax.persistence.Table
@@ -289,10 +289,11 @@ class CordaTypesTest : KoinTest {
     fun `test multi part form data corda flow instruction serialization`() {
       val serializer = getKoin().getSerializer(CordaFlowInstruction::class, TestFileFlow::class) as MultiPartFormDataSerializer
       val testPath = Paths.get(CordaTypesTest::class.java.classLoader.getResource("testData.csv").toURI())
-      val formData = FormData(3)
+      val formData = FormData(4)
       formData.add("file", testPath,  "testData.csv", null)
       formData.add("testString", "test")
       formData.add("testInt", "2")
+      formData.add("options", "{\r\n 'trackProgress': true\r\n}")
       println("Serializer Schema: " + serializer.generateRecursiveSchema(getKoin().get()))
 
       assertTrue { testPath.toFile().readBytes().contentEquals(
